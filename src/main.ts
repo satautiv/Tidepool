@@ -1,14 +1,15 @@
 import './ui/styles/base.css';
+import { DebugOverlay } from './render/DebugOverlay';
+import { Renderer } from './render/Renderer';
+import { attachViewport } from './render/viewport';
 
-// Bootstrap placeholder. The renderer (T1.11) and App shell (T1.18) take over from here.
+// Bootstrap. The App shell (T1.18) takes over composing views and screens.
 const canvas = document.querySelector<HTMLCanvasElement>('#game');
 if (!canvas) throw new Error('Missing #game canvas');
 
-function resize(target: HTMLCanvasElement): void {
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  target.width = Math.round(target.clientWidth * dpr);
-  target.height = Math.round(target.clientHeight * dpr);
-}
+const renderer = new Renderer(canvas);
+attachViewport(renderer, canvas);
 
-new ResizeObserver(() => resize(canvas)).observe(canvas);
-resize(canvas);
+if (import.meta.env.DEV && new URLSearchParams(location.search).has('debug')) {
+  renderer.addView(new DebugOverlay(renderer.stats));
+}
