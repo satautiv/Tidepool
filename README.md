@@ -1,5 +1,7 @@
 # 🌊 Tidepool
 
+[![CI](https://github.com/satautiv/Tidepool/actions/workflows/ci.yml/badge.svg)](https://github.com/satautiv/Tidepool/actions/workflows/ci.yml)
+
 *A calm, satisfying block puzzle set in a sunlit tidepool. Web first, Android next, ad-supported.*
 
 > **Status:** Pre-production — vision document. Working title; check name availability on stores and portals before release.
