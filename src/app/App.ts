@@ -4,8 +4,10 @@
  */
 import { canPlace } from '../core/board';
 import {
+  deserialize,
   newEndless,
   placePiece,
+  serialize,
   type EndlessState,
   type GameEvent,
   type PlaceError,
@@ -29,6 +31,7 @@ import { SpriteSet, type CanvasFactory } from '../render/sprites';
 import { TrayView } from '../render/TrayView';
 import { attachViewport, type ViewportEnv } from '../render/viewport';
 import { Router } from '../ui/Router';
+import type { SaveStore } from '../services/storage/SaveStore';
 import { GameScreen } from '../ui/screens/GameScreen';
 import { EventBus } from './events';
 
@@ -51,6 +54,14 @@ export interface AppOptions {
   renderer?: RendererOptions;
   spriteFactory?: CanvasFactory;
   debug?: boolean;
+  /** A loaded save. Without one, nothing persists (tests, previews). */
+  save?: SaveStore;
+}
+
+/** Page lifecycle targets, injectable for tests. */
+export interface PageEnv {
+  window: EventTarget;
+  document: EventTarget & { visibilityState: DocumentVisibilityState };
 }
 
 export function randomSeed(): string {
@@ -84,7 +95,8 @@ export class App {
     this.scene = new GameScene(new SpriteSet(this.palette, opts.spriteFactory));
     this.boardView = new BoardView(redraw);
     this.trayView = new TrayView(redraw);
-    this.stateValue = newEndless(this.seed()).state;
+    this.best = opts.save?.current.stats.bestScore ?? 0;
+    this.stateValue = this.restoreRun() ?? newEndless(this.seed()).state;
 
     this.drag = new DragController(this.dragHost(), {
       onStart: (d) => this.trayView.setDragging(d.slot),
@@ -133,20 +145,34 @@ export class App {
     return this.best;
   }
 
-  /** Attaches to the real viewport and pointer events, and shows the game. */
-  start(env?: { viewport?: ViewportEnv; blurTarget?: EventTarget }): void {
+  /**
+   * Attaches to the real viewport, pointer and page lifecycle events, and shows the game.
+   * A resumed run appears without the deal-in animation.
+   */
+  start(env?: { viewport?: ViewportEnv; page?: PageEnv }): void {
+    const page = env?.page ?? { window, document };
     attachViewport(this.renderer, this.opts.canvas, env?.viewport);
-    bindPointerEvents(this.opts.canvas, this.drag, env?.blurTarget ?? window);
+    bindPointerEvents(this.opts.canvas, this.drag, page.window);
+    const flush = () => void this.opts.save?.flush();
+    page.document.addEventListener('visibilitychange', () => {
+      if (page.document.visibilityState === 'hidden') flush();
+    });
+    page.window.addEventListener('pagehide', flush);
+
     void this.router.show(this.gameScreen);
-    this.showRun(true);
+    const resumed = this.stateValue.stats.placed > 0;
+    this.showRun(!resumed, resumed);
+    if (!resumed) this.persistRun();
   }
 
-  /** Starts a fresh Endless run. */
+  /** Starts a fresh Endless run, closing out the current one first. */
   newRun(seed = this.seed()): void {
+    this.finishRun(this.stateValue);
     this.stateValue = newEndless(seed).state;
     this.gameScreen.gameOver.hide();
     this.drag.setLocked(false);
     this.showRun(true);
+    this.persistRun();
     this.bus.emit('newRun', { state: this.stateValue });
   }
 
@@ -164,6 +190,7 @@ export class App {
       step.events.some((e) => e.type === 'dealt'),
     );
     this.updateHud();
+    this.persistRun(step.events);
     this.bus.emit('game', { events: step.events, state: step.state });
     if (step.state.over) void this.showGameOver();
     return undefined;
@@ -185,8 +212,55 @@ export class App {
     this.bus.emit('gameOver', info);
   }
 
-  private showRun(animateTray: boolean): void {
-    this.bestAtRunStart = this.best;
+  /** Saves the run after every change, plus the best score and lifetime counters. */
+  private persistRun(events: readonly GameEvent[] = []): void {
+    const tidalWaves = events.filter(
+      (e) => e.type === 'cleared' && e.callouts.includes('tidalWave'),
+    ).length;
+    this.opts.save?.update((s) => {
+      s.endlessRun = serialize(this.stateValue);
+      s.endlessRunBestAtStart = this.bestAtRunStart;
+      s.stats.bestScore = Math.max(s.stats.bestScore, this.best);
+      s.stats.tidalWaves += tidalWaves;
+    });
+  }
+
+  /**
+   * Counts a finished run in the lifetime stats and clears it from the save. Runs are counted
+   * when they are replaced (Play again, or on boot), not at game over, so a second chance
+   * (T1.23) can still continue the same run.
+   */
+  private finishRun(run: EndlessState): void {
+    if (run.stats.placed === 0) return;
+    this.opts.save?.update((s) => {
+      s.stats.gamesPlayed++;
+      s.stats.linesCleared += run.stats.linesCleared;
+      s.endlessRun = null;
+    });
+  }
+
+  /** The saved in-progress run, if there is a valid one. Finished runs are closed out. */
+  private restoreRun(): EndlessState | null {
+    const save = this.opts.save;
+    const json = save?.current.endlessRun;
+    if (!save || !json) return null;
+    let run: EndlessState;
+    try {
+      run = deserialize(json);
+    } catch {
+      save.update((s) => (s.endlessRun = null)); // unreadable or from another version
+      return null;
+    }
+    if (run.over) {
+      this.finishRun(run);
+      return null;
+    }
+    this.bestAtRunStart = save.current.endlessRunBestAtStart;
+    return run;
+  }
+
+  private showRun(animateTray: boolean, resumed = false): void {
+    if (!resumed) this.bestAtRunStart = this.best;
     this.boardView.setBoard(this.stateValue.board);
     this.trayView.setTray(this.stateValue.tray, animateTray);
     this.updateHud();

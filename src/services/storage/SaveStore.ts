@@ -34,6 +34,8 @@ export interface SaveV1 {
   stats: Stats;
   /** Serialized in-progress Endless run (core `serialize`), or null. */
   endlessRun: string | null;
+  /** Best score when the saved run started, so a resumed run can still say "New best!". */
+  endlessRunBestAtStart: number;
 }
 
 export type Save = SaveV1;
@@ -53,6 +55,7 @@ export function defaultSave(now: number): Save {
     },
     stats: { bestScore: 0, gamesPlayed: 0, linesCleared: 0, tidalWaves: 0, totalPlaytimeMs: 0 },
     endlessRun: null,
+    endlessRunBestAtStart: 0,
   };
 }
 

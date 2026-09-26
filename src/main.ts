@@ -1,6 +1,8 @@
 import './ui/styles/base.css';
 import { App } from './app/App';
 import { TIDEPOOL } from './render/palettes';
+import { SaveStore } from './services/storage/SaveStore';
+import { createWebStorage } from './services/storage/StorageBackend';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game');
 const uiRoot = document.querySelector<HTMLElement>('#ui');
@@ -12,7 +14,11 @@ root.setProperty('--color-sand', TIDEPOOL.background[0]);
 root.setProperty('--color-water', TIDEPOOL.background[1]);
 
 const seed = params.get('seed');
+const save = new SaveStore(createWebStorage());
+await save.load();
+
 const app = new App({
+  save,
   canvas,
   uiRoot,
   palette: TIDEPOOL,

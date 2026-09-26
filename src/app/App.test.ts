@@ -5,11 +5,28 @@ import { slotShape } from '../core/generator';
 import type { FrameScheduler } from '../render/Renderer';
 import { fakeCanvasFactory } from '../render/testing';
 import type { ViewportEnv } from '../render/viewport';
-import { App, randomSeed } from './App';
+import { MemoryBackend } from '../services/storage/StorageBackend';
+import { SAVE_KEY, SaveStore } from '../services/storage/SaveStore';
+import { App, randomSeed, type PageEnv } from './App';
 
 const idleScheduler: FrameScheduler = { request: () => 0, cancel: () => {} };
 
-function makeApp(seed = 'app-test') {
+function fakePage(): PageEnv & { hide(): void } {
+  const document = Object.assign(new EventTarget(), {
+    visibilityState: 'visible' as DocumentVisibilityState,
+  });
+  const window = new EventTarget();
+  return {
+    window,
+    document,
+    hide() {
+      document.visibilityState = 'hidden';
+      document.dispatchEvent(new Event('visibilitychange'));
+    },
+  };
+}
+
+function makeApp(seed = 'app-test', save?: SaveStore) {
   const { factory } = fakeCanvasFactory();
   const canvas = factory(390, 844);
   const uiRoot = document.createElement('div');
@@ -19,6 +36,7 @@ function makeApp(seed = 'app-test') {
     seed: () => seed,
     spriteFactory: factory,
     renderer: { scheduler: idleScheduler },
+    ...(save ? { save } : {}),
   });
   const viewport: ViewportEnv = {
     observeResize: (_el, cb) => {
@@ -28,8 +46,9 @@ function makeApp(seed = 'app-test') {
     devicePixelRatio: () => 2,
     onDprChange: () => () => {},
   };
-  app.start({ viewport, blurTarget: new EventTarget() });
-  return { app, uiRoot };
+  const page = fakePage();
+  app.start({ viewport, page });
+  return { app, uiRoot, page };
 }
 
 const text = (root: HTMLElement, sel: string) => root.querySelector(sel)?.textContent;
@@ -184,5 +203,88 @@ describe('App', () => {
 describe('randomSeed', () => {
   it('produces distinct seeds', () => {
     expect(randomSeed()).not.toBe(randomSeed());
+  });
+});
+
+describe('App persistence', () => {
+  async function loadedSave(backend: MemoryBackend) {
+    const save = new SaveStore(backend, { now: () => 1 });
+    await save.load();
+    return save;
+  }
+
+  function play(app: App, moves: number) {
+    for (let i = 0; i < moves && !app.state.over; i++) app.place(firstMove(app));
+  }
+
+  it('saves the run and best score, and resumes the exact run after a reload', async () => {
+    const backend = new MemoryBackend();
+    const { app, page } = makeApp('resume', await loadedSave(backend));
+    play(app, 5);
+    const snapshot = app.state;
+    page.hide(); // flushes the debounced save
+    await Promise.resolve();
+    await new Promise((r) => setTimeout(r, 0));
+    const stored = JSON.parse((await backend.get(SAVE_KEY))!);
+    expect(stored.stats.bestScore).toBe(snapshot.score);
+    expect(stored.endlessRun).not.toBeNull();
+
+    const { app: reloaded, uiRoot } = makeApp('other-seed', await loadedSave(backend));
+    expect(reloaded.state).toEqual(snapshot);
+    expect(text(uiRoot, '.hud__score')).toBe(String(snapshot.score));
+
+    // The next deal after the reload is identical to continuing without one.
+    play(app, 10);
+    play(reloaded, 10);
+    expect(reloaded.state).toEqual(app.state);
+  });
+
+  it('starts fresh and keeps the best score when the saved run is unreadable', async () => {
+    const backend = new MemoryBackend();
+    const save = await loadedSave(backend);
+    save.update((s) => {
+      s.endlessRun = '{"schemaVersion":99}';
+      s.stats.bestScore = 1234;
+    });
+    const { app, uiRoot } = makeApp('fresh', save);
+    expect(app.state.stats.placed).toBe(0);
+    expect(app.bestScore).toBe(1234);
+    expect(text(uiRoot, '.hud__best-value')).toBe('1\u2009234');
+    expect(save.current.endlessRun).not.toContain('"schemaVersion":99');
+  });
+
+  it('counts a finished run when a new one starts, and on boot if it was left at game over', async () => {
+    const backend = new MemoryBackend();
+    const save = await loadedSave(backend);
+    const { app } = makeApp('count', save);
+    play(app, 1000);
+    expect(app.state.over).toBe(true);
+    const lines = app.state.stats.linesCleared;
+    expect(save.current.stats.gamesPlayed).toBe(0); // not yet: a second chance may follow
+
+    app.newRun('next');
+    expect(save.current.stats.gamesPlayed).toBe(1);
+    expect(save.current.stats.linesCleared).toBe(lines);
+
+    // Leave the next run at game over and "reload".
+    play(app, 1000);
+    await save.flush();
+    const save2 = await loadedSave(backend);
+    const { app: booted } = makeApp('boot', save2);
+    expect(save2.current.stats.gamesPlayed).toBe(2);
+    expect(booted.state.stats.placed).toBe(0);
+  });
+
+  it('keeps "New best!" working for a resumed run', async () => {
+    const backend = new MemoryBackend();
+    const save = await loadedSave(backend);
+    save.update((s) => (s.stats.bestScore = 3));
+    const { app } = makeApp('newbest', save);
+    play(app, 3);
+    await save.flush();
+    expect(save.current.endlessRunBestAtStart).toBe(3);
+    const { app: resumed } = makeApp('x', await loadedSave(backend));
+    expect(resumed.bestScore).toBe(app.bestScore);
+    expect(resumed['bestAtRunStart' as keyof App]).toBe(3);
   });
 });
