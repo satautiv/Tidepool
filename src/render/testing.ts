@@ -37,19 +37,33 @@ export function fakeContext(): CanvasRenderingContext2D & FakeContext {
   }) as unknown as CanvasRenderingContext2D & FakeContext;
 }
 
-export interface FakeCanvas {
-  width: number;
-  height: number;
-  ctx: CanvasRenderingContext2D & FakeContext;
-  getContext(type: '2d'): CanvasRenderingContext2D;
+/** A canvas stand-in: records its 2D context calls and accepts event listeners. */
+export class FakeCanvas extends EventTarget {
+  readonly ctx = fakeContext();
+
+  constructor(
+    public width: number,
+    public height: number,
+  ) {
+    super();
+  }
+
+  getContext(): CanvasRenderingContext2D {
+    return this.ctx;
+  }
+
+  getBoundingClientRect() {
+    return { left: 0, top: 0, width: this.width, height: this.height };
+  }
+
+  setPointerCapture(): void {}
 }
 
 /** A canvas factory that records every canvas it creates. */
 export function fakeCanvasFactory() {
   const created: FakeCanvas[] = [];
   const factory = (width: number, height: number) => {
-    const ctx = fakeContext();
-    const canvas: FakeCanvas = { width, height, ctx, getContext: () => ctx };
+    const canvas = new FakeCanvas(width, height);
     created.push(canvas);
     return canvas as unknown as HTMLCanvasElement;
   };
