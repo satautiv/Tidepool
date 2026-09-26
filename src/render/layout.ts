@@ -6,6 +6,7 @@
  * The cell size is a whole number of device pixels so the grid never shows seams.
  */
 import { BOARD_SIZE, TRAY_SIZE } from '../core/config';
+import { CELL_STYLE } from './sprites';
 
 export interface Rect {
   readonly x: number;
@@ -35,7 +36,10 @@ export interface Layout {
   readonly orientation: 'portrait' | 'landscape';
   readonly dpr: number;
   readonly hud: Rect;
+  /** The 8×8 grid itself. */
   readonly board: Rect;
+  /** The board including its decorative panel padding. */
+  readonly boardFrame: Rect;
   readonly cellSize: number;
   readonly tray: Rect;
   readonly traySlots: readonly Rect[];
@@ -86,6 +90,9 @@ export function contentArea(input: LayoutInput): Rect {
   };
 }
 
+/** Board frame size relative to the grid size (the panel pads each side by `panelPad` cells). */
+const frameFactor = () => 1 + (2 * CELL_STYLE.panelPad) / BOARD_SIZE;
+
 export function orientationOf(width: number, height: number): Layout['orientation'] {
   return height > 0 && width / height <= LAYOUT.portraitMaxAspect ? 'portrait' : 'landscape';
 }
@@ -106,11 +113,14 @@ export function boardBound(input: LayoutInput): number {
   const hud = hudHeightFor(input, area, orientation);
   const { gap, trayRatio, maxBoard } = LAYOUT;
   const below = area.height - hud - gap;
+  const k = frameFactor();
+  // Two device pixels of slack absorb rounding positions to the pixel grid.
+  const slack = 2 / (input.dpr ?? 1);
   const bound =
     orientation === 'portrait'
-      ? Math.min(area.width, (below - gap) / (1 + trayRatio))
-      : Math.min(below, (area.width - gap) / (1 + trayRatio));
-  return clamp(bound, 0, maxBoard);
+      ? Math.min(area.width / k, (below - gap) / (k + trayRatio))
+      : Math.min(below / k, (area.width - gap) / (k + trayRatio));
+  return clamp(bound - slack, 0, maxBoard);
 }
 
 export function computeLayout(input: LayoutInput): Layout {
@@ -123,6 +133,8 @@ export function computeLayout(input: LayoutInput): Layout {
 
   const cellSize = Math.floor((boardBound(input) / BOARD_SIZE) * dpr) / dpr;
   const size = cellSize * BOARD_SIZE;
+  const pad = cellSize * CELL_STYLE.panelPad;
+  const frame = size + 2 * pad;
   const trayDepth = snap(size * trayRatio);
 
   const hud: Rect = { x: area.x, y: area.y, width: area.width, height: hudHeight };
@@ -133,9 +145,9 @@ export function computeLayout(input: LayoutInput): Layout {
   let tray: Rect;
   let traySlots: Rect[];
   if (orientation === 'portrait') {
-    const y0 = top + Math.max(0, (below - size - gap - trayDepth) / 2);
+    const y0 = top + Math.max(0, (below - frame - gap - trayDepth) / 2) + pad;
     board = { x: snap(area.x + (area.width - size) / 2), y: snap(y0), width: size, height: size };
-    tray = { x: board.x, y: snap(board.y + size + gap), width: size, height: trayDepth };
+    tray = { x: board.x, y: snap(board.y + size + pad + gap), width: size, height: trayDepth };
     const edge = (i: number) => snap(tray.x + (i * size) / TRAY_SIZE);
     traySlots = Array.from({ length: TRAY_SIZE }, (_, i) => ({
       x: edge(i),
@@ -144,14 +156,10 @@ export function computeLayout(input: LayoutInput): Layout {
       height: tray.height,
     }));
   } else {
-    const x0 = area.x + Math.max(0, (area.width - size - gap - trayDepth) / 2);
-    board = {
-      x: snap(x0),
-      y: snap(top + Math.max(0, (below - size) / 2)),
-      width: size,
-      height: size,
-    };
-    tray = { x: snap(board.x + size + gap), y: board.y, width: trayDepth, height: size };
+    const x0 = area.x + Math.max(0, (area.width - frame - gap - trayDepth) / 2) + pad;
+    const y0 = top + Math.max(0, (below - frame) / 2) + pad;
+    board = { x: snap(x0), y: snap(y0), width: size, height: size };
+    tray = { x: snap(board.x + size + pad + gap), y: board.y, width: trayDepth, height: size };
     const edge = (i: number) => snap(tray.y + (i * size) / TRAY_SIZE);
     traySlots = Array.from({ length: TRAY_SIZE }, (_, i) => ({
       x: tray.x,
@@ -160,11 +168,11 @@ export function computeLayout(input: LayoutInput): Layout {
       height: edge(i + 1) - edge(i),
     }));
   }
+  const boardFrame: Rect = { x: board.x - pad, y: board.y - pad, width: frame, height: frame };
 
-  const slot = traySlots[0]!;
-  const fit =
-    (LAYOUT.slotFill * Math.min(slot.width, slot.height)) / (LAYOUT.maxPieceCells * cellSize);
+  const smallest = Math.min(...traySlots.map((r) => Math.min(r.width, r.height)));
+  const fit = (LAYOUT.slotFill * smallest) / (LAYOUT.maxPieceCells * cellSize);
   const trayScale = cellSize > 0 ? Math.min(LAYOUT.maxTrayScale, fit) : 0;
 
-  return { orientation, dpr, hud, board, cellSize, tray, traySlots, trayScale };
+  return { orientation, dpr, hud, board, boardFrame, cellSize, tray, traySlots, trayScale };
 }

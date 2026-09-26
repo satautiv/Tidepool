@@ -39,12 +39,15 @@ function checkInvariants(input: LayoutInput, l: Layout) {
   const dpr = input.dpr ?? 1;
 
   // Everything inside the safe content area.
-  for (const r of [l.hud, l.board, l.tray, ...l.traySlots]) expect(inside(area, r)).toBe(true);
+  for (const r of [l.hud, l.board, l.boardFrame, l.tray, ...l.traySlots]) {
+    expect(inside(area, r)).toBe(true);
+  }
+  expect(inside(l.boardFrame, l.board)).toBe(true);
 
   // No overlaps between HUD, board and tray; slots don't overlap each other.
-  expect(rectsOverlap(l.hud, l.board, 1e-6)).toBe(false);
+  expect(rectsOverlap(l.hud, l.boardFrame, 1e-6)).toBe(false);
   expect(rectsOverlap(l.hud, l.tray, 1e-6)).toBe(false);
-  expect(rectsOverlap(l.board, l.tray, 1e-6)).toBe(false);
+  expect(rectsOverlap(l.boardFrame, l.tray, 1e-6)).toBe(false);
   for (let i = 0; i < l.traySlots.length; i++) {
     for (let j = i + 1; j < l.traySlots.length; j++) {
       expect(rectsOverlap(l.traySlots[i]!, l.traySlots[j]!, 1e-6)).toBe(false);

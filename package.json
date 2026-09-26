@@ -17,10 +17,12 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "sim": "tsx tools/sim/cli.ts"
+    "sim": "tsx tools/sim/cli.ts",
+    "screenshot": "tsx tools/screenshot.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.63.0",
     "@types/node": "^26.6.3",
     "@vitest/coverage-v8": "^5.0.2",
     "eslint": "^10.11.0",
