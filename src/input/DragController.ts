@@ -79,7 +79,12 @@ export const DRAG = {
   touchLiftCells: 1.2,
   /** Drops farther than this many cells outside the board never target a cell. */
   outsideTolerance: 0.5,
-} as const;
+  /**
+   * Magnet assist (PLAN §8): when the nearest cell doesn't fit, snap to a fitting neighbour
+   * within this distance (in cells) of the piece's actual position. 0 disables it.
+   */
+  magnetRadius: 0.75,
+};
 
 export class DragController {
   private drag: DragState | null = null;
@@ -188,7 +193,27 @@ export class DragController {
       x + shape.width * c > board.x + board.width + tol ||
       y + shape.height * c > board.y + board.height + tol;
     if (outside) return null;
-    return this.host.canPlace(slot, row, col) ? { row, col } : null;
+    if (this.host.canPlace(slot, row, col)) return { row, col };
+    if (DRAG.magnetRadius <= 0) return null;
+
+    // Magnet assist: the fitting neighbour closest to where the piece really is.
+    const fx = (x - board.x) / c;
+    const fy = (y - board.y) / c;
+    let best: Cell | null = null;
+    let bestDist = DRAG.magnetRadius;
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        if (dr === 0 && dc === 0) continue;
+        const r = row + dr;
+        const k = col + dc;
+        const dist = Math.hypot(k - fx, r - fy);
+        if (dist <= bestDist && this.host.canPlace(slot, r, k)) {
+          best = { row: r, col: k };
+          bestDist = dist;
+        }
+      }
+    }
+    return best;
   }
 }
 

@@ -7,6 +7,7 @@ import { BoardView } from './render/BoardView';
 import { DebugOverlay } from './render/DebugOverlay';
 import { DragView } from './render/DragView';
 import { GameScene } from './render/GameScene';
+import { GhostView } from './render/GhostView';
 import { TIDEPOOL } from './render/palettes';
 import { Renderer } from './render/Renderer';
 import { SpriteSet } from './render/sprites';
@@ -61,6 +62,12 @@ const drag = new DragController(host, {
 });
 
 scene.add(boardView);
+scene.add(
+  new GhostView(
+    () => drag.state,
+    () => state.board,
+  ),
+);
 scene.add(trayView);
 scene.add(new DragView(() => drag.state));
 renderer.addView(scene);

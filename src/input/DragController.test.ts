@@ -271,3 +271,61 @@ describe('bindPointerEvents', () => {
     expect(ctrl.state).toBeNull();
   });
 });
+
+describe('magnet assist', () => {
+  // Column 4 of row 3 is filled, so a dot aimed at (3,4) must snap to a free neighbour.
+  const board = boardFromAscii([
+    '........',
+    '........',
+    '........',
+    '....#...',
+    '........',
+    '........',
+    '........',
+    '........',
+  ]);
+
+  it('snaps a near miss to the closest fitting neighbour', () => {
+    const { ctrl, host } = setup(['sq2', 'dot', 'i3h'], board);
+    grabCentre(ctrl, host, 1);
+    // Aim at (3,4), leaning right (+0.4 cell): the nearest fitting cell is (3,5).
+    const p = centreOf(getShape('dot'), 3, 4);
+    ctrl.pointerMove(mouse(p.x + 0.4 * CELL, p.y));
+    expect(ctrl.state!.target).toEqual({ row: 3, col: 5 });
+    // Leaning up instead: (2,4).
+    ctrl.pointerMove(mouse(p.x, p.y - 0.4 * CELL));
+    expect(ctrl.state!.target).toEqual({ row: 2, col: 4 });
+  });
+
+  it('does not reach farther than the magnet radius', () => {
+    const blocked = boardFromAscii([
+      '........',
+      '........',
+      '...###..',
+      '...###..',
+      '...###..',
+      '........',
+      '........',
+      '........',
+    ]);
+    const { ctrl, host } = setup(['sq2', 'dot', 'i3h'], blocked);
+    grabCentre(ctrl, host, 1);
+    const p = centreOf(getShape('dot'), 3, 4); // centre of the 3×3 block: neighbours all filled
+    ctrl.pointerMove(mouse(p.x, p.y));
+    expect(ctrl.state!.target).toBeNull();
+  });
+
+  it('can be disabled', () => {
+    const saved = DRAG.magnetRadius;
+    DRAG.magnetRadius = 0;
+    try {
+      const { ctrl, host } = setup(['sq2', 'dot', 'i3h'], board);
+      grabCentre(ctrl, host, 1);
+      const p = centreOf(getShape('dot'), 3, 4);
+      ctrl.pointerMove(mouse(p.x + 0.4 * CELL, p.y));
+      expect(ctrl.state!.target).toBeNull();
+    } finally {
+      DRAG.magnetRadius = saved;
+    }
+  });
+});
