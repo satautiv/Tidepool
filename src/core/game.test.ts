@@ -51,7 +51,9 @@ describe('newEndless', () => {
     expect(state.score).toBe(0);
     expect(state.tray.every((s) => s !== null)).toBe(true);
     expect(state.over).toBe(false);
-    expect(events).toEqual([{ type: 'dealt', tray: state.tray, mode: 'normal' }]);
+    expect(events).toEqual([
+      { type: 'dealt', tray: state.tray, mode: 'normal', usedFallback: false },
+    ]);
   });
 
   it('is deterministic per seed', () => {

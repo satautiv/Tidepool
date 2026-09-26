@@ -67,7 +67,7 @@ export type GameEvent =
     }
   | { type: 'cleanBoard'; points: number }
   | { type: 'streak'; streak: number; multiplier: number }
-  | { type: 'dealt'; tray: readonly TraySlot[]; mode: DealMode }
+  | { type: 'dealt'; tray: readonly TraySlot[]; mode: DealMode; usedFallback: boolean }
   | { type: 'gameOver'; score: number };
 
 export interface Step {
@@ -199,7 +199,7 @@ function dealTray(state: EndlessState, mode: DealMode): { state: EndlessState; e
   const result = deal({ board: state.board, rng: state.rng, history: state.genHistory, mode });
   return {
     state: { ...state, tray: result.tray, rng: result.rng, genHistory: result.history },
-    event: { type: 'dealt', tray: result.tray, mode },
+    event: { type: 'dealt', tray: result.tray, mode, usedFallback: result.usedFallback },
   };
 }
 

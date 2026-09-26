@@ -23,6 +23,7 @@ npm run test:watch
 npm run lint           # ESLint (includes layer-boundary rules)
 npm run typecheck      # tsc --noEmit
 npm run format         # Prettier (code only; *.md is excluded on purpose)
+npm run sim -- --games 5000 --seed 1 --bot greedy   # generator/balance simulator (tools/sim), results in docs/tuning.md
 ```
 
 Before committing, run `npm run lint`, `npm run typecheck` and `npm test`.
