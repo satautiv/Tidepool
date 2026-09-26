@@ -6,7 +6,7 @@
  */
 import { BOARD_SIZE, COLOR_COUNT } from './config';
 import type { Shape } from './shapes';
-import type { TileState } from './tiles';
+import type { TileEffect, TileState } from './tiles';
 
 export interface Cell {
   /** null = empty sand; 0..5 = sea-glass colour. */
@@ -95,6 +95,68 @@ export function anyFit(board: Board, shape: Shape): boolean {
     }
   }
   return false;
+}
+
+export interface Lines {
+  readonly rows: readonly number[];
+  readonly cols: readonly number[];
+}
+
+export interface ClearResult {
+  readonly board: Board;
+  /** Indices of cells that became empty, ascending. Each cell appears once, even where lines cross. */
+  readonly clearedCells: readonly number[];
+  readonly tileEffects: readonly TileEffect[];
+}
+
+export const lineCount = (lines: Lines): number => lines.rows.length + lines.cols.length;
+
+/** All completely filled rows and columns, ascending. */
+export function findFullLines(board: Board): Lines {
+  const rows: number[] = [];
+  const cols: number[] = [];
+  for (let i = 0; i < BOARD_SIZE; i++) {
+    let rowFull = true;
+    let colFull = true;
+    for (let j = 0; j < BOARD_SIZE && (rowFull || colFull); j++) {
+      if (rowFull && !countsAsFilled(board.cells[cellIndex(i, j)]!)) rowFull = false;
+      if (colFull && !countsAsFilled(board.cells[cellIndex(j, i)]!)) colFull = false;
+    }
+    if (rowFull) rows.push(i);
+    if (colFull) cols.push(i);
+  }
+  return { rows, cols };
+}
+
+/** The unique cell indices covered by the given lines, ascending. */
+export function lineCells(lines: Lines): number[] {
+  const set = new Set<number>();
+  for (const r of lines.rows) for (let c = 0; c < BOARD_SIZE; c++) set.add(cellIndex(r, c));
+  for (const c of lines.cols) for (let r = 0; r < BOARD_SIZE; r++) set.add(cellIndex(r, c));
+  return [...set].sort((a, b) => a - b);
+}
+
+/**
+ * Clears every cell in the given lines at once (PLAN D1: crossing lines share cells).
+ * Tile hooks (coral surviving a hit, pearls collected, …) are added in T4.02.
+ */
+export function clearLines(board: Board, lines: Lines): ClearResult {
+  const indices = lineCells(lines);
+  if (indices.length === 0) return { board, clearedCells: [], tileEffects: [] };
+  const cells = board.cells.slice();
+  const clearedCells: number[] = [];
+  for (const i of indices) {
+    if (!countsAsFilled(cells[i]!)) continue;
+    cells[i] = EMPTY_CELL;
+    clearedCells.push(i);
+  }
+  return { board: { cells }, clearedCells, tileEffects: [] };
+}
+
+/** The lines that would clear if the shape were placed there; empty when it can't be placed. Drives the ghost highlight. */
+export function previewClears(board: Board, shape: Shape, row: number, col: number): Lines {
+  if (!canPlace(board, shape, row, col)) return { rows: [], cols: [] };
+  return findFullLines(place(board, shape, row, col, 0));
 }
 
 export function filledCount(board: Board): number {
