@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it, vi } from 'vitest';
+import { GameOverPanel } from './components/GameOverPanel';
 import { Hud } from './components/Hud';
 import { formatScore, h, placeAt } from './dom';
 import { Router, ROUTER, type Screen } from './Router';
@@ -116,5 +117,26 @@ describe('Router', () => {
     const router = new Router(h('div'));
     await router.show(screen('A'));
     expect(router.screen).not.toBeNull();
+  });
+});
+
+describe('GameOverPanel', () => {
+  it('shows score, best and the new-best ribbon, and wires its buttons', () => {
+    const onPlayAgain = vi.fn();
+    const onMenu = vi.fn();
+    const panel = new GameOverPanel({ onPlayAgain, onMenu });
+    expect(panel.visible).toBe(false);
+    panel.show({ score: 4200, best: 4200, newBest: true });
+    expect(panel.visible).toBe(true);
+    expect(panel.el.querySelector('.gameover__score')!.textContent).toBe('4\u2009200');
+    expect(panel.el.querySelector<HTMLElement>('.gameover__ribbon')!.hidden).toBe(false);
+    panel.show({ score: 10, best: 4200, newBest: false });
+    expect(panel.el.querySelector<HTMLElement>('.gameover__ribbon')!.hidden).toBe(true);
+    panel.el.querySelector<HTMLButtonElement>('.gameover__again')!.click();
+    panel.el.querySelector<HTMLButtonElement>('.gameover__menu')!.click();
+    expect(onPlayAgain).toHaveBeenCalledTimes(1);
+    expect(onMenu).toHaveBeenCalledTimes(1);
+    panel.hide();
+    expect(panel.visible).toBe(false);
   });
 });

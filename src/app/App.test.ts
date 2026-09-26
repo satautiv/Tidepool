@@ -72,24 +72,24 @@ describe('App', () => {
     expect(app.state).toBe(before);
   });
 
-  it('locks input at game over and unlocks for a new run, keeping the best score', () => {
-    const { app, uiRoot } = makeApp();
-    // Force a near-dead board: only isolated cells free, tray of dot + unplaceable pieces.
-    const checker = boardFromAscii([
-      '#.#.#.#.',
-      '.#.#.#.#',
-      '#.#.#.#.',
-      '.#.#.#.#',
-      '#.#.#.#.',
-      '.#.#.#.#',
-      '#.#.#.#.',
-      '.#.#.#.#',
-    ]);
+  // Only isolated cells free: a dot fits (without completing lines), nothing else does.
+  const CHECKER = boardFromAscii([
+    '#.#.#.#.',
+    '.#.#.#.#',
+    '#.#.#.#.',
+    '.#.#.#.#',
+    '#.#.#.#.',
+    '.#.#.#.#',
+    '#.#.#.#.',
+    '.#.#.#.#',
+  ]);
+
+  function forceEndgame(app: App, score: number) {
     Object.assign(app, {
       stateValue: {
         ...app.state,
-        board: checker,
-        score: 500,
+        board: CHECKER,
+        score,
         tray: [
           { shape: 'dot', color: 0 },
           { shape: 'sq2', color: 1 },
@@ -97,19 +97,79 @@ describe('App', () => {
         ],
       },
     });
+  }
+
+  /** Runs frames until the async game-over sequence has shown the panel. */
+  async function settle(app: App) {
+    for (let i = 0; i < 5; i++) {
+      await Promise.resolve();
+      app.scene.update(1);
+    }
+    await Promise.resolve();
+  }
+
+  it('locks input, fades the board and shows the Game Over panel', async () => {
+    const { app, uiRoot } = makeApp();
+    const onOver = vi.fn();
+    app.bus.on('gameOver', onOver);
+    forceEndgame(app, 500);
     app.place({ slot: 0, row: 0, col: 1 });
     expect(app.state.over).toBe(true);
     expect(app.drag.isLocked).toBe(true);
+    const panel = uiRoot.querySelector<HTMLElement>('.gameover')!;
+    expect(panel.hidden).toBe(true);
+
+    await settle(app);
+    expect(panel.hidden).toBe(false);
+    expect(text(uiRoot, '.gameover__score')).toBe('501');
+    expect(text(uiRoot, '.gameover__best')).toBe('Best 501');
+    expect(uiRoot.querySelector<HTMLElement>('.gameover__ribbon')!.hidden).toBe(false);
+    expect(onOver).toHaveBeenCalledWith({ score: 501, best: 501, newBest: true });
     expect(app.bestScore).toBe(501);
+  });
+
+  it('restarts with Play again, keeping the best score, and reports no new best below it', async () => {
+    const { app, uiRoot } = makeApp();
+    forceEndgame(app, 500);
+    app.place({ slot: 0, row: 0, col: 1 });
+    await settle(app);
 
     const onNew = vi.fn();
     app.bus.on('newRun', onNew);
-    app.newRun('fresh');
+    uiRoot.querySelector<HTMLButtonElement>('.gameover__again')!.click();
+    expect(uiRoot.querySelector<HTMLElement>('.gameover')!.hidden).toBe(true);
     expect(app.state.over).toBe(false);
     expect(app.state.score).toBe(0);
     expect(app.drag.isLocked).toBe(false);
     expect(onNew).toHaveBeenCalledTimes(1);
     expect(text(uiRoot, '.hud__best-value')).toBe('501');
+
+    forceEndgame(app, 10);
+    app.place({ slot: 0, row: 0, col: 1 });
+    await settle(app);
+    expect(uiRoot.querySelector<HTMLElement>('.gameover__ribbon')!.hidden).toBe(true);
+    expect(text(uiRoot, '.gameover__best')).toBe('Best 501');
+  });
+
+  it('Menu also starts a new run until the main menu exists', async () => {
+    const { app, uiRoot } = makeApp();
+    const onMenu = vi.fn();
+    app.bus.on('menu', onMenu);
+    forceEndgame(app, 5);
+    app.place({ slot: 0, row: 0, col: 1 });
+    await settle(app);
+    uiRoot.querySelector<HTMLButtonElement>('.gameover__menu')!.click();
+    expect(onMenu).toHaveBeenCalledTimes(1);
+    expect(app.state.over).toBe(false);
+  });
+
+  it('does not show a stale panel if a new run starts during the fade', async () => {
+    const { app, uiRoot } = makeApp();
+    forceEndgame(app, 5);
+    app.place({ slot: 0, row: 0, col: 1 });
+    app.newRun('quick');
+    await settle(app);
+    expect(uiRoot.querySelector<HTMLElement>('.gameover')!.hidden).toBe(true);
   });
 
   it('forwards the HUD pause button to the bus', () => {

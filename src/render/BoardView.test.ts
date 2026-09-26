@@ -121,4 +121,43 @@ describe('BoardView animations', () => {
     expect(invalidate).toHaveBeenCalledTimes(1);
     expect(view.isAnimating()).toBe(false);
   });
+
+  it('whenIdle resolves after dissolving cells finish', async () => {
+    const { scene, view } = setup();
+    await view.whenIdle(); // not busy: immediate
+    const rows = ['.#######', ...EMPTY.slice(1)];
+    const { before, step } = move(rows, [{ shape: 'dot', color: 1 }, null, null], 0, 0, 0);
+    view.applyMove(before, step.events, step.state.board);
+    let idle = false;
+    void view.whenIdle().then(() => (idle = true));
+    await Promise.resolve();
+    expect(idle).toBe(false);
+    scene.update(2);
+    await Promise.resolve();
+    expect(idle).toBe(true);
+  });
+
+  it('fades the blocks for game over and restores them on setBoard', () => {
+    const { scene, view } = setup();
+    view.setBoard(boardFromAscii(['#.......', ...EMPTY.slice(1)]));
+    const done = vi.fn();
+    view.fadeOut(done);
+    scene.update(BOARD_FEEL.fadeDuration);
+    expect(done).toHaveBeenCalledTimes(1);
+
+    const alphaOfBlock = () => {
+      const ctx = fakeContext();
+      const alphas: number[] = [];
+      const orig = ctx.drawImage.bind(ctx);
+      ctx.drawImage = ((...a: Parameters<typeof orig>) => {
+        alphas.push(ctx.globalAlpha);
+        return orig(...a);
+      }) as typeof ctx.drawImage;
+      scene.draw(ctx, frame);
+      return alphas[1];
+    };
+    expect(alphaOfBlock()).toBeCloseTo(BOARD_FEEL.fadeTo);
+    view.setBoard(boardFromAscii(['#.......', ...EMPTY.slice(1)]));
+    expect(alphaOfBlock()).toBe(1);
+  });
 });

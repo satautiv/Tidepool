@@ -21,6 +21,9 @@ export const BOARD_FEEL = {
   /** How far (CSS px) dissolving cells lift, and the scale they shrink to. */
   clearLift: 6,
   clearScaleTo: 0.8,
+  /** Game over: blocks fade towards the sand to this opacity over this long (s). */
+  fadeTo: 0.25,
+  fadeDuration: 0.5,
 } as const;
 
 interface CellFx {
@@ -40,6 +43,8 @@ export class BoardView implements SceneView {
   private readonly tweener = new Tweener();
   private readonly placing = new Map<number, CellFx>();
   private dissolving: Dissolving[] = [];
+  private readonly fade = { alpha: 1 };
+  private idleWaiters: Array<() => void> = [];
 
   constructor(private readonly invalidate: () => void = () => {}) {}
 
@@ -49,8 +54,33 @@ export class BoardView implements SceneView {
     this.tweener.cancelAll();
     this.placing.clear();
     this.dissolving = [];
+    this.fade.alpha = 1;
     this.board = board;
+    this.flushIdle();
     this.invalidate();
+  }
+
+  /** Resolves once no cleared cells are dissolving (immediately if none are). */
+  whenIdle(): Promise<void> {
+    if (!this.busy) return Promise.resolve();
+    return new Promise((resolve) => this.idleWaiters.push(resolve));
+  }
+
+  /** Game over: fades the blocks towards the sand, then calls `done`. */
+  fadeOut(done: () => void = () => {}): void {
+    this.tweener.to(
+      this.fade,
+      { alpha: BOARD_FEEL.fadeTo },
+      { duration: BOARD_FEEL.fadeDuration, ease: Ease.quadOut, onComplete: done },
+    );
+    this.invalidate();
+  }
+
+  private flushIdle(): void {
+    if (this.busy) return;
+    const waiters = this.idleWaiters;
+    this.idleWaiters = [];
+    for (const resolve of waiters) resolve();
   }
 
   /** Shows the result of a move, animating the placement and any clears from its events. */
@@ -99,6 +129,7 @@ export class BoardView implements SceneView {
             ease: Ease.quadOut,
             onComplete: () => {
               this.dissolving = this.dissolving.filter((d) => d !== cell);
+              this.flushIdle();
             },
           },
         );
@@ -133,9 +164,12 @@ export class BoardView implements SceneView {
       ctx.drawImage(sprites.block(color), x, y, size, size);
     };
 
+    ctx.save();
+    ctx.globalAlpha = this.fade.alpha;
     this.board.cells.forEach((cell, i) => {
       if (cell.color !== null) blit(i, cell.color, this.placing.get(i)?.scale ?? 1);
     });
+    ctx.restore();
 
     if (this.dissolving.length > 0) {
       ctx.save();

@@ -36,7 +36,10 @@ export interface AppEvents {
   /** Every batch of core events produced by a move or a new run. */
   game: { events: readonly GameEvent[]; state: EndlessState };
   newRun: { state: EndlessState };
+  /** Emitted once the Game Over panel is on screen. */
+  gameOver: { score: number; best: number; newBest: boolean };
   pause: void;
+  menu: void;
 }
 
 export interface AppOptions {
@@ -68,6 +71,7 @@ export class App {
   private readonly dragView: DragView;
   private stateValue: EndlessState;
   private best = 0;
+  private bestAtRunStart = 0;
   private readonly seed: () => string;
   private readonly palette: Palette;
 
@@ -110,7 +114,15 @@ export class App {
     if (opts.debug) this.renderer.addView(new DebugOverlay(this.renderer.stats));
 
     this.router = new Router(opts.uiRoot);
-    this.gameScreen = new GameScreen(() => this.bus.emit('pause', undefined));
+    this.gameScreen = new GameScreen({
+      onPause: () => this.bus.emit('pause', undefined),
+      onPlayAgain: () => this.newRun(),
+      // Until the main menu exists (T2.12), Menu also starts a new run.
+      onMenu: () => {
+        this.bus.emit('menu', undefined);
+        this.newRun();
+      },
+    });
   }
 
   get state(): EndlessState {
@@ -132,6 +144,7 @@ export class App {
   /** Starts a fresh Endless run. */
   newRun(seed = this.seed()): void {
     this.stateValue = newEndless(seed).state;
+    this.gameScreen.gameOver.hide();
     this.drag.setLocked(false);
     this.showRun(true);
     this.bus.emit('newRun', { state: this.stateValue });
@@ -151,12 +164,29 @@ export class App {
       step.events.some((e) => e.type === 'dealt'),
     );
     this.updateHud();
-    if (step.state.over) this.drag.setLocked(true);
     this.bus.emit('game', { events: step.events, state: step.state });
+    if (step.state.over) void this.showGameOver();
     return undefined;
   }
 
+  /** Locks input, lets clears finish, fades the board, then shows the Game Over panel. */
+  private async showGameOver(): Promise<void> {
+    this.drag.setLocked(true);
+    const run = this.stateValue;
+    await this.boardView.whenIdle();
+    await new Promise<void>((resolve) => this.boardView.fadeOut(resolve));
+    if (this.stateValue !== run) return; // a new run started meanwhile
+    const info = {
+      score: run.score,
+      best: this.best,
+      newBest: run.score > this.bestAtRunStart,
+    };
+    this.gameScreen.gameOver.show(info);
+    this.bus.emit('gameOver', info);
+  }
+
   private showRun(animateTray: boolean): void {
+    this.bestAtRunStart = this.best;
     this.boardView.setBoard(this.stateValue.board);
     this.trayView.setTray(this.stateValue.tray, animateTray);
     this.updateHud();

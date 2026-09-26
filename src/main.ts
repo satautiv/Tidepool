@@ -20,3 +20,6 @@ const app = new App({
   ...(import.meta.env.DEV && seed ? { seed: () => seed } : {}),
 });
 app.start();
+
+// Dev-only handle for debugging and browser tests (formalised in T1.26). Stripped from builds.
+if (import.meta.env.DEV) Object.assign(window, { __tidepool: app });
