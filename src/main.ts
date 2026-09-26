@@ -1,11 +1,13 @@
 import './ui/styles/base.css';
 import { boardFromAscii } from './core/board';
+import { newEndless } from './core/game';
 import { BoardView } from './render/BoardView';
 import { DebugOverlay } from './render/DebugOverlay';
 import { GameScene } from './render/GameScene';
 import { TIDEPOOL } from './render/palettes';
 import { Renderer } from './render/Renderer';
 import { SpriteSet } from './render/sprites';
+import { TrayView } from './render/TrayView';
 import { attachViewport } from './render/viewport';
 
 // Bootstrap. The App shell (T1.18) takes over composing views and screens.
@@ -20,9 +22,14 @@ root.setProperty('--color-water', TIDEPOOL.background[1]);
 const renderer = new Renderer(canvas);
 const scene = new GameScene(new SpriteSet(TIDEPOOL));
 const boardView = new BoardView(() => renderer.requestRedraw());
+const trayView = new TrayView(() => renderer.requestRedraw());
 scene.add(boardView);
+scene.add(trayView);
 renderer.addView(scene);
 attachViewport(renderer, canvas);
+
+// Until the App shell (T1.18) exists: show the first tray of a run.
+trayView.setTray(newEndless(params.get('seed') ?? 'demo').state.tray, true);
 
 if (import.meta.env.DEV && params.has('demo')) {
   // Every glass colour, for visual review.
