@@ -2,23 +2,77 @@
  * Draws the piece being dragged (docs/PLAN.md §8, §11). On pick-up it grows from its tray size
  * and position to full board size over `liftDuration`, following the pointer.
  */
-import type { DragState } from '../input/DragController';
+import type { Shape } from '../core/shapes';
+import type { Box, DragState } from '../input/DragController';
 import type { SceneContext, SceneView } from './GameScene';
+import { Ease, Tweener } from './tween';
 
 export const DRAG_FEEL = {
   liftDuration: 0.09,
+  /** An invalid drop floats back to its tray slot over this long (s). */
+  returnDuration: 0.2,
 } as const;
+
+interface Returning {
+  shape: Shape;
+  color: number;
+  x: number;
+  y: number;
+  width: number;
+}
 
 const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
 
 export class DragView implements SceneView {
   private lift = 1;
   private current: DragState | null = null;
+  private cellSize = 0;
+  private returning: Returning | null = null;
+  private readonly tweener = new Tweener();
 
   /** `source` returns the live drag state (the DragController's `state`). */
   constructor(private readonly source: () => DragState | null) {}
 
+  onLayout({ layout }: SceneContext): void {
+    this.cellSize = layout.cellSize;
+  }
+
+  /**
+   * Animates a cancelled drag's piece from where it was to its tray rect, then calls `done`
+   * (typically: un-dim the tray slot). Without a layout it finishes immediately.
+   */
+  returnToTray(drag: DragState, to: Box | null, done: () => void): void {
+    this.tweener.cancelAll();
+    if (!to || this.cellSize <= 0) {
+      this.returning = null;
+      done();
+      return;
+    }
+    const box = this.pieceBox(drag, this.cellSize);
+    const piece: Returning = {
+      shape: drag.shape,
+      color: drag.color,
+      x: box.x,
+      y: box.y,
+      width: box.width,
+    };
+    this.returning = piece;
+    this.tweener.to(
+      piece,
+      { x: to.x, y: to.y, width: to.width },
+      {
+        duration: DRAG_FEEL.returnDuration,
+        ease: Ease.backOut,
+        onComplete: () => {
+          if (this.returning === piece) this.returning = null;
+          done();
+        },
+      },
+    );
+  }
+
   update(dt: number): void {
+    this.tweener.update(dt);
     const drag = this.source();
     if (drag && (drag.pointerId !== this.current?.pointerId || drag.slot !== this.current.slot)) {
       this.lift = 0;
@@ -28,7 +82,7 @@ export class DragView implements SceneView {
   }
 
   isAnimating(): boolean {
-    return this.source() !== null && this.lift < 1;
+    return (this.source() !== null && this.lift < 1) || this.tweener.active > 0;
   }
 
   /** The rect the piece is drawn at, interpolating from its tray rect while lifting. */
@@ -48,6 +102,15 @@ export class DragView implements SceneView {
   }
 
   draw(ctx: CanvasRenderingContext2D, { layout, sprites }: SceneContext): void {
+    const back = this.returning;
+    if (back) {
+      const cell = back.width / back.shape.width;
+      const sprite = sprites.block(back.color);
+      for (const [r, c] of back.shape.cells) {
+        ctx.drawImage(sprite, back.x + c * cell, back.y + r * cell, cell, cell);
+      }
+    }
+
     const drag = this.source();
     if (!drag) return;
     const box = this.pieceBox(drag, layout.cellSize);

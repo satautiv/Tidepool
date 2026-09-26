@@ -52,14 +52,17 @@ const drag = new DragController(host, {
     trayView.setDragging(null);
     const step = placePiece(state, slot, row, col);
     if ('error' in step) return;
+    const before = state.board;
     state = step.state;
-    boardView.setBoard(state.board);
+    boardView.applyMove(before, step.events, state.board);
     const dealt = step.events.some((e) => e.type === 'dealt');
     trayView.setTray(state.tray, dealt);
     if (state.over) drag.setLocked(true);
   },
-  onCancel: () => trayView.setDragging(null),
+  onCancel: (d) =>
+    dragView.returnToTray(d, trayView.pieceRect(d.slot), () => trayView.setDragging(null)),
 });
+const dragView = new DragView(() => drag.state);
 
 scene.add(boardView);
 scene.add(
@@ -69,7 +72,7 @@ scene.add(
   ),
 );
 scene.add(trayView);
-scene.add(new DragView(() => drag.state));
+scene.add(dragView);
 renderer.addView(scene);
 attachViewport(renderer, canvas);
 bindPointerEvents(canvas, drag, window);

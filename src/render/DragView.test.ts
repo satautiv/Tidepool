@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { getShape } from '../core/shapes';
 import type { DragState } from '../input/DragController';
 import { DRAG_FEEL, DragView } from './DragView';
@@ -71,6 +71,36 @@ describe('DragView', () => {
     expect(view.isAnimating()).toBe(true);
     set(null);
     scene.update(0);
+    expect(view.isAnimating()).toBe(false);
+  });
+});
+
+describe('DragView return to tray', () => {
+  it('floats a cancelled piece back to its slot, then calls done', () => {
+    const { scene, view } = setup();
+    const done = vi.fn();
+    const d = dragState();
+    scene.update(1); // settle any lift
+    view.returnToTray(d, { x: 30, y: 650, width: 40, height: 40 }, done);
+    expect(view.isAnimating()).toBe(true);
+
+    let ctx = fakeContext();
+    scene.draw(ctx, { dt: 0, time: 0, viewport });
+    expect(ctx.count('drawImage')).toBe(4);
+
+    scene.update(DRAG_FEEL.returnDuration);
+    expect(done).toHaveBeenCalledTimes(1);
+    expect(view.isAnimating()).toBe(false);
+    ctx = fakeContext();
+    scene.draw(ctx, { dt: 0, time: 0, viewport });
+    expect(ctx.count('drawImage')).toBe(0);
+  });
+
+  it('finishes immediately without a target rect', () => {
+    const { view } = setup();
+    const done = vi.fn();
+    view.returnToTray(dragState(), null, done);
+    expect(done).toHaveBeenCalledTimes(1);
     expect(view.isAnimating()).toBe(false);
   });
 });
