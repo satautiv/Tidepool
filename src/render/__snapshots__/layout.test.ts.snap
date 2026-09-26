@@ -1,0 +1,168 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`sizing > matches the snapshot for common viewports 1`] = `
+[
+  {
+    "board": {
+      "height": 336,
+      "width": 336,
+      "x": 12,
+      "y": 107.5,
+    },
+    "cellSize": 42,
+    "orientation": "portrait",
+    "tray": {
+      "height": 151,
+      "width": 336,
+      "x": 12,
+      "y": 455.5,
+    },
+    "trayScale": 0.48,
+    "viewport": "360×640",
+  },
+  {
+    "board": {
+      "height": 364,
+      "width": 364,
+      "x": 13,
+      "y": 199,
+    },
+    "cellSize": 45.5,
+    "orientation": "portrait",
+    "tray": {
+      "height": 164,
+      "width": 364,
+      "x": 13,
+      "y": 575,
+    },
+    "trayScale": 0.481,
+    "viewport": "390×844",
+  },
+  {
+    "board": {
+      "height": 388,
+      "width": 388,
+      "x": 12,
+      "y": 221,
+    },
+    "cellSize": 48.5,
+    "orientation": "portrait",
+    "tray": {
+      "height": 174.5,
+      "width": 388,
+      "x": 12,
+      "y": 621,
+    },
+    "trayScale": 0.481,
+    "viewport": "412×915",
+  },
+  {
+    "board": {
+      "height": 604,
+      "width": 604,
+      "x": 82,
+      "y": 122,
+    },
+    "cellSize": 75.5,
+    "orientation": "portrait",
+    "tray": {
+      "height": 272,
+      "width": 604,
+      "x": 82,
+      "y": 738,
+    },
+    "trayScale": 0.48,
+    "viewport": "768×1024",
+  },
+  {
+    "board": {
+      "height": 640,
+      "width": 640,
+      "x": 42,
+      "y": 107,
+    },
+    "cellSize": 80,
+    "orientation": "landscape",
+    "tray": {
+      "height": 640,
+      "width": 288,
+      "x": 694,
+      "y": 107,
+    },
+    "trayScale": 0.48,
+    "viewport": "1024×768",
+  },
+  {
+    "board": {
+      "height": 364,
+      "width": 364,
+      "x": 130,
+      "y": 73,
+    },
+    "cellSize": 45.5,
+    "orientation": "landscape",
+    "tray": {
+      "height": 364,
+      "width": 164,
+      "x": 506,
+      "y": 73,
+    },
+    "trayScale": 0.481,
+    "viewport": "800×450",
+  },
+  {
+    "board": {
+      "height": 504,
+      "width": 504,
+      "x": 108.5,
+      "y": 83,
+    },
+    "cellSize": 63,
+    "orientation": "landscape",
+    "tray": {
+      "height": 504,
+      "width": 227,
+      "x": 624.5,
+      "y": 83,
+    },
+    "trayScale": 0.48,
+    "viewport": "960×600",
+  },
+  {
+    "board": {
+      "height": 640,
+      "width": 640,
+      "x": 213,
+      "y": 107,
+    },
+    "cellSize": 80,
+    "orientation": "landscape",
+    "tray": {
+      "height": 640,
+      "width": 288,
+      "x": 865,
+      "y": 107,
+    },
+    "trayScale": 0.48,
+    "viewport": "1366×768",
+  },
+  {
+    "board": {
+      "height": 640,
+      "width": 640,
+      "x": 490,
+      "y": 266,
+    },
+    "cellSize": 80,
+    "orientation": "landscape",
+    "tray": {
+      "height": 640,
+      "width": 288,
+      "x": 1142,
+      "y": 266,
+    },
+    "trayScale": 0.48,
+    "viewport": "1920×1080",
+  },
+]
+`;
