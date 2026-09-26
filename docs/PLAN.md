@@ -73,7 +73,7 @@ The README leaves some details open. These are the decisions this plan uses. Eac
 | Unit tests | Vitest | Core logic has close to 100% coverage. |
 | Property tests | fast-check | For board and scoring invariants. |
 | E2E smoke | Playwright | Checks that the game boots, a drag places a piece, and game over renders. |
-| Lint / format | ESLint (typescript-eslint) + Prettier | An ESLint `import/no-restricted-paths` rule enforces the layer boundaries (§3.2). |
+| Lint / format | ESLint (typescript-eslint) + Prettier | The `@typescript-eslint/no-restricted-imports` rules (regex patterns per folder) enforce the layer boundaries (§3.2), and `tools/lint-boundaries.test.ts` tests them. |
 | Bundle budget | `size-limit` (or a custom script on `dist/`) | Runs in CI. |
 | Offline (web) | `vite-plugin-pwa` (Workbox) | Enabled for the standalone web / itch build only. Portal builds usually don't allow a service worker. |
 | Android | Capacitor, `@capacitor-community/admob`, `@capacitor/haptics`, `@capacitor/preferences`, `@capacitor/app` | |

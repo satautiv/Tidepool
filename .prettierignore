@@ -1,0 +1,5 @@
+dist
+coverage
+android
+package-lock.json
+*.md
