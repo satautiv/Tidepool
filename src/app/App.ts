@@ -40,6 +40,7 @@ import { attachViewport, type ViewportEnv } from '../render/viewport';
 import type { HudClock } from '../ui/components/Hud';
 import { Router } from '../ui/Router';
 import type { AdManager } from '../services/ads/AdManager';
+import type { AudioEngine } from '../services/audio/AudioEngine';
 import { NoHaptics, type Haptics } from '../services/platform/haptics';
 import { Lifecycle, type LifecycleEnv } from '../services/platform/lifecycle';
 import type { SaveStore } from '../services/storage/SaveStore';
@@ -80,6 +81,8 @@ export interface AppOptions {
   now?: () => number;
   /** Ad policy and provider. Without one, no ads (tests, previews). */
   ads?: AdManager;
+  /** Sound. Without one, the game is silent (tests, previews). */
+  audio?: AudioEngine;
   /** Haptic taps on placements and clears. Default: none. */
   haptics?: Haptics;
   /** The system "reduce motion" preference. Default: the prefers-reduced-motion media query. */
@@ -236,11 +239,15 @@ export class App {
       opts.ads.onAdStart = () => {
         this.adShowing = true;
         this.renderer.pause();
+        this.opts.audio?.suspend();
         this.syncInput();
       };
       opts.ads.onAdEnd = () => {
         this.adShowing = false;
-        if (!this.lifecycle?.hidden) this.renderer.resume();
+        if (!this.lifecycle?.hidden) {
+          this.renderer.resume();
+          this.opts.audio?.resume();
+        }
         this.syncInput();
       };
     }
@@ -294,12 +301,16 @@ export class App {
     this.lifecycle.onHide(() => {
       this.pause();
       this.renderer.pause();
+      this.opts.audio?.suspend();
       this.opts.ads?.onHidden();
       this.persistRun();
       void this.opts.save?.flush();
     });
     this.lifecycle.onShow(() => {
-      if (!this.adShowing) this.renderer.resume();
+      if (!this.adShowing) {
+        this.renderer.resume();
+        this.opts.audio?.resume();
+      }
       this.opts.ads?.onVisible();
     });
 

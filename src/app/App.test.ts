@@ -4,6 +4,8 @@ import { boardFromAscii } from '../core/board';
 import { slotShape } from '../core/generator';
 import { FEEL } from '../render/feel';
 import { AdManager } from '../services/ads/AdManager';
+import { AudioEngine } from '../services/audio/AudioEngine';
+import { FakeAudioContext } from '../services/audio/testing';
 import { NoAdsService } from '../services/ads/NoAdsService';
 import { MemoryBackend } from '../services/storage/StorageBackend';
 import { SAVE_KEY, SaveStore } from '../services/storage/SaveStore';
@@ -708,5 +710,45 @@ describe('App polish', () => {
       `${FEEL.gameOver.panelSlideDuration}s`,
     );
     expect(uiRoot.style.getPropertyValue('--press-scale')).toBe(String(FEEL.button.pressScale));
+  });
+});
+
+describe('App audio lifecycle', () => {
+  async function withAudio() {
+    const ctx = new FakeAudioContext();
+    const audio = new AudioEngine({
+      createContext: () => ctx as unknown as AudioContext,
+      settings: () => ({ sfx: 1, music: 0.35, sfxMuted: false, musicMuted: false }),
+    });
+    audio.unlock();
+    const save = new SaveStore(new MemoryBackend());
+    await save.load();
+    const service = new NoAdsService({ wait: async () => {} });
+    const ads = new AdManager(service, save);
+    await ads.init();
+    const made = makeApp('audio', save, ads, { extra: { audio } });
+    return { ...made, audio, ctx, ads };
+  }
+
+  it('suspends audio while the page is hidden and resumes when it is shown', async () => {
+    const { audio, page, ctx } = await withAudio();
+    page.hide();
+    expect(audio.isSuspended).toBe(true);
+    expect(ctx.suspends).toBe(1);
+    page.show();
+    expect(audio.isSuspended).toBe(false);
+  });
+
+  it('suspends audio during an ad', async () => {
+    const { audio, ads } = await withAudio();
+    let during = false;
+    const start = ads.onAdStart;
+    ads.onAdStart = () => {
+      start();
+      during = audio.isSuspended;
+    };
+    await ads.rewarded('secondChance');
+    expect(during).toBe(true);
+    expect(audio.isSuspended).toBe(false);
   });
 });

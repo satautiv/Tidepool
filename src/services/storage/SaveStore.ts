@@ -11,6 +11,8 @@ export const SAVE_VERSION = 1;
 export interface Settings {
   sfx: number;
   music: number;
+  sfxMuted: boolean;
+  musicMuted: boolean;
   haptics: boolean;
   palette: string;
   colorBlind: boolean;
@@ -62,6 +64,8 @@ export function defaultSave(now: number): Save {
     settings: {
       sfx: 1,
       music: 0.35,
+      sfxMuted: false,
+      musicMuted: false,
       haptics: true,
       palette: 'tidepool',
       colorBlind: false,
