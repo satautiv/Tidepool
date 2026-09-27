@@ -33,6 +33,7 @@ import { TrayView } from '../render/TrayView';
 import { attachViewport, type ViewportEnv } from '../render/viewport';
 import { Router } from '../ui/Router';
 import type { AdManager } from '../services/ads/AdManager';
+import { Lifecycle, type LifecycleEnv } from '../services/platform/lifecycle';
 import type { SaveStore } from '../services/storage/SaveStore';
 import { GameScreen } from '../ui/screens/GameScreen';
 import { EventBus } from './events';
@@ -48,7 +49,10 @@ export interface AppEvents {
   /** Emitted once the Game Over panel is on screen. */
   gameOver: { score: number; best: number; newBest: boolean };
   pause: void;
+  resume: void;
   menu: void;
+  /** Settings from the pause dialog (placeholder until T2.13). */
+  settings: void;
 }
 
 export interface AppOptions {
@@ -69,10 +73,7 @@ export interface AppOptions {
 }
 
 /** Page lifecycle targets, injectable for tests. */
-export interface PageEnv {
-  window: EventTarget;
-  document: EventTarget & { visibilityState: DocumentVisibilityState };
-}
+export type PageEnv = LifecycleEnv;
 
 export function randomSeed(): string {
   const bytes = new Uint32Array(2);
@@ -97,11 +98,14 @@ export class App {
   private readonly palette: Palette;
   /** A break ad is running between Game Over and the next run. */
   private leaving = false;
+  private paused = false;
+  private adShowing = false;
+  private lifecycle: Lifecycle | null = null;
   private readonly now: () => number;
   private runSeed: string | null = null;
   /** Run play time before this page's stretch, and when this stretch started. */
   private runMsBefore = 0;
-  private runStretchStart = 0;
+  private runStretchStart: number | null = 0;
   /** A finished run found in the save, closed out in `start()` once listeners exist. */
   private finishedOnBoot: { run: EndlessState; durationMs: number } | null = null;
 
@@ -147,7 +151,11 @@ export class App {
 
     this.router = new Router(opts.uiRoot);
     this.gameScreen = new GameScreen({
-      onPause: () => this.bus.emit('pause', undefined),
+      onPause: () => this.pause(),
+      onResume: () => this.resume(),
+      // Restarting abandons the run on purpose, so no break ad here.
+      onRestart: () => this.newRun(),
+      onSettings: () => this.bus.emit('settings', undefined),
       onPlayAgain: () => this.leaveRun(() => this.newRun()),
       // Until the main menu exists (T2.12), Menu also starts a new run.
       onMenu: () =>
@@ -161,14 +169,41 @@ export class App {
     if (opts.ads) {
       // The game sits still under an ad: no frames, no input.
       opts.ads.onAdStart = () => {
+        this.adShowing = true;
         this.renderer.pause();
-        this.drag.setLocked(true);
+        this.syncInput();
       };
       opts.ads.onAdEnd = () => {
-        this.renderer.resume();
-        this.drag.setLocked(this.stateValue.over);
+        this.adShowing = false;
+        if (!this.lifecycle?.hidden) this.renderer.resume();
+        this.syncInput();
       };
     }
+  }
+
+  get isPaused(): boolean {
+    return this.paused;
+  }
+
+  /** Pauses a run in play: input off, clocks stopped, Pause dialog up. */
+  pause(): void {
+    if (this.paused || this.stateValue.over || this.adShowing) return;
+    this.paused = true;
+    this.stopRunClock();
+    this.opts.ads?.gameplayStop();
+    this.syncInput();
+    this.gameScreen.pause.show();
+    this.bus.emit('pause', undefined);
+  }
+
+  resume(): void {
+    if (!this.paused) return;
+    this.paused = false;
+    this.gameScreen.pause.hide();
+    this.startRunClock();
+    this.opts.ads?.gameplayStart();
+    this.syncInput();
+    this.bus.emit('resume', undefined);
   }
 
   get state(): EndlessState {
@@ -187,16 +222,19 @@ export class App {
     const page = env?.page ?? { window, document };
     attachViewport(this.renderer, this.opts.canvas, env?.viewport);
     bindPointerEvents(this.opts.canvas, this.drag, page.window);
-    const flush = () => void this.opts.save?.flush();
-    page.document.addEventListener('visibilitychange', () => {
-      if (page.document.visibilityState === 'hidden') {
-        this.opts.ads?.onHidden();
-        flush();
-      } else {
-        this.opts.ads?.onVisible();
-      }
+    this.lifecycle = new Lifecycle(page);
+    // Backgrounded: pause the run (it never auto-resumes), stop frames, save now.
+    this.lifecycle.onHide(() => {
+      this.pause();
+      this.renderer.pause();
+      this.opts.ads?.onHidden();
+      this.persistRun();
+      void this.opts.save?.flush();
     });
-    page.window.addEventListener('pagehide', flush);
+    this.lifecycle.onShow(() => {
+      if (!this.adShowing) this.renderer.resume();
+      this.opts.ads?.onVisible();
+    });
 
     void this.router.show(this.gameScreen);
     const resumed = this.stateValue.stats.placed > 0;
@@ -216,7 +254,9 @@ export class App {
     this.finishRun(this.stateValue, this.runElapsed());
     this.stateValue = this.freshRun(seed);
     this.gameScreen.gameOver.hide();
-    this.drag.setLocked(false);
+    this.gameScreen.pause.hide();
+    this.paused = false;
+    this.syncInput();
     this.showRun(true);
     this.persistRun();
     this.opts.ads?.runStarted();
@@ -246,7 +286,8 @@ export class App {
 
   /** Locks input, lets clears finish, fades the board, then shows the Game Over panel. */
   private async showGameOver(): Promise<void> {
-    this.drag.setLocked(true);
+    this.syncInput();
+    this.stopRunClock();
     this.opts.ads?.gameplayStop();
     const run = this.stateValue;
     await this.boardView.whenIdle();
@@ -265,11 +306,12 @@ export class App {
 
   /**
    * Game Over → Play again / Menu: a break point, so an interstitial may play first (the
-   * AdManager decides, and never blocks). Without ads this is synchronous.
+   * AdManager decides, and never blocks). Leaving from the pause dialog, or without ads,
+   * is immediate.
    */
   private leaveRun(next: () => void): void {
     const ads = this.opts.ads;
-    if (!ads) return next();
+    if (!ads || !this.stateValue.over) return next();
     if (this.leaving) return;
     this.leaving = true;
     void ads.requestBreak('runEnd').then(() => {
@@ -296,7 +338,8 @@ export class App {
     panel.hide();
     this.boardView.fadeIn();
     this.trayView.setTray(step.state.tray, true);
-    this.drag.setLocked(false);
+    this.syncInput();
+    this.startRunClock();
     this.updateHud();
     this.persistRun(step.events);
     ads.gameplayStart();
@@ -341,9 +384,24 @@ export class App {
     return newEndless(seed).state;
   }
 
-  /** How long the current run has been played, including before a reload. */
+  /** How long the current run has been played (not paused), including before a reload. */
   private runElapsed(): number {
-    return this.runMsBefore + Math.max(0, this.now() - this.runStretchStart);
+    const stretch = this.runStretchStart === null ? 0 : this.now() - this.runStretchStart;
+    return this.runMsBefore + Math.max(0, stretch);
+  }
+
+  private stopRunClock(): void {
+    this.runMsBefore = this.runElapsed();
+    this.runStretchStart = null;
+  }
+
+  private startRunClock(): void {
+    if (this.runStretchStart === null) this.runStretchStart = this.now();
+  }
+
+  /** Input is on only while a run is in play: not paused, not over, no ad on screen. */
+  private syncInput(): void {
+    this.drag.setLocked(this.paused || this.adShowing || this.stateValue.over);
   }
 
   /** The saved in-progress run, if there is a valid one. Finished runs are closed out. */

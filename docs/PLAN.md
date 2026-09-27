@@ -204,6 +204,8 @@ tests/e2e/                # Playwright
 - `requestAnimationFrame` loop with `dt` clamped to ≤ 50 ms.
 - The renderer draws **only when needed**: while tweens or particles are active, during a drag, or while the ambient caustics are on. When nothing is animating and caustics are off, it draws no frames, which saves battery. Caustics are capped at 30 fps (§7.5).
 - On `visibilitychange → hidden`, the loop pauses, audio is suspended, the game is saved, and `AdService.gameplayStop()` is called when a run is active.
+- `services/platform/lifecycle.ts` merges `visibilitychange`, `pagehide` and `pageshow` into a single `onHide`/`onShow` pair. On hide, a run in play is paused, so the player comes back to the Pause dialog and play never resumes on its own. Paused time and time on the Game Over panel don't count towards the run duration.
+- Restart (from the Pause dialog, after a confirm) and Menu from the Pause dialog never show a break ad. Only leaving from Game Over is a break point.
 
 ---
 

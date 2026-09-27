@@ -8,5 +8,11 @@ export const STRINGS = {
   playAgain: 'Play again',
   menu: 'Menu',
   secondChance: 'Watch an ad to keep going',
+  paused: 'Paused',
+  resume: 'Resume',
+  restart: 'Restart',
+  restartConfirm: 'Start over? This run will end.',
+  cancel: 'Cancel',
+  settings: 'Settings',
   streak: (multiplier: number) => `×${multiplier}`,
 } as const;

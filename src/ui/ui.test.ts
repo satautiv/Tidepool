@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { GameOverPanel } from './components/GameOverPanel';
 import { Hud } from './components/Hud';
+import { PauseDialog } from './components/PauseDialog';
 import { formatScore, h, placeAt } from './dom';
 import { Router, ROUTER, type Screen } from './Router';
 
@@ -138,5 +139,39 @@ describe('GameOverPanel', () => {
     expect(onMenu).toHaveBeenCalledTimes(1);
     panel.hide();
     expect(panel.visible).toBe(false);
+  });
+});
+
+describe('PauseDialog', () => {
+  it('wires Resume, Settings and Menu, and asks before restarting', () => {
+    const actions = { onResume: vi.fn(), onRestart: vi.fn(), onSettings: vi.fn(), onMenu: vi.fn() };
+    const dialog = new PauseDialog(actions);
+    const click = (sel: string) => dialog.el.querySelector<HTMLButtonElement>(sel)!.click();
+    const shown = (sel: string) => !dialog.el.querySelector<HTMLElement>(sel)!.closest('[hidden]');
+    expect(dialog.visible).toBe(false);
+    dialog.show();
+    expect(dialog.visible).toBe(true);
+
+    click('.pause__resume');
+    click('.pause__settings');
+    click('.pause__menu');
+    expect(actions.onResume).toHaveBeenCalledOnce();
+    expect(actions.onSettings).toHaveBeenCalledOnce();
+    expect(actions.onMenu).toHaveBeenCalledOnce();
+
+    click('.pause__restart');
+    expect(actions.onRestart).not.toHaveBeenCalled();
+    expect(shown('.pause__confirm')).toBe(true);
+    expect(shown('.pause__resume')).toBe(false);
+    click('.pause__cancel');
+    expect(shown('.pause__resume')).toBe(true);
+    click('.pause__restart');
+    click('.pause__confirm');
+    expect(actions.onRestart).toHaveBeenCalledOnce();
+
+    dialog.show(); // reopening starts on the main actions
+    expect(shown('.pause__resume')).toBe(true);
+    dialog.hide();
+    expect(dialog.visible).toBe(false);
   });
 });

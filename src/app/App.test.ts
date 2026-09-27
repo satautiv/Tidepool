@@ -362,3 +362,88 @@ describe('App ads', () => {
     expect(app.drag.isLocked).toBe(false);
   });
 });
+
+describe('App pause and lifecycle', () => {
+  const dialog = (root: HTMLElement) => root.querySelector<HTMLElement>('.pause')!;
+  const click = (root: HTMLElement, sel: string) =>
+    root.querySelector<HTMLButtonElement>(sel)!.click();
+
+  it('pauses from the HUD button and resumes from the dialog', () => {
+    const { app, uiRoot } = makeApp();
+    const onPause = vi.fn();
+    app.bus.on('pause', onPause);
+    click(uiRoot, '.hud__pause');
+    expect(app.isPaused).toBe(true);
+    expect(dialog(uiRoot).hidden).toBe(false);
+    expect(app.drag.isLocked).toBe(true);
+    expect(onPause).toHaveBeenCalledOnce();
+    click(uiRoot, '.pause__resume');
+    expect(app.isPaused).toBe(false);
+    expect(dialog(uiRoot).hidden).toBe(true);
+    expect(app.drag.isLocked).toBe(false);
+  });
+
+  it('restarts only after confirming', () => {
+    const { app, uiRoot } = makeApp();
+    app.place(firstMove(app));
+    click(uiRoot, '.hud__pause');
+    click(uiRoot, '.pause__restart');
+    expect(app.state.stats.placed).toBe(1);
+    click(uiRoot, '.pause__confirm');
+    expect(app.state.stats.placed).toBe(0);
+    expect(app.isPaused).toBe(false);
+    expect(dialog(uiRoot).hidden).toBe(true);
+    expect(app.drag.isLocked).toBe(false);
+  });
+
+  it('shows the pause dialog after returning from the background, with the run intact', async () => {
+    const backend = new MemoryBackend();
+    const save = new SaveStore(backend);
+    await save.load();
+    let frames = 0;
+    const { app, uiRoot, page } = makeApp('bg', save, undefined, {
+      extra: { renderer: { scheduler: { request: () => ++frames, cancel: () => {} } } },
+    });
+    app.place(firstMove(app));
+    const before = app.state;
+    page.hide();
+    expect(save.isDirty).toBe(false); // flushed
+    await save.flush(); // let the write land
+    expect(JSON.parse((await backend.get(SAVE_KEY))!).endlessRun).not.toBeNull();
+
+    const scheduled = frames;
+    app.renderer.requestRedraw();
+    expect(frames).toBe(scheduled); // no frames while hidden
+
+    page.show();
+    expect(app.isPaused).toBe(true);
+    expect(dialog(uiRoot).hidden).toBe(false);
+    expect(app.state).toBe(before);
+    expect(app.renderer.isPaused).toBe(false);
+    click(uiRoot, '.pause__resume');
+    expect(app.drag.isLocked).toBe(false);
+  });
+
+  it('does not pause a finished run', () => {
+    const { app, uiRoot } = makeApp();
+    for (let i = 0; i < 1000 && !app.state.over; i++) app.place(firstMove(app));
+    click(uiRoot, '.hud__pause');
+    expect(app.isPaused).toBe(false);
+    expect(dialog(uiRoot).hidden).toBe(true);
+  });
+
+  it('does not count paused time in the run duration', () => {
+    let t = 0;
+    const { app, uiRoot } = makeApp('clock', undefined, undefined, { extra: { now: () => t } });
+    const ended = vi.fn();
+    app.bus.on('runEnd', ended);
+    app.place(firstMove(app));
+    t += 1000;
+    click(uiRoot, '.hud__pause');
+    t += 60_000;
+    click(uiRoot, '.pause__resume');
+    t += 500;
+    app.newRun();
+    expect(ended.mock.calls[0]![0].durationMs).toBe(1500);
+  });
+});
