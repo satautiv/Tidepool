@@ -646,7 +646,7 @@ As built (T2.15), `App.applyMotionAndPower()` applies both modes live from Setti
 - As built (T2.18 prep), **playtest mode** (`app/playtest.ts`) is for human playtests on the normal web build:
   - `?playtest=1` turns it on for the device, and `?playtest=0` turns it off.
   - While it's on, analytics go to `LocalLogAnalytics`, which writes every event to localStorage (`tidepool.playtestLog`, capped at 5000 entries). Settings shows **Export playtest log**, which downloads the log as JSON. The first entry of each page load is `page_open`, with the build, the variant and the device.
-  - Variant switches are remembered until changed: `?magnet=0|1` (magnet assist, by setting `DRAG.magnetRadius` to 0) and `?l4=0|1` (4-cell L/J shapes, stored in the run as `EndlessState.includeL4`, so resumed runs keep it).
+  - `?playtest=1` starts from the default variant (apart from switches in the same URL). Variant switches are remembered until changed: `?magnet=0|1` (magnet assist, by setting `DRAG.magnetRadius` to 0) and `?l4=0|1` (4-cell L/J shapes, stored in the run as `EndlessState.includeL4`, so resumed runs keep it).
   - `?clearlog=1` empties the log once.
   - Outside playtest mode, every switch is ignored.
   - The protocol is in `docs/playtests/round1-plan.md`.

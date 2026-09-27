@@ -3,7 +3,8 @@
  * device and `?playtest=0` turns it off. While it is on:
  * - every analytics event goes to a local log, exported from Settings ("Export playtest log");
  * - `?magnet=0|1` and `?l4=0|1` pick the variant (magnet assist, 4-cell L/J shapes). Each choice
- *   is remembered, so reopening the game keeps the tester on the same variant;
+ *   is remembered, so reopening the game keeps the tester on the same variant. `?playtest=1`
+ *   starts from the default variant, apart from switches in the same URL;
  * - `?clearlog=1` empties the log (for the next tester on a shared device).
  */
 import { DRAG } from '../input/DragController';
@@ -38,6 +39,8 @@ export function playtestFlags(params: URLSearchParams, storage: LogStorage | nul
     return v === '1' ? true : v === '0' ? false : fallback;
   };
   const enabled = bool('playtest', saved.enabled === true);
+  // A new session link starts from the release defaults.
+  if (params.get('playtest') === '1') saved = {};
   const flags = {
     enabled,
     magnet: enabled && bool('magnet', saved.magnet ?? DEFAULTS.magnet),

@@ -56,6 +56,12 @@ describe('playtestFlags', () => {
     flags('?clearlog=1', storage);
     expect(flags('', storage).clearLog).toBe(false);
 
+    // A new ?playtest=1 link starts from the default variant, unless it sets one.
+    expect(flags('?playtest=1', storage)).toMatchObject({ magnet: true, l4: false });
+    flags('?magnet=0', storage);
+    expect(flags('?playtest=1&l4=1', storage)).toMatchObject({ magnet: true, l4: true });
+    expect(flags('', storage)).toMatchObject({ magnet: true, l4: true });
+
     expect(flags('?playtest=0', storage).enabled).toBe(false);
     expect(storage.data.has(PLAYTEST_FLAGS_KEY)).toBe(false);
     expect(flags('', storage)).toMatchObject({ enabled: false, magnet: true, l4: false });

@@ -25,7 +25,7 @@ The playtest build is the normal web build. It is deployed to GitHub Pages on ev
 | `…/Tidepool/?clearlog=1` | Empty the log before the next tester on the same device. |
 | `…/Tidepool/?playtest=0` | Turn playtest mode off. |
 
-- The variant choice is remembered, so reopening the game (the resume check) keeps the tester on the same variant.
+- The variant choice is remembered, so reopening the game (the resume check) keeps the tester on the same variant. A `?playtest=1` link always starts from the default variant (magnet on, no 4-cell L/J shapes), apart from switches in the same link.
 - The 4-cell shape switch applies from the next new run. A run in progress keeps its shape set.
 - **Export:** Settings → **Export playtest log** downloads `tidepool-playtest-<date>-<time>.json`. On a phone, the file lands in Downloads (Android) or Files (iPhone). Rename it `tester-N.json`.
 - **What the log holds:**
