@@ -15,4 +15,10 @@ export const STRINGS = {
   cancel: 'Cancel',
   settings: 'Settings',
   streak: (multiplier: number) => `×${multiplier}`,
+  callouts: {
+    nice: 'Nice!',
+    splash: 'Splash!',
+    tidalWave: 'Tidal Wave!',
+    crystalClear: 'Crystal Clear!',
+  },
 } as const;

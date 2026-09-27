@@ -10,6 +10,12 @@ import { App, type AppOptions, type PageEnv } from './App';
 
 export const idleScheduler: FrameScheduler = { request: () => 0, cancel: () => {} };
 
+/** A UI clock where every frame is far in the future: count-ups finish on their first frame. */
+export function instantClock() {
+  let t = 0;
+  return { now: () => (t += 1e9), frame: (cb: () => void) => cb() };
+}
+
 export type FakePage = PageEnv & { hide(): void; show(): void; close(): void };
 
 export function fakePage(): FakePage {
@@ -51,6 +57,8 @@ export function makeApp(
     seed: () => seed,
     spriteFactory: factory,
     renderer: { scheduler: idleScheduler },
+    // DOM animations finish instantly, so HUD text is final right after a move.
+    uiClock: instantClock(),
     ...(save ? { save } : {}),
     ...(ads ? { ads } : {}),
     ...opts.extra,

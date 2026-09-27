@@ -3,6 +3,7 @@
  * core moves, and fans the resulting events out to the renderer and the UI.
  */
 import { canPlace } from '../core/board';
+import { BOARD_SIZE } from '../core/config';
 import {
   continueWithSecondChance,
   deserialize,
@@ -27,12 +28,14 @@ import { DebugOverlay } from '../render/DebugOverlay';
 import { DragView } from '../render/DragView';
 import { GameScene } from '../render/GameScene';
 import { GhostView } from '../render/GhostView';
+import { FEEL } from '../render/feel';
 import { ParticleView } from '../render/particles';
 import { TIDEPOOL, type Palette } from '../render/palettes';
 import { Renderer, type RendererOptions } from '../render/Renderer';
 import { SpriteSet, type CanvasFactory } from '../render/sprites';
 import { TrayView } from '../render/TrayView';
 import { attachViewport, type ViewportEnv } from '../render/viewport';
+import type { HudClock } from '../ui/components/Hud';
 import { Router } from '../ui/Router';
 import type { AdManager } from '../services/ads/AdManager';
 import { Lifecycle, type LifecycleEnv } from '../services/platform/lifecycle';
@@ -72,6 +75,10 @@ export interface AppOptions {
   now?: () => number;
   /** Ad policy and provider. Without one, no ads (tests, previews). */
   ads?: AdManager;
+  /** Clock for DOM animations such as the score count-up (tests). */
+  uiClock?: HudClock;
+  /** Timer for removing finished DOM effects (tests). */
+  uiTimer?: (fn: () => void, ms: number) => unknown;
 }
 
 /** Page lifecycle targets, injectable for tests. */
@@ -103,6 +110,8 @@ export class App {
   private readonly palette: Palette;
   /** A break ad is running between Game Over and the next run. */
   private leaving = false;
+  /** Whether this run has already played the "best beaten" glow. */
+  private bestGlowed = false;
   private paused = false;
   private adShowing = false;
   private lifecycle: Lifecycle | null = null;
@@ -150,28 +159,39 @@ export class App {
     this.scene.add(this.trayView);
     this.scene.add(this.dragView);
     this.scene.add({
-      onLayout: ({ layout }) => this.gameScreen.hud.setRect(layout.hud),
+      onLayout: ({ layout }) => {
+        this.gameScreen.hud.setRect(layout.hud);
+        this.gameScreen.fx.setRect(layout.board);
+      },
       draw() {},
     });
     this.renderer.addView(this.scene);
     if (opts.debug) this.renderer.addView(new DebugOverlay(this.renderer.stats));
 
     this.router = new Router(opts.uiRoot);
-    this.gameScreen = new GameScreen({
-      onPause: () => this.pause(),
-      onResume: () => this.resume(),
-      // Restarting abandons the run on purpose, so no break ad here.
-      onRestart: () => this.newRun(),
-      onSettings: () => this.bus.emit('settings', undefined),
-      onPlayAgain: () => this.leaveRun(() => this.newRun()),
-      // Until the main menu exists (T2.12), Menu also starts a new run.
-      onMenu: () =>
-        this.leaveRun(() => {
-          this.bus.emit('menu', undefined);
-          this.newRun();
-        }),
-      onSecondChance: () => void this.useSecondChance(),
-    });
+    this.gameScreen = new GameScreen(
+      {
+        onPause: () => this.pause(),
+        onResume: () => this.resume(),
+        // Restarting abandons the run on purpose, so no break ad here.
+        onRestart: () => this.newRun(),
+        onSettings: () => this.bus.emit('settings', undefined),
+        onPlayAgain: () => this.leaveRun(() => this.newRun()),
+        // Until the main menu exists (T2.12), Menu also starts a new run.
+        onMenu: () =>
+          this.leaveRun(() => {
+            this.bus.emit('menu', undefined);
+            this.newRun();
+          }),
+        onSecondChance: () => void this.useSecondChance(),
+      },
+      {
+        callout: FEEL.callout,
+        score: FEEL.score,
+        ...(opts.uiClock ? { clock: opts.uiClock } : {}),
+        ...(opts.uiTimer ? { setTimer: opts.uiTimer } : {}),
+      },
+    );
 
     if (opts.ads) {
       // The game sits still under an ad: no frames, no input.
@@ -306,6 +326,7 @@ export class App {
       step.events.some((e) => e.type === 'dealt'),
     );
     this.updateHud();
+    this.showScoreFx(step.events);
     this.persistRun(step.events);
     this.bus.emit('game', { events: step.events, state: step.state });
     if (step.state.over) void this.showGameOver();
@@ -460,18 +481,42 @@ export class App {
     if (!resumed) this.bestAtRunStart = this.best;
     this.clearFx.reset();
     this.particles.system.clear();
+    this.gameScreen.fx.clear();
+    this.bestGlowed = this.bestAtRunStart > 0 && this.stateValue.score > this.bestAtRunStart;
     this.boardView.setBoard(this.stateValue.board);
     this.trayView.setTray(this.stateValue.tray, animateTray);
-    this.updateHud();
+    this.updateHud(false);
   }
 
-  private updateHud(): void {
-    const { score, streak } = this.stateValue;
+  private updateHud(animate = true): void {
+    const { score, streak, setHadClear } = this.stateValue;
     this.best = Math.max(this.best, score);
+    // Glow once per run, when it first passes a real previous best.
+    const beaten = !this.bestGlowed && this.bestAtRunStart > 0 && score > this.bestAtRunStart;
+    if (beaten) this.bestGlowed = true;
     const hud = this.gameScreen.hud;
-    hud.setScore(score);
-    hud.setBest(this.best);
-    hud.setStreak(multiplier(streak));
+    hud.setScore(score, animate);
+    hud.setBest(this.best, beaten);
+    hud.setStreak(multiplier(streak), !setHadClear);
+  }
+
+  /** Callouts (D6) and the floating "+N" at the centre of the cleared cells. */
+  private showScoreFx(events: readonly GameEvent[]): void {
+    const cleared = events.find((e) => e.type === 'cleared');
+    const layout = this.scene.layout;
+    if (!cleared || !layout) return;
+    const fx = this.gameScreen.fx;
+    fx.showCallouts(cleared.callouts);
+    const bonus = events.find((e) => e.type === 'cleanBoard')?.points ?? 0;
+    const c = layout.cellSize;
+    let x = 0;
+    let y = 0;
+    for (const cell of cleared.cells) {
+      x += ((cell % BOARD_SIZE) + 0.5) * c;
+      y += (Math.floor(cell / BOARD_SIZE) + 0.5) * c;
+    }
+    const n = cleared.cells.length;
+    fx.showPoints(cleared.points + bonus, x / n, y / n);
   }
 
   private dragHost(): DragHost {

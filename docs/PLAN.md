@@ -504,6 +504,8 @@ All values are starting points in `render/feel.ts` and tuned during playtests.
 | Game over | remaining cells fade to sand one by one in random order over 700 ms; board desaturates slightly; then the panel slides up 250 ms | gentle descending chime; ambient ducks −6 dB | — |
 | Button press | scale 0.96 on press, back on release | UI tick | — |
 
+As built (T2.04): callouts and "+N" are DOM (`ui/components/FxLayer.ts`) with CSS animations. Their timings come from `FEEL.callout` / `FEEL.score`, which the App passes by reference, so the UI layer doesn't import `render/`. They reach the CSS as variables. When a placement has two callouts (a tier callout and "Crystal Clear!"), the second starts as the first begins to fade. The HUD score counts up with an eased rAF counter that retargets on new points and always ends on the exact value. The streak chip bounces on a rise, warms through `data-level` 1–6, dims while at risk (`!setHadClear`) and shrinks away on reset. Best glows once per run when a previous best (> 0) is beaten.
+
 **Reduced motion** turns off screen shake and caustics, replaces staggered cell animations with a 150 ms fade, and cuts particle counts to 25%.
 
 ---

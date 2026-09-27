@@ -1,6 +1,7 @@
 /** The Endless play screen: the canvas underneath does the playing; this adds the HUD. */
+import { FxLayer, type CalloutTiming, type FloatTiming } from '../components/FxLayer';
 import { GameOverPanel } from '../components/GameOverPanel';
-import { Hud } from '../components/Hud';
+import { Hud, type HudClock } from '../components/Hud';
 import { PauseDialog, type PauseActions } from '../components/PauseDialog';
 import type { Screen } from '../Router';
 
@@ -10,23 +11,38 @@ export interface GameScreenActions extends PauseActions {
   onSecondChance?: () => void;
 }
 
+/** Feel values (FEEL.callout, FEEL.score) and injectable clocks for tests. */
+export interface GameScreenOptions {
+  callout: CalloutTiming;
+  score: FloatTiming & { countUpDuration: number };
+  clock?: HudClock;
+  setTimer?: (fn: () => void, ms: number) => unknown;
+}
+
 export class GameScreen implements Screen {
   readonly hud: Hud;
   readonly gameOver: GameOverPanel;
+  readonly fx: FxLayer;
   readonly pause: PauseDialog;
 
-  constructor(actions: GameScreenActions) {
-    this.hud = new Hud(actions.onPause);
+  constructor(actions: GameScreenActions, opts: GameScreenOptions) {
+    this.hud = new Hud(actions.onPause, {
+      score: opts.score,
+      ...(opts.clock ? { clock: opts.clock } : {}),
+      ...(opts.setTimer ? { setTimer: opts.setTimer } : {}),
+    });
+    this.fx = new FxLayer(opts.callout, opts.score, opts.setTimer);
     this.gameOver = new GameOverPanel(actions);
     this.pause = new PauseDialog(actions);
   }
 
   mount(root: HTMLElement): void {
-    root.append(this.hud.el, this.gameOver.el, this.pause.el);
+    root.append(this.hud.el, this.fx.el, this.gameOver.el, this.pause.el);
   }
 
   unmount(): void {
     this.hud.el.remove();
+    this.fx.el.remove();
     this.gameOver.el.remove();
     this.pause.el.remove();
   }

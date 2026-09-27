@@ -471,4 +471,64 @@ describe('App clear effects', () => {
     expect(app.scene.isAnimating()).toBe(false);
     expect(app.state.board.cells.filter((c) => c.color !== null)).toHaveLength(5);
   });
+
+  it('shows D6 callouts and floating points for clears', () => {
+    const { app, uiRoot } = makeApp();
+    const fill = '#######.';
+    app.loadState({
+      ...app.state,
+      board: boardFromAscii([fill, fill, ...new Array<string>(5).fill('........'), '#.......']),
+      tray: [
+        { shape: 'i2v', color: 1 },
+        { shape: 'dot', color: 2 },
+        { shape: 'dot', color: 3 },
+      ],
+    });
+    app.place({ slot: 0, row: 0, col: 7 });
+    const texts = [...uiRoot.querySelectorAll('.callout')].map((e) => e.textContent);
+    expect(texts).toEqual(['Nice!']);
+    const float = uiRoot.querySelector<HTMLElement>('.float-points')!;
+    const cleared = app.state.stats.linesCleared;
+    expect(cleared).toBe(2);
+    expect(float.textContent).toMatch(/^\+/);
+    // Single line: points only, no callout.
+    app.loadState({
+      ...app.state,
+      board: boardFromAscii([fill, ...new Array<string>(6).fill('........'), '#.......']),
+    });
+    app.place({ slot: 1, row: 0, col: 7 });
+    // (Loading a state cleared the earlier effects.)
+    expect(uiRoot.querySelectorAll('.callout')).toHaveLength(0);
+    expect(uiRoot.querySelectorAll('.float-points')).toHaveLength(1);
+  });
+
+  it('keeps the streak chip in step with state.streak and setHadClear', () => {
+    const { app, uiRoot } = makeApp('streak-chip');
+    const chip = uiRoot.querySelector<HTMLElement>('.hud__streak')!;
+    for (let i = 0; i < 400 && !app.state.over; i++) {
+      app.place(firstMove(app));
+      const { streak, setHadClear } = app.state;
+      const visible = !chip.hidden && !chip.classList.contains('hud__streak--leaving');
+      expect(visible).toBe(streak > 0);
+      if (streak > 0) {
+        expect(chip.dataset.multiplier).toBe(String(Math.min(4, 1 + streak * 0.5)));
+        expect(chip.classList.contains('hud__streak--at-risk')).toBe(!setHadClear);
+      }
+    }
+  });
+
+  it('glows the best score once per run when a previous best is beaten', async () => {
+    const save = new SaveStore(new MemoryBackend());
+    await save.load();
+    save.update((s) => (s.stats.bestScore = 3));
+    const { app, uiRoot } = makeApp('glow', save);
+    const best = uiRoot.querySelector('.hud__best')!;
+    app.place(firstMove(app));
+    app.place(firstMove(app));
+    expect(app.state.score).toBeGreaterThan(3);
+    expect(best.classList.contains('hud__best--glow')).toBe(true);
+    best.classList.remove('hud__best--glow');
+    app.place(firstMove(app));
+    expect(best.classList.contains('hud__best--glow')).toBe(false);
+  });
 });

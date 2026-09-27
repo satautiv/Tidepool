@@ -152,6 +152,178 @@ button {
   display: none;
 }
 
+/* The chip warms from teal to coral as the streak grows. */
+.hud__streak[data-level='2'] {
+  background: #2f9a8f;
+}
+.hud__streak[data-level='3'] {
+  background: #d99a3a;
+}
+.hud__streak[data-level='4'] {
+  background: #e8834f;
+}
+.hud__streak[data-level='5'] {
+  background: #ef6f5c;
+}
+.hud__streak[data-level='6'] {
+  background: #f25a6b;
+  box-shadow: 0 0 10px rgba(242, 90, 107, 0.45);
+}
+
+.hud__streak {
+  transition:
+    opacity 200ms ease,
+    filter 200ms ease;
+}
+
+/* This tray-set has no clear yet: the streak is at risk. */
+.hud__streak--at-risk {
+  opacity: 0.55;
+  filter: saturate(0.4);
+}
+
+.hud__streak--bump {
+  animation: streak-bump 320ms cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+.hud__streak--leaving {
+  animation: streak-leave 250ms ease-in forwards;
+}
+
+@keyframes streak-bump {
+  40% {
+    transform: scale(1.3);
+  }
+}
+
+@keyframes streak-leave {
+  to {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+.hud__best--glow .hud__best-value {
+  animation: best-glow 1.2s ease-out;
+}
+
+@keyframes best-glow {
+  0%,
+  30% {
+    color: #e8834f;
+    text-shadow: 0 0 12px rgba(242, 198, 109, 0.9);
+  }
+}
+
+/* ---------- Score feedback over the board ---------- */
+
+.fx {
+  position: absolute;
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+  overflow: visible;
+}
+
+.callout {
+  grid-area: 1 / 1;
+  font-size: clamp(28px, 9vmin, 48px);
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  color: #fff;
+  -webkit-text-stroke: 1.5px rgba(38, 128, 140, 0.9);
+  paint-order: stroke fill;
+  text-shadow: 0 4px 16px rgba(38, 128, 140, 0.35);
+  white-space: nowrap;
+  opacity: 0;
+  animation:
+    callout-pop var(--pop) cubic-bezier(0.2, 0.9, 0.3, 1) var(--delay) forwards,
+    callout-fade var(--fade) ease-in calc(var(--delay) + var(--hold-end)) forwards;
+}
+
+.callout[data-tier='2'] {
+  font-size: clamp(34px, 11vmin, 58px);
+  -webkit-text-stroke-color: rgba(217, 154, 58, 0.95);
+}
+
+.callout[data-tier='3'] {
+  font-size: clamp(40px, 13vmin, 68px);
+  -webkit-text-stroke-color: rgba(239, 111, 92, 0.95);
+  text-shadow: 0 6px 24px rgba(239, 111, 92, 0.4);
+}
+
+.callout--tidalWave {
+  animation:
+    callout-pop var(--pop) cubic-bezier(0.2, 0.9, 0.3, 1) var(--delay) forwards,
+    callout-wobble 0.6s ease-in-out calc(var(--delay) + var(--pop)) 2,
+    callout-fade var(--fade) ease-in calc(var(--delay) + var(--hold-end)) forwards;
+}
+
+.callout--crystalClear {
+  -webkit-text-stroke-color: rgba(79, 195, 232, 0.95);
+}
+
+@keyframes callout-pop {
+  0% {
+    opacity: 0;
+    transform: scale(var(--pop-from));
+  }
+  60% {
+    opacity: 1;
+    transform: scale(var(--pop-peak));
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes callout-wobble {
+  25% {
+    transform: rotate(-3deg) scale(1.02);
+  }
+  75% {
+    transform: rotate(3deg) scale(1.02);
+  }
+}
+
+@keyframes callout-fade {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+}
+
+.float-points {
+  position: absolute;
+  translate: -50% -50%;
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  -webkit-text-stroke: 1px rgba(38, 128, 140, 0.8);
+  paint-order: stroke fill;
+  font-variant-numeric: tabular-nums;
+  animation: float-up var(--float) ease-out var(--delay) forwards;
+}
+
+@keyframes float-up {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.8);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(calc(var(--rise) * 0.15)) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(var(--rise));
+  }
+}
+
 .hud__pause {
   justify-self: end;
 }
