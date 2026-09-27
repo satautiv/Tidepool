@@ -193,7 +193,6 @@ export class App {
   private adShowing = false;
   private lifecycle: Lifecycle | null = null;
   private readonly now: () => number;
-  private runSeed: string | null = null;
   /** Run play time before this page's stretch, and when this stretch started. */
   private runMsBefore = 0;
   private runStretchStart: number | null = 0;
@@ -553,7 +552,7 @@ export class App {
     this.opts.ads?.runStarted();
     this.bus.emit('runStart', {
       state: this.stateValue,
-      seed: this.runResumed ? null : this.runSeed,
+      seed: this.runResumed ? null : (this.stateValue.seed ?? null),
       resumed: this.runResumed,
     });
   }
@@ -873,7 +872,6 @@ export class App {
   }
 
   private freshRun(seed: string): EndlessState {
-    this.runSeed = seed;
     this.runMsBefore = 0;
     this.runStretchStart = this.now();
     return newEndless(

@@ -260,10 +260,18 @@ describe('replay & persistence', () => {
     ['bad rng', JSON.stringify({ ...newEndless('v').state, rng: [1] })],
     ['bad score', JSON.stringify({ ...newEndless('v').state, score: 'x' })],
     ['missing stats', JSON.stringify({ ...newEndless('v').state, stats: undefined })],
+    ['bad seed', JSON.stringify({ ...newEndless('v').state, seed: 7 })],
     ['bad includeL4', JSON.stringify({ ...newEndless('v').state, includeL4: 'yes' })],
     ['null', 'null'],
   ])('deserialize rejects %s', (_name, json) => {
     expect(() => deserialize(json)).toThrow();
+  });
+
+  it('keeps the seed in the run, as a string', () => {
+    expect(newEndless('abc').state.seed).toBe('abc');
+    expect(newEndless(7).state.seed).toBe('7');
+    const old = { ...newEndless('old').state, seed: undefined }; // saved before seeds were kept
+    expect(deserialize(JSON.stringify(old)).seed).toBeUndefined();
   });
 
   it('keeps state JSON-serializable without loss', () => {

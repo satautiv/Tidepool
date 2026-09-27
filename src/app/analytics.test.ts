@@ -115,6 +115,14 @@ describe('GameAnalytics', () => {
     ]);
   });
 
+  it('sends run_start with its seed for an unplayed run saved before a reload', async () => {
+    const backend = new MemoryBackend();
+    const first = await setup(backend);
+    await first.save.flush();
+    const second = await setup(backend);
+    expect(second.recorder.named('run_start')).toEqual([{ mode: 'endless', seed: 'analytics' }]);
+  });
+
   it('does not send run_start for a resumed run', async () => {
     const backend = new MemoryBackend();
     const first = await setup(backend);

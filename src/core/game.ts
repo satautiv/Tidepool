@@ -44,6 +44,8 @@ export interface EndlessState {
   readonly secondChanceUsed: boolean;
   readonly over: boolean;
   readonly stats: EndlessStats;
+  /** The seed the run was started with (for reports and replays). Missing in older saves. */
+  readonly seed?: string;
   /** Deal the optional 4-cell L/J shapes (playtest variant). Missing in older saves: the config default. */
   readonly includeL4?: boolean;
 }
@@ -99,6 +101,7 @@ export function newEndless(seed: string | number, opts: EndlessOptions = {}): St
     secondChanceUsed: false,
     over: false,
     stats: { placed: 0, linesCleared: 0, bestCombo: 0 },
+    seed: String(seed),
     ...(opts.includeL4 === undefined ? {} : { includeL4: opts.includeL4 }),
   };
   const dealt = dealTray(initial, 'normal');
@@ -248,6 +251,7 @@ export function deserialize(json: string): EndlessState {
     if (typeof s[key] !== 'number') fail(key);
   }
   if (!Array.isArray(s.genHistory) || !s.stats) fail('history/stats');
+  if (s.seed !== undefined && typeof s.seed !== 'string') fail('seed');
   if (s.includeL4 !== undefined && typeof s.includeL4 !== 'boolean') fail('includeL4');
   return s as EndlessState;
 }
