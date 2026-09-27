@@ -830,6 +830,34 @@ describe('App playtest options', () => {
     t += 4000;
     expect(app.runPlayMs).toBe(4000);
   });
+
+  it('never counts time on the menu in a new run (Reset progress, Game Over → Menu)', () => {
+    let t = 0;
+    const { app } = makeApp('menu-clock', undefined, undefined, { extra: { now: () => t } });
+    app.showMenu();
+    app.resetProgress();
+    t += 60_000;
+    expect(app.runPlayMs).toBe(0);
+    app.play();
+    t += 5000;
+    expect(app.runPlayMs).toBe(5000);
+
+    app.showMenu();
+    app.newRun('from-menu'); // what Game Over → Menu does
+    t += 30_000;
+    app.play();
+    t += 2000;
+    expect(app.runPlayMs).toBe(2000);
+  });
+
+  it('runs the clock of a run restarted from the pause dialog', () => {
+    let t = 0;
+    const { app } = makeApp('restart', undefined, undefined, { extra: { now: () => t } });
+    app.pause();
+    app.newRun('restarted');
+    t += 3000;
+    expect(app.runPlayMs).toBe(3000);
+  });
 });
 
 describe('App responsive', () => {
@@ -1152,6 +1180,19 @@ describe('App first-time hint', () => {
     const { app: again, uiRoot: root2 } = await fresh(backend);
     again.play();
     expect(hintEl(root2).hidden).toBe(true);
+  });
+
+  it('comes back after Reset progress, like a fresh install', async () => {
+    const { app, uiRoot, save } = await fresh();
+    app.play();
+    app.place(firstMove(app));
+    app.newRun('later');
+    expect(save.current.stats.gamesPlayed).toBe(1); // no first-run board any more
+
+    app.resetProgress();
+    expect(boardToAscii(app.state.board)).toEqual(FIRST_RUN.board);
+    app.play();
+    expect(hintEl(uiRoot).hidden).toBe(false);
   });
 
   it('only on a first install: a player with games behind them gets a normal run', async () => {

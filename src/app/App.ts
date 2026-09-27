@@ -508,13 +508,15 @@ export class App {
     return this.sprites.glyphsOn;
   }
 
-  /** Reset progress: the save back to defaults, a fresh run, and the main menu. */
+  /** Reset progress: the save back to defaults, the first-run board again, and the main menu. */
   resetProgress(): void {
     this.opts.save?.reset();
     this.applyLook();
     this.best = 0;
     this.bestAtRunStart = 0;
-    this.stateValue = this.freshRun(this.seed());
+    this.tutorialDoneLocal = false;
+    this.tutorialRun = false;
+    this.stateValue = this.startingRun();
     this.runResumed = false;
     this.announced = false;
     this.gameScreen.gameOver.hide();
@@ -571,6 +573,7 @@ export class App {
     this.gameScreen.gameOver.hide();
     this.gameScreen.pause.hide();
     this.paused = false;
+    if (this.screen === 'game') this.startRunClock(); // from the menu, Play starts it
     this.syncInput();
     this.showRun(true);
     this.persistRun();
@@ -871,9 +874,10 @@ export class App {
     hint.show({ x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }, to);
   }
 
+  /** A new run. Its clock is stopped: it starts in the game (`play()`, `newRun()`). */
   private freshRun(seed: string): EndlessState {
     this.runMsBefore = 0;
-    this.runStretchStart = this.now();
+    this.runStretchStart = null;
     return newEndless(
       seed,
       this.opts.includeL4 === undefined ? {} : { includeL4: this.opts.includeL4 },
