@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { boardFromAscii } from '../core/board';
 import { slotShape } from '../core/generator';
 import { FEEL } from '../render/feel';
+import { readSafeArea } from '../render/viewport';
 import { AdManager } from '../services/ads/AdManager';
 import { AudioEngine } from '../services/audio/AudioEngine';
 import { FakeAudioContext } from '../services/audio/testing';
@@ -766,5 +767,33 @@ describe('App drag events', () => {
     app.drag.pointerUp({ id: 1, kind: 'mouse', x: 1, y: 1 });
     expect(picked).toHaveBeenCalledWith({ slot: 0 });
     expect(cancelled).toHaveBeenCalledWith({ slot: 0 });
+  });
+});
+
+describe('App responsive', () => {
+  it('reads safe-area insets without failing where env() is unsupported', () => {
+    expect(readSafeArea()).toEqual({ top: 0, right: 0, bottom: 0, left: 0 });
+    expect(document.body.children).toHaveLength(0); // the probe is removed
+  });
+
+  it('lays out with the given safe area', () => {
+    const { app } = makeApp('safe', undefined, undefined, {
+      extra: { safeArea: () => ({ top: 47, right: 0, bottom: 34, left: 0 }) },
+    });
+    expect(app.scene.layout!.hud.y).toBeGreaterThanOrEqual(47);
+  });
+
+  it('cancels a drag when the layout changes (rotation mid-drag)', () => {
+    const { app } = makeApp();
+    app.scene.update(1);
+    const cancelled = vi.fn();
+    app.bus.on('dropCancelled', cancelled);
+    const r = app.slotPieceRect(0)!;
+    app.drag.pointerDown({ id: 1, kind: 'touch', x: r.x + 1, y: r.y + 1 });
+    expect(app.drag.state).not.toBeNull();
+    app.renderer.resize(844, 390, 2);
+    expect(app.drag.state).toBeNull();
+    expect(cancelled).toHaveBeenCalledOnce();
+    expect(app.scene.layout!.orientation).toBe('landscape');
   });
 });

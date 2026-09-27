@@ -463,6 +463,13 @@ Keyboard play (arrow keys to move the ghost, 1–3 to select a slot, Enter to pl
 - **Landscape** (aspect > 0.8): the board is centred-left (size = min(80% of height, 55% of width)), with the tray as a vertical column of 3 slots on the right and the HUD above the board or at top-left.
 - Minimum touch target: 44 CSS px for every button. A tray slot is at least 2.2 × cellSize wide.
 - Safe areas: CSS `env(safe-area-inset-*)` for the DOM. The same insets are passed into `computeLayout` for the canvas (important on Android with a notch).
+- As built (T2.11):
+  - In portrait, spare height first deepens the tray up to `trayRatioMax` (0.6 × board), giving bigger touch targets on 20:9 phones, and then centres the group.
+  - In landscape, the HUD spans only the board and tray, not the whole window.
+  - `maxBoard` is 720 px.
+  - `render/viewport.ts` `readSafeArea()` reads `env(safe-area-inset-*)` through a hidden probe on every layout. The dialogs pad with `max(16px, env(...))`.
+  - Any re-layout (rotation, resize) mid-drag cancels the drag, so the piece floats back.
+  - Tests cover 800×450 and 960×600 portal embeds: cells ≥ 38 px and slots ≥ 44 px.
 
 ---
 

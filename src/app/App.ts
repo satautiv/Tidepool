@@ -36,7 +36,8 @@ import { TIDEPOOL, type Palette } from '../render/palettes';
 import { Renderer, type RendererOptions } from '../render/Renderer';
 import { domCanvasFactory, SpriteSet, type CanvasFactory } from '../render/sprites';
 import { TrayView } from '../render/TrayView';
-import { attachViewport, type ViewportEnv } from '../render/viewport';
+import { attachViewport, readSafeArea, type ViewportEnv } from '../render/viewport';
+import type { Insets } from '../render/layout';
 import type { HudClock } from '../ui/components/Hud';
 import { Router } from '../ui/Router';
 import type { AdManager } from '../services/ads/AdManager';
@@ -85,6 +86,8 @@ export interface AppOptions {
   now?: () => number;
   /** Ad policy and provider. Without one, no ads (tests, previews). */
   ads?: AdManager;
+  /** Safe-area insets for the canvas layout. Default: read from CSS `env()`. */
+  safeArea?: () => Insets;
   /** Sound. Without one, the game is silent (tests, previews). */
   audio?: AudioEngine;
   /** Haptic taps on placements and clears. Default: none. */
@@ -158,7 +161,10 @@ export class App {
     this.renderer = new Renderer(opts.canvas, opts.renderer);
     const redraw = () => this.renderer.requestRedraw();
 
-    this.scene = new GameScene(new SpriteSet(this.palette, opts.spriteFactory));
+    this.scene = new GameScene(
+      new SpriteSet(this.palette, opts.spriteFactory),
+      opts.safeArea ?? (() => readSafeArea()),
+    );
     this.boardView = new BoardView(redraw);
     this.trayView = new TrayView(redraw);
     this.best = opts.save?.current.stats.bestScore ?? 0;
@@ -207,6 +213,8 @@ export class App {
     this.scene.add(this.dragView);
     this.scene.add({
       onLayout: ({ layout }) => {
+        // Rotation or resize mid-drag: the piece goes back rather than jumping.
+        if (this.drag.state) this.drag.cancel();
         this.gameScreen.hud.setRect(layout.hud);
         this.gameScreen.fx.setRect(layout.board);
       },

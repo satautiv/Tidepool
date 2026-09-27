@@ -156,3 +156,39 @@ describe('rect helpers', () => {
     expect(rectsOverlap(r, { x: 10, y: 0, width: 5, height: 5 })).toBe(false);
   });
 });
+
+describe('final responsive pass (T2.11)', () => {
+  it('spans the landscape HUD over the board and tray only', () => {
+    const l = computeLayout({ width: 1920, height: 1080, dpr: 1 });
+    expect(l.hud.x).toBeCloseTo(l.boardFrame.x, 0);
+    expect(l.hud.x + l.hud.width).toBeCloseTo(l.tray.x + l.tray.width, 0);
+    expect(l.hud.width).toBeLessThan(1920 * 0.6);
+  });
+
+  it('caps the board on big screens', () => {
+    const l = computeLayout({ width: 3840, height: 2160, dpr: 1 });
+    expect(l.board.width).toBeLessThanOrEqual(LAYOUT.maxBoard);
+    expect(l.board.width).toBeGreaterThan(640);
+  });
+
+  it('deepens the tray on tall phones (bigger touch targets), within its limit', () => {
+    const tall = computeLayout({ width: 412, height: 915, dpr: 2.625 });
+    expect(tall.tray.height / tall.board.width).toBeGreaterThan(LAYOUT.trayRatio);
+    expect(tall.tray.height / tall.board.width).toBeLessThanOrEqual(LAYOUT.trayRatioMax + 1e-9);
+    // Where height is the constraint (landscape-ish tablets), it keeps the base depth.
+    const tablet = computeLayout({ width: 768, height: 1024, dpr: 2 });
+    expect(tablet.tray.height / tablet.board.width).toBeGreaterThanOrEqual(LAYOUT.trayRatio - 0.01);
+  });
+
+  it('keeps small portal iframes playable', () => {
+    for (const [w, h] of [
+      [800, 450],
+      [960, 600],
+    ] as const) {
+      const l = computeLayout({ width: w, height: h, dpr: 1 });
+      expect(l.cellSize).toBeGreaterThanOrEqual(38);
+      for (const slot of l.traySlots)
+        expect(Math.min(slot.width, slot.height)).toBeGreaterThanOrEqual(44);
+    }
+  });
+});

@@ -2,6 +2,7 @@
  * Keeps the renderer sized to its element: CSS size via ResizeObserver, and device pixel ratio
  * changes (browser zoom, moving to another monitor) via a resolution media query.
  */
+import type { Insets } from './layout';
 import type { Renderer } from './Renderer';
 
 export interface ViewportEnv {
@@ -55,4 +56,28 @@ export function attachViewport(
     stopResize();
     stopDpr();
   };
+}
+
+/**
+ * The CSS safe-area insets (notches, rounded corners, home indicator), read from
+ * `env(safe-area-inset-*)` through a hidden probe element, for the canvas layout. The DOM uses
+ * the same `env()` values directly. Zero where unsupported.
+ */
+export function readSafeArea(doc: Document = document): Insets {
+  const probe = doc.createElement('div');
+  probe.style.cssText =
+    'position:fixed;visibility:hidden;pointer-events:none;' +
+    'padding:env(safe-area-inset-top) env(safe-area-inset-right) ' +
+    'env(safe-area-inset-bottom) env(safe-area-inset-left)';
+  doc.body.append(probe);
+  const style = getComputedStyle(probe);
+  const px = (v: string) => Number.parseFloat(v) || 0;
+  const insets = {
+    top: px(style.paddingTop),
+    right: px(style.paddingRight),
+    bottom: px(style.paddingBottom),
+    left: px(style.paddingLeft),
+  };
+  probe.remove();
+  return insets;
 }

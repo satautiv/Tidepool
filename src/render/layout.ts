@@ -54,7 +54,10 @@ export const LAYOUT = {
   gap: 12,
   /** Tray depth (portrait height / landscape width) relative to the board size. */
   trayRatio: 0.45,
-  maxBoard: 640,
+  /** On tall phones the tray grows into spare height, up to this (bigger touch targets). */
+  trayRatioMax: 0.6,
+  /** Cap on the grid size (CSS px), so large screens don't get a comically big board. */
+  maxBoard: 720,
   maxTrayScale: 0.6,
   /** Pieces fill at most this share of a tray slot. */
   slotFill: 0.9,
@@ -137,17 +140,23 @@ export function computeLayout(input: LayoutInput): Layout {
   const frame = size + 2 * pad;
   const trayDepth = snap(size * trayRatio);
 
-  const hud: Rect = { x: area.x, y: area.y, width: area.width, height: hudHeight };
   const top = area.y + hudHeight + gap;
   const below = area.y + area.height - top;
 
   let board: Rect;
   let tray: Rect;
   let traySlots: Rect[];
+  let hud: Rect;
   if (orientation === 'portrait') {
-    const y0 = top + Math.max(0, (below - frame - gap - trayDepth) / 2) + pad;
+    // Spare height (tall phones) first deepens the tray, then centres the group.
+    // Floored to device pixels, with a pixel of slack, so rounding never pushes it outside.
+    const spare = Math.max(0, below - frame - gap - trayDepth - 2 / dpr);
+    const floor = (v: number) => Math.floor(v * dpr) / dpr;
+    const depth = floor(Math.min(trayDepth + spare, size * LAYOUT.trayRatioMax));
+    const y0 = top + Math.max(0, (below - frame - gap - depth) / 2) + pad;
     board = { x: snap(area.x + (area.width - size) / 2), y: snap(y0), width: size, height: size };
-    tray = { x: board.x, y: snap(board.y + size + pad + gap), width: size, height: trayDepth };
+    tray = { x: board.x, y: snap(board.y + size + pad + gap), width: size, height: depth };
+    hud = { x: area.x, y: area.y, width: area.width, height: hudHeight };
     const edge = (i: number) => snap(tray.x + (i * size) / TRAY_SIZE);
     traySlots = Array.from({ length: TRAY_SIZE }, (_, i) => ({
       x: edge(i),
@@ -160,6 +169,9 @@ export function computeLayout(input: LayoutInput): Layout {
     const y0 = top + Math.max(0, (below - frame) / 2) + pad;
     board = { x: snap(x0), y: snap(y0), width: size, height: size };
     tray = { x: snap(board.x + size + pad + gap), y: board.y, width: trayDepth, height: size };
+    // The HUD spans the board and tray, not the whole (possibly very wide) window.
+    const left = board.x - pad;
+    hud = { x: snap(left), y: area.y, width: snap(tray.x + tray.width - left), height: hudHeight };
     const edge = (i: number) => snap(tray.y + (i * size) / TRAY_SIZE);
     traySlots = Array.from({ length: TRAY_SIZE }, (_, i) => ({
       x: tray.x,
