@@ -54,6 +54,9 @@ export interface AdManagerOptions {
     result: BreakResult | RewardedResult,
   ) => void;
   onError?: (message: string) => void;
+  /** Session boundaries (D18), for analytics `session_start` / `session_end`. */
+  onSessionStart?: (index: number) => void;
+  onSessionEnd?: (durationMs: number) => void;
 }
 
 const TIMEOUT = Symbol('timeout');
@@ -74,6 +77,8 @@ export class AdManager {
   private readonly clearTimer: (handle: unknown) => void;
   private readonly onResult: NonNullable<AdManagerOptions['onResult']>;
   private readonly onError: (message: string) => void;
+  private readonly onSessionStart: (index: number) => void;
+  private readonly onSessionEnd: (durationMs: number) => void;
 
   private ready = false;
   private busy = false;
@@ -81,6 +86,8 @@ export class AdManager {
   private playing = false;
   private playingSince = 0;
   private hiddenAt: number | null = null;
+  /** When the current session started; null once it has been ended. */
+  private sessionStartedAt: number | null = null;
   private resumeOnVisible = false;
   private secondChanceUsed = false;
   private doubleRewardUsed = false;
@@ -98,6 +105,8 @@ export class AdManager {
     this.onAdEnd = opts.onAdEnd ?? (() => {});
     this.onResult = opts.onResult ?? (() => {});
     this.onError = opts.onError ?? (() => {});
+    this.onSessionStart = opts.onSessionStart ?? (() => {});
+    this.onSessionEnd = opts.onSessionEnd ?? (() => {});
   }
 
   /** Starts a session (app launch) and initialises the provider. Never rejects. */
@@ -139,9 +148,12 @@ export class AdManager {
   /** Page visible again: a long absence starts a new session. */
   onVisible(): void {
     if (this.hiddenAt === null) return;
-    const away = this.now() - this.hiddenAt;
+    const hiddenAt = this.hiddenAt;
     this.hiddenAt = null;
-    if (away >= this.policy.sessionGapMs) this.startSession();
+    if (this.now() - hiddenAt >= this.policy.sessionGapMs) {
+      this.endSession(hiddenAt); // the old session ended when the player left
+      this.startSession();
+    }
     if (this.resumeOnVisible) this.gameplayStart();
     this.resumeOnVisible = false;
   }
@@ -280,14 +292,25 @@ export class AdManager {
 
   // ---- Plumbing -------------------------------------------------------------------------
 
+  /** Ends the current session (page closing, or before a new one). Idempotent. */
+  endSession(at = this.now()): void {
+    if (this.sessionStartedAt === null) return;
+    const duration = Math.max(0, at - this.sessionStartedAt);
+    this.sessionStartedAt = null;
+    this.safely(() => this.onSessionEnd(duration), 'onSessionEnd');
+  }
+
   private startSession(): void {
     const now = this.now();
+    this.sessionStartedAt = now;
     this.store.update((s) => {
       s.ads.sessionCount++;
       s.ads.lastSessionStart = now;
       s.ads.gameplayMsSinceInterstitial = 0;
     });
     if (this.playing) this.playingSince = now;
+    const index = this.store.current.ads.sessionCount;
+    this.safely(() => this.onSessionStart(index), 'onSessionStart');
   }
 
   /** Runs an ad with the game paused and gameplay signalled as stopped around it. */

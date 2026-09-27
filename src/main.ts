@@ -1,6 +1,8 @@
 import './ui/styles/base.css';
+import { GameAnalytics } from './app/analytics';
 import { App } from './app/App';
 import { TIDEPOOL } from './render/palettes';
+import { ConsoleAnalytics, NoopAnalytics } from './services/analytics/Analytics';
 import { AdManager } from './services/ads/AdManager';
 import { domAdOverlay, NoAdsService } from './services/ads/NoAdsService';
 import { SaveStore } from './services/storage/SaveStore';
@@ -16,7 +18,16 @@ root.setProperty('--color-sand', TIDEPOOL.background[0]);
 root.setProperty('--color-water', TIDEPOOL.background[1]);
 
 const seed = params.get('seed');
-const save = new SaveStore(createWebStorage());
+// The analytics backend is decided in T3.14; until then dev logs to the console.
+const analytics = new GameAnalytics(
+  import.meta.env.DEV ? new ConsoleAnalytics() : new NoopAnalytics(),
+  { platform: 'web', installedAt: () => save.current.installedAt },
+);
+analytics.catchGlobalErrors(window);
+
+const save = new SaveStore(createWebStorage(), {
+  onError: (message) => analytics.error(message, 'save'),
+});
 await save.load();
 
 // Provider per build target arrives in T3.03; dev shows placeholders, `?rewarded=0` = no fill.
@@ -24,8 +35,9 @@ const adService = new NoAdsService({
   overlay: import.meta.env.DEV ? domAdOverlay(uiRoot) : null,
   rewardedReady: !(import.meta.env.DEV && params.get('rewarded') === '0'),
 });
-const ads = new AdManager(adService, save);
+const ads = new AdManager(adService, save, analytics.adHooks);
 void ads.init();
+window.addEventListener('pagehide', () => ads.endSession());
 
 const app = new App({
   save,
@@ -36,6 +48,7 @@ const app = new App({
   debug: import.meta.env.DEV && params.has('debug'),
   ...(import.meta.env.DEV && seed ? { seed: () => seed } : {}),
 });
+analytics.attach(app);
 app.start();
 
 // Dev-only handle for debugging and browser tests (formalised in T1.26). Stripped from builds.

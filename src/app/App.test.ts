@@ -1,68 +1,15 @@
 // @vitest-environment happy-dom
 import { describe, expect, it, vi } from 'vitest';
-import { allFits, boardFromAscii } from '../core/board';
+import { boardFromAscii } from '../core/board';
 import { slotShape } from '../core/generator';
-import type { FrameScheduler } from '../render/Renderer';
-import { fakeCanvasFactory } from '../render/testing';
-import type { ViewportEnv } from '../render/viewport';
 import { AdManager } from '../services/ads/AdManager';
 import { NoAdsService } from '../services/ads/NoAdsService';
 import { MemoryBackend } from '../services/storage/StorageBackend';
 import { SAVE_KEY, SaveStore } from '../services/storage/SaveStore';
-import { App, randomSeed, type PageEnv } from './App';
-
-const idleScheduler: FrameScheduler = { request: () => 0, cancel: () => {} };
-
-function fakePage(): PageEnv & { hide(): void } {
-  const document = Object.assign(new EventTarget(), {
-    visibilityState: 'visible' as DocumentVisibilityState,
-  });
-  const window = new EventTarget();
-  return {
-    window,
-    document,
-    hide() {
-      document.visibilityState = 'hidden';
-      document.dispatchEvent(new Event('visibilitychange'));
-    },
-  };
-}
-
-function makeApp(seed = 'app-test', save?: SaveStore, ads?: AdManager) {
-  const { factory } = fakeCanvasFactory();
-  const canvas = factory(390, 844);
-  const uiRoot = document.createElement('div');
-  const app = new App({
-    canvas,
-    uiRoot,
-    seed: () => seed,
-    spriteFactory: factory,
-    renderer: { scheduler: idleScheduler },
-    ...(save ? { save } : {}),
-    ...(ads ? { ads } : {}),
-  });
-  const viewport: ViewportEnv = {
-    observeResize: (_el, cb) => {
-      cb(390, 844);
-      return () => {};
-    },
-    devicePixelRatio: () => 2,
-    onDprChange: () => () => {},
-  };
-  const page = fakePage();
-  app.start({ viewport, page });
-  return { app, uiRoot, page };
-}
+import { randomSeed, type App } from './App';
+import { firstMove, makeApp } from './testing';
 
 const text = (root: HTMLElement, sel: string) => root.querySelector(sel)?.textContent;
-
-/** The first valid move for the current tray. */
-function firstMove(app: App) {
-  const s = app.state;
-  const slot = s.tray.findIndex((t) => t && allFits(s.board, slotShape(t)).length > 0);
-  const [row, col] = allFits(s.board, slotShape(s.tray[slot]!))[0]!;
-  return { slot, row, col };
-}
 
 describe('App', () => {
   it('starts a seeded run with the HUD at zero and a laid-out scene', () => {

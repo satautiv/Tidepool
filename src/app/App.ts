@@ -41,6 +41,10 @@ export interface AppEvents {
   /** Every batch of core events produced by a move or a new run. */
   game: { events: readonly GameEvent[]; state: EndlessState };
   newRun: { state: EndlessState };
+  /** A run is on screen: a fresh one (with its seed) or one resumed from the save. */
+  runStart: { state: EndlessState; seed: string | null; resumed: boolean };
+  /** A run was closed out (replaced by the next one, or found finished on boot). */
+  runEnd: { state: EndlessState; durationMs: number };
   /** Emitted once the Game Over panel is on screen. */
   gameOver: { score: number; best: number; newBest: boolean };
   pause: void;
@@ -58,6 +62,8 @@ export interface AppOptions {
   debug?: boolean;
   /** A loaded save. Without one, nothing persists (tests, previews). */
   save?: SaveStore;
+  /** Wall clock for run durations. Defaults to Date.now. */
+  now?: () => number;
   /** Ad policy and provider. Without one, no ads (tests, previews). */
   ads?: AdManager;
 }
@@ -91,10 +97,18 @@ export class App {
   private readonly palette: Palette;
   /** A break ad is running between Game Over and the next run. */
   private leaving = false;
+  private readonly now: () => number;
+  private runSeed: string | null = null;
+  /** Run play time before this page's stretch, and when this stretch started. */
+  private runMsBefore = 0;
+  private runStretchStart = 0;
+  /** A finished run found in the save, closed out in `start()` once listeners exist. */
+  private finishedOnBoot: { run: EndlessState; durationMs: number } | null = null;
 
   constructor(private readonly opts: AppOptions) {
     this.palette = opts.palette ?? TIDEPOOL;
     this.seed = opts.seed ?? randomSeed;
+    this.now = opts.now ?? Date.now;
     this.renderer = new Renderer(opts.canvas, opts.renderer);
     const redraw = () => this.renderer.requestRedraw();
 
@@ -102,7 +116,7 @@ export class App {
     this.boardView = new BoardView(redraw);
     this.trayView = new TrayView(redraw);
     this.best = opts.save?.current.stats.bestScore ?? 0;
-    this.stateValue = this.restoreRun() ?? newEndless(this.seed()).state;
+    this.stateValue = this.restoreRun() ?? this.freshRun(this.seed());
 
     this.drag = new DragController(this.dragHost(), {
       onStart: (d) => this.trayView.setDragging(d.slot),
@@ -186,21 +200,28 @@ export class App {
 
     void this.router.show(this.gameScreen);
     const resumed = this.stateValue.stats.placed > 0;
+    if (this.finishedOnBoot) {
+      const { run, durationMs } = this.finishedOnBoot;
+      this.finishedOnBoot = null;
+      this.bus.emit('runEnd', { state: run, durationMs });
+    }
     this.showRun(!resumed, resumed);
     if (!resumed) this.persistRun();
     this.opts.ads?.runStarted();
+    this.bus.emit('runStart', { state: this.stateValue, seed: this.runSeed, resumed });
   }
 
   /** Starts a fresh Endless run, closing out the current one first. */
   newRun(seed = this.seed()): void {
-    this.finishRun(this.stateValue);
-    this.stateValue = newEndless(seed).state;
+    this.finishRun(this.stateValue, this.runElapsed());
+    this.stateValue = this.freshRun(seed);
     this.gameScreen.gameOver.hide();
     this.drag.setLocked(false);
     this.showRun(true);
     this.persistRun();
     this.opts.ads?.runStarted();
     this.bus.emit('newRun', { state: this.stateValue });
+    this.bus.emit('runStart', { state: this.stateValue, seed, resumed: false });
   }
 
   /** Applies a drop. Invalid intents (stale drags) are ignored and reported. */
@@ -290,6 +311,7 @@ export class App {
     this.opts.save?.update((s) => {
       s.endlessRun = serialize(this.stateValue);
       s.endlessRunBestAtStart = this.bestAtRunStart;
+      s.endlessRunMs = this.runElapsed();
       s.stats.bestScore = Math.max(s.stats.bestScore, this.best);
       s.stats.tidalWaves += tidalWaves;
     });
@@ -300,13 +322,28 @@ export class App {
    * when they are replaced (Play again, or on boot), not at game over, so a second chance
    * (T1.23) can still continue the same run.
    */
-  private finishRun(run: EndlessState): void {
+  private finishRun(run: EndlessState, durationMs: number, emit = true): void {
     if (run.stats.placed === 0) return;
     this.opts.save?.update((s) => {
       s.stats.gamesPlayed++;
       s.stats.linesCleared += run.stats.linesCleared;
+      s.stats.totalPlaytimeMs += durationMs;
       s.endlessRun = null;
+      s.endlessRunMs = 0;
     });
+    if (emit) this.bus.emit('runEnd', { state: run, durationMs });
+  }
+
+  private freshRun(seed: string): EndlessState {
+    this.runSeed = seed;
+    this.runMsBefore = 0;
+    this.runStretchStart = this.now();
+    return newEndless(seed).state;
+  }
+
+  /** How long the current run has been played, including before a reload. */
+  private runElapsed(): number {
+    return this.runMsBefore + Math.max(0, this.now() - this.runStretchStart);
   }
 
   /** The saved in-progress run, if there is a valid one. Finished runs are closed out. */
@@ -322,9 +359,13 @@ export class App {
       return null;
     }
     if (run.over) {
-      this.finishRun(run);
+      const durationMs = save.current.endlessRunMs;
+      this.finishRun(run, durationMs, false);
+      this.finishedOnBoot = { run, durationMs };
       return null;
     }
+    this.runMsBefore = save.current.endlessRunMs;
+    this.runStretchStart = this.now();
     this.bestAtRunStart = save.current.endlessRunBestAtStart;
     return run;
   }

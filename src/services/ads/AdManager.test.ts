@@ -91,6 +91,24 @@ describe('sessions (D18)', () => {
     expect(store.save.ads.sessionCount).toBe(2);
   });
 
+  it('reports session starts and ends, once each', async () => {
+    const onSessionStart = vi.fn();
+    const onSessionEnd = vi.fn();
+    const { ads, clock } = await setup({ onSessionStart, onSessionEnd });
+    expect(onSessionStart).toHaveBeenLastCalledWith(1);
+    clock.advance(5 * MIN);
+    ads.onHidden();
+    clock.advance(40 * MIN);
+    ads.onVisible();
+    expect(onSessionEnd).toHaveBeenLastCalledWith(5 * MIN); // ended when the player left
+    expect(onSessionStart).toHaveBeenLastCalledWith(2);
+    clock.advance(2 * MIN);
+    ads.endSession();
+    ads.endSession();
+    expect(onSessionEnd).toHaveBeenCalledTimes(2);
+    expect(onSessionEnd).toHaveBeenLastCalledWith(2 * MIN);
+  });
+
   it('starts a new session after 30 minutes hidden, not after a short break', async () => {
     const { ads, clock } = await setup();
     ads.onHidden();

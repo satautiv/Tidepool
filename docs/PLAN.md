@@ -571,6 +571,9 @@ All values are starting points in `render/feel.ts` and tuned during playtests.
 | `tutorial_step` | tile/step |
 | `error` | message, where |
 
+- The event map is typed (`services/analytics/Analytics.ts`), and all instrumentation lives in `app/analytics.ts` (`GameAnalytics`). Sessions come from `AdManager` (D18). A session ends on `pagehide`, or when the player comes back after 30+ minutes (then the end is dated when they left).
+- `run_end` is sent when a run is closed out: when the next run replaces it, or on boot if the saved run had already ended. It is not sent at game over, because a second chance can still continue the run. `durationMs` is wall time in the page, and it is carried across reloads in `SaveStore.endlessRunMs`.
+- Errors are capped at 20 per session.
 - Retention (D1/D7) is computed by the backend from `session_start`. The client just sends `daysSinceInstall` (the install date is stored on first launch).
 
 ### 13.4 Platform (`services/platform/`)

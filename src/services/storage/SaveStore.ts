@@ -48,6 +48,8 @@ export interface SaveV1 {
   endlessRun: string | null;
   /** Best score when the saved run started, so a resumed run can still say "New best!". */
   endlessRunBestAtStart: number;
+  /** Play time of the saved run so far, across reloads (analytics `run_end.durationMs`). */
+  endlessRunMs: number;
   ads: AdsSave;
 }
 
@@ -69,6 +71,7 @@ export function defaultSave(now: number): Save {
     stats: { bestScore: 0, gamesPlayed: 0, linesCleared: 0, tidalWaves: 0, totalPlaytimeMs: 0 },
     endlessRun: null,
     endlessRunBestAtStart: 0,
+    endlessRunMs: 0,
     ads: {
       sessionCount: 0,
       lastSessionStart: 0,
