@@ -1,0 +1,22 @@
+{
+  "$schema": "../level.schema.json",
+  "id": "shallows-001",
+  "area": "shallows",
+  "index": 1,
+  "moves": 20,
+  "goals": [{ "type": "pearls", "count": 2 }],
+  "stars": [5, 10],
+  "board": [
+    "........",
+    "........",
+    "........",
+    "........",
+    "........",
+    "........",
+    "##P...##",
+    "###.P###"
+  ],
+  "colors": null,
+  "generator": null,
+  "tutorial": "pearl"
+}

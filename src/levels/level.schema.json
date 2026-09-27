@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tidepool-level",
+  "title": "Tidepool Voyage level",
+  "description": "Documents the level format (docs/PLAN.md §14.1) for editor autocompletion. The authority is parseLevel() in src/core/level.ts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "area", "index", "moves", "goals", "stars", "board"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z]+(-[a-z]+)*-[0-9]{3}$",
+      "description": "<area>-NNN, e.g. shallows-003"
+    },
+    "area": { "type": "string", "pattern": "^[a-z]+(-[a-z]+)*$" },
+    "index": { "type": "integer", "minimum": 1, "maximum": 999 },
+    "moves": { "type": "integer", "minimum": 1, "maximum": 200 },
+    "goals": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "count"],
+        "properties": {
+          "type": { "enum": ["pearls", "coral", "bubbles", "score"] },
+          "count": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "stars": {
+      "description": "Moves left needed for 2 and 3 stars: ascending, below moves.",
+      "type": "array",
+      "prefixItems": [
+        { "type": "integer", "minimum": 1 },
+        { "type": "integer", "minimum": 2 }
+      ],
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "board": {
+      "description": "8 rows of 8: . empty, # glass, 1-6 glass colour, P pearl, C coral, c cracked coral, B bubble, U urchin, F frozen glass.",
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": { "type": "string", "pattern": "^[.#1-6PCcBUF]{8}$" }
+    },
+    "colors": {
+      "description": "Optional colour pins for # and P cells: 1-6, or . for seeded.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "items": { "type": "string", "pattern": "^[.1-6]{8}$" }
+        }
+      ]
+    },
+    "generator": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "families": {
+              "oneOf": [{ "type": "null" }, { "type": "array", "items": { "type": "string" } }]
+            },
+            "weights": {
+              "oneOf": [
+                { "type": "null" },
+                { "type": "object", "additionalProperties": { "type": "number", "minimum": 0 } }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "tutorial": { "enum": [null, "pearl", "coral", "bubble", "urchin", "frozen"] }
+  }
+}

@@ -680,6 +680,12 @@ Legend: `.` empty, `#` glass (seeded random colour), `1`–`6` glass of a specif
 - `core/level.ts` parses and validates levels (exactly 8×8, known chars, goals achievable: for example the pearl count ≤ the pearls on the board, and `stars` ascending and < `moves`).
 - `tools/levels/validate.ts` runs in CI over every level file and also runs the bot to check that each level is **solvable** in ≥ X% of seeds within the move limit. The report is used to tune difficulty.
 - Levels are bundled with `import.meta.glob('./levels/**/*.json')`, so adding a JSON file needs no code change.
+- As built (T4.01):
+  - `core/level.ts` has `parseLevel(json): Level | ValidationError[]`. It's hand-written and strict, and reports every problem at once as `{path, message}`, e.g. `board[3]: row 3 has 9 chars, needs 8`, `goals[0].count: goal pearls=4 but the board has 3 pearls`.
+  - It checks unknown fields (typos), the id as `<area>-NNN` matching area and index, 8×8 known characters, no already-full rows or columns (glass, pearl, coral, urchin and frozen count as filled; bubble doesn't), known unique goals with counts the board's tiles can reach, stars `1 ≤ 2★ < 3★ < moves`, colour pins only on `#`/`P` cells, the generator overrides' shape, and the tutorial tile.
+  - `levelBoard()` gives the core `Board`. Unpinned glass colours are seeded from `level:<id>`, and tiles come out as `TileState`s (`pearl`, `coral` with hp 2/1, `bubble`, `urchin`, `frozen`); their behaviour is T4.02.
+  - `app/levels.ts` bundles `src/levels/**/*.json` (excluding the schema) and orders them by area (reef-map order) and index. It leaves out and reports invalid files and duplicate ids.
+  - `src/levels/level.schema.json` documents the format for editors, and `shallows-001` is the first level.
 
 ### 14.2 Tile mechanics
 The tile logic lives in `core/tiles.ts` as hooks called by `clearLines` and `place`:
