@@ -44,7 +44,14 @@ function particlesFor(rows: string[], shape: string, r: number, c: number) {
 }
 
 const ONE_ROW = ['#######.', ...EMPTY.slice(1)];
-const FOUR_ROWS = ['#######.', '#######.', '#######.', '#######.', ...EMPTY.slice(4)];
+const FOUR_ROWS = [
+  '#######.',
+  '#######.',
+  '#######.',
+  '#######.',
+  ...EMPTY.slice(4, 7),
+  '#.......',
+];
 const CROSS = [
   '###.####',
   '...#....',
@@ -100,6 +107,20 @@ describe('ClearFx', () => {
     expect(count).toBe(
       Math.floor(2 * perLine) + 2 * sparkles + fx.crossSparkles + fx.crossDroplets,
     );
+  });
+
+  it('sweeps a shimmer over the whole board for a clean board', () => {
+    const { scene, fx } = setup();
+    const { before, events } = move(ONE_ROW, 'dot', 0, 7); // empties the board
+    expect(events.some((e) => e.type === 'cleanBoard')).toBe(true);
+    fx.play(before, events);
+    scene.update(FEEL.cleanBoard.shimmerDuration / 2);
+    const ctx = fakeContext();
+    scene.draw(ctx, frame);
+    expect(ctx.count('createLinearGradient')).toBe(1);
+    expect(ctx.count('fillRect')).toBe(1);
+    scene.update(FEEL.cleanBoard.shimmerDuration);
+    expect(fx.isAnimating()).toBe(false);
   });
 
   it('reset drops running waves', () => {

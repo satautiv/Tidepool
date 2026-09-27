@@ -76,6 +76,16 @@ export class TrayView implements SceneView {
     return this.dealClock !== null;
   }
 
+  /**
+   * True while a fresh tray is dealing in and its pieces can't be picked up yet: until the
+   * deal-in ends, but never longer than `FEEL.deal.maxInputLock`.
+   */
+  get dealing(): boolean {
+    if (this.dealClock === null) return false;
+    const total = FEEL.deal.duration + FEEL.deal.stagger * (TRAY_SIZE - 1);
+    return this.dealClock < Math.min(total, FEEL.deal.maxInputLock);
+  }
+
   /** Deal-in progress for a slot, 0..1 (1 when not animating). */
   dealProgress(slot: number): number {
     if (this.dealClock === null) return 1;

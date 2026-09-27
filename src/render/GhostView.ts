@@ -19,6 +19,9 @@ export class GhostView implements SceneView {
   private preview: Preview | null = null;
   private previewBoard: Board | null = null;
   private clock = 0;
+  /** Seconds the ghost has been showing (continuously, across target moves), for its fade-in. */
+  private shownFor = 0;
+  private showing = false;
 
   constructor(
     private readonly drag: () => DragState | null,
@@ -42,11 +45,26 @@ export class GhostView implements SceneView {
 
   update(dt: number): void {
     this.clock = (this.clock + dt) % FEEL.ghost.pulsePeriod;
+    const visible = this.current() !== null;
+    if (visible && this.showing) this.shownFor += dt;
+    else this.shownFor = 0;
+    this.showing = visible;
   }
 
-  /** Keeps frames coming while the would-clear highlight pulses. */
+  /**
+   * 0..1: the ghost fades in over `fadeInDuration` when it appears (no target → a target).
+   * Moving between cells keeps it fully visible.
+   */
+  appear(): number {
+    const d = FEEL.ghost.fadeInDuration;
+    return d > 0 ? Math.min(1, this.shownFor / d) : 1;
+  }
+
+  /** Keeps frames coming while the ghost fades in or the would-clear highlight pulses. */
   isAnimating(): boolean {
-    return (this.current()?.clearCells.length ?? 0) > 0;
+    const p = this.current();
+    if (!p) return false;
+    return !this.showing || this.appear() < 1 || p.clearCells.length > 0;
   }
 
   pulseAlpha(): number {
@@ -65,15 +83,18 @@ export class GhostView implements SceneView {
       rect.y + Math.floor(i / BOARD_SIZE) * c,
     ];
 
+    // A ghost that just appeared starts invisible until the next update, then fades in.
+    const appear = this.showing ? this.appear() : 0;
+    if (appear <= 0) return;
     ctx.save();
-    ctx.globalAlpha = FEEL.ghost.fillAlpha;
+    ctx.globalAlpha = FEEL.ghost.fillAlpha * appear;
     const block = sprites.block(d.color);
     for (const i of p.ghostCells) ctx.drawImage(block, ...at(i), c, c);
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha = appear;
     for (const i of p.ghostCells) ctx.drawImage(sprites.ghostOutline, ...at(i), c, c);
 
     if (p.clearCells.length > 0) {
-      ctx.globalAlpha = this.pulseAlpha();
+      ctx.globalAlpha = this.pulseAlpha() * appear;
       for (const i of p.clearCells) ctx.drawImage(sprites.clearHighlight, ...at(i), c, c);
     }
     ctx.restore();

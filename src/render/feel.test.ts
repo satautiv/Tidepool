@@ -6,9 +6,9 @@ import { FEEL, FEEL_DEFAULTS, FEEL_TWEAKS, getFeel, resetFeel, setFeel } from '.
 describe('feel config', () => {
   it('reads, writes and resets values by path', () => {
     const feel = structuredClone(FEEL_DEFAULTS);
-    expect(getFeel('drop.placeDuration', feel)).toBe(FEEL_DEFAULTS.drop.placeDuration);
-    setFeel('drop.placeDuration', 0.3, feel);
-    expect(feel.drop.placeDuration).toBe(0.3);
+    expect(getFeel('drop.snapDuration', feel)).toBe(FEEL_DEFAULTS.drop.snapDuration);
+    setFeel('drop.snapDuration', 0.3, feel);
+    expect(feel.drop.snapDuration).toBe(0.3);
     resetFeel(feel);
     expect(feel).toEqual(FEEL_DEFAULTS);
     setFeel('particles.bubble.life', 3, feel);

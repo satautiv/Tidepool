@@ -28,11 +28,18 @@ function dragState(over: Partial<DragState> = {}): DragState {
 function setup() {
   let current: DragState | null = null;
   const { factory } = fakeCanvasFactory();
-  const scene = new GameScene(new SpriteSet(TIDEPOOL, factory));
+  const sprites = new SpriteSet(TIDEPOOL, factory);
+  const scene = new GameScene(sprites);
   const view = new DragView(() => current);
   scene.add(view);
   scene.onLayout(viewport);
-  return { scene, view, set: (d: DragState | null) => (current = d), layout: scene.layout! };
+  return {
+    scene,
+    view,
+    sprites,
+    set: (d: DragState | null) => (current = d),
+    layout: scene.layout!,
+  };
 }
 
 describe('DragView', () => {
@@ -44,7 +51,7 @@ describe('DragView', () => {
   });
 
   it('lifts from the tray rect to full size, then follows the pointer', () => {
-    const { scene, view, set, layout } = setup();
+    const { scene, view, set, layout, sprites } = setup();
     const d = dragState();
     set(d);
     scene.update(0);
@@ -59,7 +66,14 @@ describe('DragView', () => {
 
     const ctx = fakeContext();
     scene.draw(ctx, { dt: 0, time: 0, viewport });
-    expect(ctx.count('drawImage')).toBe(4);
+    // A shadow under each of the 4 cells, then the cells.
+    const images = ctx.calls.filter((c) => c[0] === 'drawImage').map((c) => c[1]);
+    expect(images).toHaveLength(8);
+    expect(images.slice(0, 4)).toEqual(new Array(4).fill(sprites.blockShadow));
+    expect(images.slice(4)).not.toContain(sprites.blockShadow);
+    const shadow = ctx.calls.find((c) => c[0] === 'drawImage')!;
+    const piece = ctx.calls.filter((c) => c[0] === 'drawImage')[4]!;
+    expect(shadow[3] as number).toBeGreaterThan(piece[3] as number); // offset downwards
   });
 
   it('restarts the lift for a new drag', () => {

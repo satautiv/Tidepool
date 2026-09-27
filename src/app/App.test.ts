@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { boardFromAscii } from '../core/board';
 import { slotShape } from '../core/generator';
+import { FEEL } from '../render/feel';
 import { AdManager } from '../services/ads/AdManager';
 import { NoAdsService } from '../services/ads/NoAdsService';
 import { MemoryBackend } from '../services/storage/StorageBackend';
@@ -585,8 +586,10 @@ describe('App shake and haptics', () => {
 
     // Even mid-shake, a press on the drawn tray piece picks it up at its layout position.
     const shaking = setupClear().app;
+    shaking.scene.update(1); // let the tray finish dealing in
     shaking.shake.start(20, 1);
     shaking.scene.update(0.1);
+    expect(shaking.shake.active).toBe(true);
     const rect = shaking.slotPieceRect(0)!;
     const picked = shaking.drag.pointerDown({
       id: 1,
@@ -655,5 +658,55 @@ describe('App ambient caustics', () => {
     other.advance(2000);
     other.tick();
     expect(spy).not.toHaveBeenCalled();
+  });
+});
+
+describe('App polish', () => {
+  function press(app: ReturnType<typeof makeApp>['app'], slot: number) {
+    const r = app.slotPieceRect(slot)!;
+    return app.drag.pointerDown({
+      id: 1,
+      kind: 'mouse',
+      x: r.x + r.width / 2,
+      y: r.y + r.height / 2,
+    });
+  }
+
+  it('locks picking up while a new tray deals in, for at most maxInputLock', () => {
+    const { app } = makeApp();
+    expect(press(app, 0)).toBe(false);
+    app.scene.update(FEEL.deal.maxInputLock);
+    expect(press(app, 0)).toBe(true);
+  });
+
+  it('a resumed tray (no deal-in) can be picked up at once', () => {
+    const { app } = makeApp();
+    app.loadState(app.state);
+    expect(press(app, 0)).toBe(true);
+  });
+
+  it('snaps a dragged piece in from where it was released', () => {
+    const { app } = makeApp();
+    app.scene.update(1);
+    const move = firstMove(app);
+    const r = app.slotPieceRect(move.slot)!;
+    const layout = app.scene.layout!;
+    const target = {
+      x: layout.board.x + move.col * layout.cellSize,
+      y: layout.board.y + move.row * layout.cellSize,
+    };
+    app.drag.pointerDown({ id: 1, kind: 'mouse', x: r.x + 1, y: r.y + 1 });
+    app.scene.update(1); // lifted
+    app.drag.pointerUp({ id: 1, kind: 'mouse', x: target.x + 1 + 5, y: target.y + 1 + 3 });
+    expect(app.state.stats.placed).toBe(1);
+    expect(app.scene.isAnimating()).toBe(true);
+  });
+
+  it('drives the CSS feel values from feel.ts', () => {
+    const { uiRoot } = makeApp();
+    expect(uiRoot.style.getPropertyValue('--panel-slide')).toBe(
+      `${FEEL.gameOver.panelSlideDuration}s`,
+    );
+    expect(uiRoot.style.getPropertyValue('--press-scale')).toBe(String(FEEL.button.pressScale));
   });
 });

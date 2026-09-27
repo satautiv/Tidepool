@@ -23,7 +23,7 @@ import {
   type PlaceIntent,
 } from '../input/DragController';
 import { CausticsView } from '../render/background';
-import { BoardView } from '../render/BoardView';
+import { BoardView, type DropOrigin } from '../render/BoardView';
 import { ClearFx } from '../render/ClearFx';
 import { DebugOverlay } from '../render/DebugOverlay';
 import { DragView } from '../render/DragView';
@@ -160,7 +160,11 @@ export class App {
     this.drag = new DragController(this.dragHost(), {
       onStart: (d) => this.trayView.setDragging(d.slot),
       onMove: redraw,
-      onPlace: (intent) => this.place(intent),
+      onPlace: (intent, d) => {
+        const cell = this.scene.layout?.cellSize ?? 0;
+        const box = this.dragView.pieceBox(d, cell);
+        this.place(intent, { x: box.x, y: box.y });
+      },
       onCancel: (d) =>
         this.dragView.returnToTray(d, this.trayView.pieceRect(d.slot), () =>
           this.trayView.setDragging(null),
@@ -200,6 +204,9 @@ export class App {
     if (opts.debug) this.renderer.addView(new DebugOverlay(this.renderer.stats));
 
     this.router = new Router(opts.uiRoot);
+    // CSS-driven feel values (§11): the Game Over panel slide and the button press.
+    opts.uiRoot.style.setProperty('--panel-slide', `${FEEL.gameOver.panelSlideDuration}s`);
+    opts.uiRoot.style.setProperty('--press-scale', String(FEEL.button.pressScale));
     this.gameScreen = new GameScreen(
       {
         onPause: () => this.pause(),
@@ -344,15 +351,18 @@ export class App {
     return this.trayView.pieceRect(slot);
   }
 
-  /** Applies a drop. Invalid intents (stale drags) are ignored and reported. */
-  place({ slot, row, col }: PlaceIntent): { error: PlaceError } | undefined {
+  /**
+   * Applies a drop. Invalid intents (stale drags) are ignored and reported. `from` is where the
+   * dragged piece was drawn when released, so the placed cells snap in from there.
+   */
+  place({ slot, row, col }: PlaceIntent, from?: DropOrigin): { error: PlaceError } | undefined {
     this.trayView.setDragging(null);
     const step = placePiece(this.stateValue, slot, row, col);
     if ('error' in step) return step;
 
     const before = this.stateValue.board;
     this.stateValue = step.state;
-    this.boardView.applyMove(before, step.events, step.state.board);
+    this.boardView.applyMove(before, step.events, step.state.board, from);
     this.clearFx.play(before, step.events);
     this.trayView.setTray(
       step.state.tray,
@@ -611,7 +621,8 @@ export class App {
 
   private dragHost(): DragHost {
     return {
-      slotAt: (x, y) => this.trayView.slotAt(x, y),
+      // Pieces can't be grabbed while the tray deals in (≤ FEEL.deal.maxInputLock).
+      slotAt: (x, y) => (this.trayView.dealing ? null : this.trayView.slotAt(x, y)),
       pieceRect: (slot) => this.trayView.pieceRect(slot),
       pieceOf: (slot) => {
         const piece = this.stateValue.tray[slot];

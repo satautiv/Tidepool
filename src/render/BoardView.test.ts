@@ -32,26 +32,44 @@ function move(rows: string[], tray: EndlessState['tray'], slot: number, r: numbe
 const EMPTY = new Array<string>(8).fill('........');
 
 describe('BoardView animations', () => {
-  it('pops placed cells in and settles at full size', () => {
+  /** [x, y, size] of each block drawn after the board base. */
+  function blocks(scene: GameScene) {
+    const ctx = fakeContext();
+    scene.draw(ctx, frame);
+    return ctx.calls
+      .filter((c) => c[0] === 'drawImage')
+      .slice(1)
+      .map((c) => [c[2], c[3], c[4]] as number[]);
+  }
+
+  it('snaps a dropped piece in from where it was released, then squashes each cell', () => {
     const { scene, view } = setup();
+    const { board, cellSize: c } = scene.layout!;
     const { before, step } = move(EMPTY, [{ shape: 'sq2', color: 1 }, null, null], 0, 2, 2);
-    view.applyMove(before, step.events, step.state.board);
+    const home = { x: board.x + 2 * c, y: board.y + 2 * c };
+    view.applyMove(before, step.events, step.state.board, { x: home.x + 30, y: home.y - 12 });
     expect(view.isAnimating()).toBe(true);
     expect(view.busy).toBe(false);
+    expect(blocks(scene)[0]).toEqual([home.x + 30, home.y - 12, c]);
 
-    const sizes = () => {
-      const ctx = fakeContext();
-      scene.draw(ctx, frame);
-      return ctx.calls
-        .filter((c) => c[0] === 'drawImage')
-        .slice(1)
-        .map((c) => c[4] as number);
-    };
-    const c = scene.layout!.cellSize;
-    expect(sizes()[0]).toBeCloseTo(c * FEEL.drop.placeFrom);
+    scene.update(FEEL.drop.snapDuration);
+    expect(blocks(scene)[0]![0]).toBeCloseTo(home.x);
+    scene.update(FEEL.drop.squashDuration / 2);
+    expect(blocks(scene)[0]![2]).toBeCloseTo(c * FEEL.drop.squashScale);
     scene.update(1);
     expect(view.isAnimating()).toBe(false);
-    expect(sizes()).toEqual([c, c, c, c]);
+    expect(blocks(scene).map((b) => b[2])).toEqual([c, c, c, c]);
+    expect(blocks(scene)[0]!.slice(0, 2)).toEqual([home.x, home.y]);
+  });
+
+  it('squashes in place when there is no drop origin', () => {
+    const { scene, view } = setup();
+    const { board, cellSize: c } = scene.layout!;
+    const { before, step } = move(EMPTY, [{ shape: 'dot', color: 1 }, null, null], 0, 0, 0);
+    view.applyMove(before, step.events, step.state.board);
+    expect(blocks(scene)[0]).toEqual([board.x, board.y, c]);
+    scene.update(FEEL.drop.squashDuration / 2);
+    expect(blocks(scene)[0]![2]).toBeCloseTo(c * FEEL.drop.squashScale);
   });
 
   it('keeps cleared cells visible while they dissolve, rippling outward', () => {
@@ -138,27 +156,53 @@ describe('BoardView animations', () => {
     expect(idle).toBe(true);
   });
 
-  it('fades the blocks for game over and restores them on setBoard', () => {
+  function alphas(scene: GameScene) {
+    const ctx = fakeContext();
+    const out: number[] = [];
+    const orig = ctx.drawImage.bind(ctx);
+    ctx.drawImage = ((...a: Parameters<typeof orig>) => {
+      out.push(ctx.globalAlpha);
+      return orig(...a);
+    }) as typeof ctx.drawImage;
+    scene.draw(ctx, frame);
+    return { blocks: out.slice(1), ctx };
+  }
+
+  it('fades blocks to sand one by one for game over, desaturating the board', () => {
     const { scene, view } = setup();
+    view.setBoard(boardFromAscii(['####....', ...EMPTY.slice(1)]));
+    const done = vi.fn();
+    view.fadeOut(done);
+    scene.update(FEEL.gameOver.cellFadeDuration);
+    const mid = alphas(scene).blocks;
+    expect(mid.some((a) => a < 0.5)).toBe(true); // the first cells are faded…
+    expect(mid.some((a) => a > 0.9)).toBe(true); // …while the last haven't started
+    expect(done).not.toHaveBeenCalled();
+
+    scene.update(FEEL.gameOver.fadeDuration);
+    expect(done).toHaveBeenCalledTimes(1);
+    const end = alphas(scene);
+    for (const a of end.blocks) expect(a).toBeCloseTo(FEEL.gameOver.fadeTo);
+    expect(end.ctx.globalCompositeOperation).toBe('saturation');
+    expect(end.ctx.count('fill')).toBe(1);
+    expect(end.ctx.count('arcTo')).toBe(4); // clipped to the rounded panel
+
+    view.fadeIn(); // second chance
+    scene.update(1);
+    expect(alphas(scene).blocks).toEqual([1, 1, 1, 1]);
+    expect(alphas(scene).ctx.count('fill')).toBe(0);
+
+    view.fadeOut();
+    scene.update(1);
     view.setBoard(boardFromAscii(['#.......', ...EMPTY.slice(1)]));
+    expect(alphas(scene).blocks).toEqual([1]);
+  });
+
+  it('fades an empty board at once', () => {
+    const { scene, view } = setup();
     const done = vi.fn();
     view.fadeOut(done);
     scene.update(FEEL.gameOver.fadeDuration);
     expect(done).toHaveBeenCalledTimes(1);
-
-    const alphaOfBlock = () => {
-      const ctx = fakeContext();
-      const alphas: number[] = [];
-      const orig = ctx.drawImage.bind(ctx);
-      ctx.drawImage = ((...a: Parameters<typeof orig>) => {
-        alphas.push(ctx.globalAlpha);
-        return orig(...a);
-      }) as typeof ctx.drawImage;
-      scene.draw(ctx, frame);
-      return alphas[1];
-    };
-    expect(alphaOfBlock()).toBeCloseTo(FEEL.gameOver.fadeTo);
-    view.setBoard(boardFromAscii(['#.......', ...EMPTY.slice(1)]));
-    expect(alphaOfBlock()).toBe(1);
   });
 });

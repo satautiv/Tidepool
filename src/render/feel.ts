@@ -11,6 +11,9 @@ export const FEEL = {
     liftDuration: 0.09,
     /** Opacity of the tray slot whose piece is being dragged. */
     trayDimAlpha: 0.3,
+    /** Soft shadow under the lifted piece: offset (cells, down) and opacity. */
+    shadowOffset: 0.2,
+    shadowAlpha: 0.35,
   },
   ghost: {
     /** Opacity of the faded piece under the ghost outline. */
@@ -22,11 +25,9 @@ export const FEEL = {
     pulseMax: 1,
   },
   drop: {
-    /** Placed cells pop in from this scale with a slight overshoot. */
-    placeFrom: 0.86,
-    placeDuration: 0.16,
-    /** §11 target: snap 70 ms, then squash 1.0 → 1.08 → 1.0 over 140 ms (T2.07). */
+    /** The dropped piece snaps from where it was released into its cells. */
     snapDuration: 0.07,
+    /** Then each cell squashes 1.0 → squashScale → 1.0. */
     squashScale: 1.08,
     squashDuration: 0.14,
   },
@@ -91,12 +92,25 @@ export const FEEL = {
     stagger: 0.06,
     /** How far a piece slides up, as a share of the slot height. */
     rise: 0.35,
+    /** Input is locked while the tray deals in, but never longer than this. */
+    maxInputLock: 0.25,
   },
   gameOver: {
-    /** Blocks fade towards the sand to this opacity. */
-    fadeTo: 0.25,
-    fadeDuration: 0.5,
+    /** Blocks fade towards the sand to this opacity, one by one in random order. */
+    fadeTo: 0.2,
+    /** The whole fade, and each cell's part of it. */
+    fadeDuration: 0.7,
+    cellFadeDuration: 0.25,
+    /** How far the board desaturates (0 = none, 1 = grey). */
+    desaturate: 0.45,
     panelSlideDuration: 0.25,
+  },
+  cleanBoard: {
+    /** A diagonal shimmer sweeping the whole board. */
+    shimmerDuration: 0.7,
+    /** Band width in cells, and peak opacity. */
+    shimmerWidth: 2.5,
+    shimmerAlpha: 0.65,
   },
   button: {
     pressScale: 0.96,
@@ -206,8 +220,10 @@ export const FEEL_TWEAKS: readonly FeelTweak[] = [
   { path: 'pickUp.trayDimAlpha', min: 0, max: 1, step: 0.05 },
   { path: 'ghost.fillAlpha', min: 0, max: 1, step: 0.05 },
   { path: 'ghost.pulsePeriod', min: 0.2, max: 3, step: 0.1 },
-  { path: 'drop.placeFrom', min: 0.5, max: 1.2, step: 0.01 },
-  { path: 'drop.placeDuration', min: 0, max: 0.5, step: 0.01 },
+  { path: 'pickUp.shadowAlpha', min: 0, max: 0.6, step: 0.02 },
+  { path: 'drop.snapDuration', min: 0, max: 0.3, step: 0.01 },
+  { path: 'drop.squashScale', min: 1, max: 1.3, step: 0.01 },
+  { path: 'drop.squashDuration', min: 0, max: 0.5, step: 0.01 },
   { path: 'invalidDrop.returnDuration', min: 0, max: 0.6, step: 0.01 },
   { path: 'lineClear.duration', min: 0.05, max: 1, step: 0.01 },
   { path: 'lineClear.stagger', min: 0, max: 0.1, step: 0.002 },
@@ -225,6 +241,8 @@ export const FEEL_TWEAKS: readonly FeelTweak[] = [
   { path: 'deal.rise', min: 0, max: 1, step: 0.05 },
   { path: 'gameOver.fadeTo', min: 0, max: 1, step: 0.05 },
   { path: 'gameOver.fadeDuration', min: 0.1, max: 2, step: 0.05 },
+  { path: 'gameOver.desaturate', min: 0, max: 1, step: 0.05 },
+  { path: 'cleanBoard.shimmerDuration', min: 0.2, max: 2, step: 0.05 },
 ];
 
 type Tree = { [key: string]: number | Tree };

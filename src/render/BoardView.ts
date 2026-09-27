@@ -9,11 +9,21 @@ import type { GameEvent } from '../core/game';
 import { getShape } from '../core/shapes';
 import { FEEL } from './feel';
 import type { SceneContext, SceneView } from './GameScene';
-import { CELL_STYLE } from './sprites';
-import { Ease, Tweener } from './tween';
+import type { Layout } from './layout';
+import { CELL_STYLE, PANEL_RADIUS, roundRectPath } from './sprites';
+import { Ease, Tweener, type TweenStep } from './tween';
 
 interface CellFx {
   scale: number;
+  /** Offset (CSS px) from the cell while snapping in from where the piece was dropped. */
+  dx: number;
+  dy: number;
+}
+
+/** Where a dropped piece's top-left was drawn when it was released (CSS px). */
+export interface DropOrigin {
+  x: number;
+  y: number;
 }
 
 interface Dissolving {
@@ -31,10 +41,20 @@ export class BoardView implements SceneView {
   private readonly tweener = new Tweener();
   private readonly placing = new Map<number, CellFx>();
   private dissolving: Dissolving[] = [];
-  private readonly fade = { alpha: 1 };
+  /** Game over: per-cell opacity, and how desaturated the board is (0..1). */
+  private readonly cellFade = Array.from({ length: BOARD_SIZE * BOARD_SIZE }, () => ({ alpha: 1 }));
+  private readonly fade = { desaturate: 0 };
   private idleWaiters: Array<() => void> = [];
+  private layout: Layout | null = null;
 
-  constructor(private readonly invalidate: () => void = () => {}) {}
+  constructor(
+    private readonly invalidate: () => void = () => {},
+    private readonly random: () => number = Math.random,
+  ) {}
+
+  onLayout({ layout }: SceneContext): void {
+    this.layout = layout;
+  }
 
   /** Shows a board without animation (new game, resume) and drops running effects. */
   setBoard(board: Board): void {
@@ -42,7 +62,7 @@ export class BoardView implements SceneView {
     this.tweener.cancelAll();
     this.placing.clear();
     this.dissolving = [];
-    this.fade.alpha = 1;
+    this.resetFade();
     this.board = board;
     this.flushIdle();
     this.invalidate();
@@ -54,24 +74,53 @@ export class BoardView implements SceneView {
     return new Promise((resolve) => this.idleWaiters.push(resolve));
   }
 
-  /** Game over: fades the blocks towards the sand, then calls `done`. */
+  /**
+   * Game over: the blocks fade towards the sand one by one in random order while the board
+   * desaturates slightly, then `done` is called.
+   */
   fadeOut(done: () => void = () => {}): void {
-    this.tweener.to(
-      this.fade,
-      { alpha: FEEL.gameOver.fadeTo },
-      { duration: FEEL.gameOver.fadeDuration, ease: Ease.quadOut, onComplete: done },
-    );
+    const { fadeTo, fadeDuration, cellFadeDuration, desaturate } = FEEL.gameOver;
+    const filled: number[] = [];
+    this.board.cells.forEach((cell, i) => cell.color !== null && filled.push(i));
+    // Fisher–Yates: a random order for the cells.
+    for (let i = filled.length - 1; i > 0; i--) {
+      const j = Math.floor(this.random() * (i + 1));
+      [filled[i], filled[j]] = [filled[j]!, filled[i]!];
+    }
+    const spread = Math.max(0, fadeDuration - cellFadeDuration);
+    const steps = filled.map((index, k) => () => {
+      const delay = filled.length > 1 ? (k / (filled.length - 1)) * spread : 0;
+      return this.tweener.to(
+        this.cellFade[index]!,
+        { alpha: fadeTo },
+        { duration: cellFadeDuration, delay, ease: Ease.quadOut },
+      );
+    });
+    this.tweener
+      .parallel(...steps, () =>
+        this.tweener.to(
+          this.fade,
+          { desaturate },
+          { duration: fadeDuration, ease: Ease.sineInOut },
+        ),
+      )
+      .whenDone(done);
     this.invalidate();
   }
 
-  /** Second chance: brings the faded blocks back. */
+  /** Second chance: brings the faded blocks and their colour back. */
   fadeIn(): void {
-    this.tweener.to(
-      this.fade,
-      { alpha: 1 },
-      { duration: FEEL.gameOver.fadeDuration, ease: Ease.quadOut },
-    );
+    const duration = FEEL.gameOver.cellFadeDuration;
+    for (const cell of this.cellFade) {
+      if (cell.alpha < 1) this.tweener.to(cell, { alpha: 1 }, { duration, ease: Ease.quadOut });
+    }
+    this.tweener.to(this.fade, { desaturate: 0 }, { duration, ease: Ease.quadOut });
     this.invalidate();
+  }
+
+  private resetFade(): void {
+    for (const cell of this.cellFade) cell.alpha = 1;
+    this.fade.desaturate = 0;
   }
 
   private flushIdle(): void {
@@ -81,30 +130,40 @@ export class BoardView implements SceneView {
     for (const resolve of waiters) resolve();
   }
 
-  /** Shows the result of a move, animating the placement and any clears from its events. */
-  applyMove(before: Board, events: readonly GameEvent[], after: Board): void {
+  /**
+   * Shows the result of a move, animating the placement and any clears from its events. With
+   * a `from` (a drag drop), the placed cells first snap in from where the piece was released,
+   * then each squashes briefly.
+   */
+  applyMove(before: Board, events: readonly GameEvent[], after: Board, from?: DropOrigin): void {
     this.board = after;
     const placed = events.find((e) => e.type === 'placed');
     const cleared = events.find((e) => e.type === 'cleared');
     if (!placed) return this.invalidate();
 
     const shape = getShape(placed.shape);
+    const layout = this.layout;
+    const dx0 = from && layout ? from.x - (layout.board.x + placed.col * layout.cellSize) : 0;
+    const dy0 = from && layout ? from.y - (layout.board.y + placed.row * layout.cellSize) : 0;
+    const { snapDuration, squashScale, squashDuration } = FEEL.drop;
+    const half = squashDuration / 2;
     for (const [r, c] of shape.cells) {
       const i = (placed.row + r) * BOARD_SIZE + placed.col + c;
       if (after.cells[i]!.color === null) continue; // cleared straight away
-      const fx: CellFx = { scale: FEEL.drop.placeFrom };
+      const fx: CellFx = { scale: 1, dx: dx0, dy: dy0 };
       this.placing.set(i, fx);
-      this.tweener.to(
-        fx,
-        { scale: 1 },
-        {
-          duration: FEEL.drop.placeDuration,
-          ease: Ease.backOut,
-          onComplete: () => {
-            if (this.placing.get(i) === fx) this.placing.delete(i);
-          },
-        },
-      );
+      const steps: TweenStep[] = [
+        () => this.tweener.to(fx, { scale: squashScale }, { duration: half, ease: Ease.quadOut }),
+        () => this.tweener.to(fx, { scale: 1 }, { duration: half, ease: Ease.quadIn }),
+      ];
+      if (from) {
+        steps.unshift(() =>
+          this.tweener.to(fx, { dx: 0, dy: 0 }, { duration: snapDuration, ease: Ease.quadOut }),
+        );
+      }
+      this.tweener.sequence(...steps).whenDone(() => {
+        if (this.placing.get(i) === fx) this.placing.delete(i);
+      });
     }
 
     if (cleared) {
@@ -163,19 +222,41 @@ export class BoardView implements SceneView {
     const baseSize = c * (BOARD_SIZE + 2 * CELL_STYLE.shadowMargin);
     ctx.drawImage(sprites.boardBase, rect.x - m, rect.y - m, baseSize, baseSize);
 
-    const blit = (index: number, color: number, scale: number, dy = 0) => {
+    const blit = (index: number, color: number, scale: number, dy = 0, dx = 0) => {
       const size = c * scale;
-      const x = rect.x + (index % BOARD_SIZE) * c + (c - size) / 2;
+      const x = rect.x + (index % BOARD_SIZE) * c + (c - size) / 2 + dx;
       const y = rect.y + Math.floor(index / BOARD_SIZE) * c + (c - size) / 2 + dy;
       ctx.drawImage(sprites.block(color), x, y, size, size);
     };
 
     ctx.save();
-    ctx.globalAlpha = this.fade.alpha;
     this.board.cells.forEach((cell, i) => {
-      if (cell.color !== null) blit(i, cell.color, this.placing.get(i)?.scale ?? 1);
+      if (cell.color === null) return;
+      const fx = this.placing.get(i);
+      ctx.globalAlpha = this.cellFade[i]!.alpha;
+      blit(i, cell.color, fx?.scale ?? 1, fx?.dy ?? 0, fx?.dx ?? 0);
     });
     ctx.restore();
+
+    if (this.fade.desaturate > 0) {
+      // Game over: wash the colour out of the whole board panel.
+      const pad = c * CELL_STYLE.panelPad;
+      ctx.save();
+      ctx.globalCompositeOperation = 'saturation';
+      ctx.globalAlpha = this.fade.desaturate;
+      ctx.fillStyle = '#808080';
+      // The panel's own rounded shape, so the page around its corners stays untouched.
+      roundRectPath(
+        ctx,
+        rect.x - pad,
+        rect.y - pad,
+        rect.width + 2 * pad,
+        rect.height + 2 * pad,
+        c * PANEL_RADIUS,
+      );
+      ctx.fill();
+      ctx.restore();
+    }
 
     if (this.dissolving.length > 0) {
       ctx.save();

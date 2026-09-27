@@ -59,13 +59,14 @@ describe('SpriteSet', () => {
 
     sprites.build(40, 2);
     expect(sprites.ready).toBe(true);
-    // Blocks, ghost, highlight, sand tile, base, 2 wave bands, then 4 particle types × (white +
-    // colours).
-    expect(created).toHaveLength(COLOR_COUNT + 6 + 4 * (COLOR_COUNT + 1));
+    // Blocks, ghost, shadow, highlight, sand tile, base, 2 wave bands, then 4 particle types ×
+    // (white + colours).
+    expect(created).toHaveLength(COLOR_COUNT + 7 + 4 * (COLOR_COUNT + 1));
+    expect(sprites.blockShadow.width).toBe(80);
     expect(sprites.waveBand(false).width).toBe(160);
     expect(sprites.waveBand(true).height).toBe(160);
     expect(sprites.particle(0, -1).width).toBe(PARTICLE_SPRITE_SIZE * 2);
-    expect(sprites.particle(1, 2)).toBe(created[COLOR_COUNT + 6 + (COLOR_COUNT + 1) + 3]);
+    expect(sprites.particle(1, 2)).toBe(created[COLOR_COUNT + 7 + (COLOR_COUNT + 1) + 3]);
     expect(sprites.particle(3, 99)).toBe(sprites.particle(3, -1)); // unknown colour → white
     expect(() => sprites.particle(9, 0)).toThrow('No particle sprite');
     expect(sprites.block(0).width).toBe(80);

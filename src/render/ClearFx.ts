@@ -28,6 +28,8 @@ const SLICES = 4;
 
 export class ClearFx implements SceneView {
   private waves: Wave[] = [];
+  /** Clean board: seconds into the full-board shimmer, or null. */
+  private shimmer: number | null = null;
   private layout: Layout | null = null;
 
   constructor(
@@ -45,6 +47,7 @@ export class ClearFx implements SceneView {
     const cleared = events.find((e) => e.type === 'cleared');
     const layout = this.layout;
     if (!placed || !cleared || !layout) return;
+    if (events.some((e) => e.type === 'cleanBoard')) this.shimmer = 0;
 
     const { board: rect, cellSize: c } = layout;
     const fx = FEEL.lineClear;
@@ -146,9 +149,14 @@ export class ClearFx implements SceneView {
   /** Drops running waves (new run, board reset). */
   reset(): void {
     this.waves = [];
+    this.shimmer = null;
   }
 
   update(dt: number): void {
+    if (this.shimmer !== null) {
+      this.shimmer += dt;
+      if (this.shimmer >= FEEL.cleanBoard.shimmerDuration) this.shimmer = null;
+    }
     if (this.waves.length === 0) return;
     const end = FEEL.lineClear.waveDuration;
     for (const w of this.waves) w.time += dt;
@@ -156,10 +164,39 @@ export class ClearFx implements SceneView {
   }
 
   isAnimating(): boolean {
-    return this.waves.length > 0;
+    return this.waves.length > 0 || this.shimmer !== null;
   }
 
-  draw(ctx: CanvasRenderingContext2D, { layout, sprites }: SceneContext): void {
+  draw(ctx: CanvasRenderingContext2D, scene: SceneContext): void {
+    if (this.shimmer !== null) this.drawShimmer(ctx, scene.layout, this.shimmer);
+    this.drawWaves(ctx, scene);
+  }
+
+  /** "Crystal Clear": a soft diagonal band of light sweeps the whole board. */
+  private drawShimmer(ctx: CanvasRenderingContext2D, layout: Layout, time: number): void {
+    const { shimmerDuration, shimmerWidth, shimmerAlpha } = FEEL.cleanBoard;
+    const { board } = layout;
+    const t = Math.min(1, time / shimmerDuration);
+    const band = shimmerWidth / (2 * BOARD_SIZE); // half-width as a share of the diagonal
+    const centre = -band + Ease.sineInOut(t) * (1 + 2 * band);
+    const clamp = (v: number) => Math.min(1, Math.max(0, v));
+    const g = ctx.createLinearGradient(
+      board.x,
+      board.y,
+      board.x + board.width,
+      board.y + board.height,
+    );
+    g.addColorStop(clamp(centre - band), 'rgba(255, 255, 255, 0)');
+    g.addColorStop(clamp(centre), 'rgba(255, 255, 255, 1)');
+    g.addColorStop(clamp(centre + band), 'rgba(255, 255, 255, 0)');
+    ctx.save();
+    ctx.globalAlpha = shimmerAlpha * Math.sin(Math.PI * t);
+    ctx.fillStyle = g;
+    ctx.fillRect(board.x, board.y, board.width, board.height);
+    ctx.restore();
+  }
+
+  private drawWaves(ctx: CanvasRenderingContext2D, { layout, sprites }: SceneContext): void {
     if (this.waves.length === 0) return;
     const { board: rect, cellSize: c } = layout;
     const fx = FEEL.lineClear;

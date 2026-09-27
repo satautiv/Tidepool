@@ -107,6 +107,22 @@ export class DragView implements SceneView {
     const drag = this.source();
     if (!drag) return;
     const box = this.pieceBox(drag, layout.cellSize);
+
+    // A soft shadow under the lifted piece, growing in as it lifts.
+    const lift = Ease.cubicOut(this.lift);
+    const { shadowOffset, shadowAlpha } = FEEL.pickUp;
+    if (shadowAlpha > 0 && lift > 0) {
+      const off = shadowOffset * box.cell * lift;
+      ctx.save();
+      ctx.globalAlpha = shadowAlpha * lift;
+      for (const [r, c] of drag.shape.cells) {
+        const x = box.x + c * box.cell + off / 2;
+        const y = box.y + r * box.cell + off;
+        ctx.drawImage(sprites.blockShadow, x, y, box.cell, box.cell);
+      }
+      ctx.restore();
+    }
+
     const sprite = sprites.block(drag.color);
     for (const [r, c] of drag.shape.cells) {
       ctx.drawImage(sprite, box.x + c * box.cell, box.y + r * box.cell, box.cell, box.cell);

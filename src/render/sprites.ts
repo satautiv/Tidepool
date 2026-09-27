@@ -33,6 +33,9 @@ export const CELL_STYLE = {
   shadowMargin: 0.6,
 } as const;
 
+/** Corner radius of the board panel, as a share of a cell. */
+export const PANEL_RADIUS = 0.4;
+
 /** Adds a rounded-rectangle path (works where ctx.roundRect is missing). */
 export function roundRectPath(
   ctx: CanvasRenderingContext2D,
@@ -116,6 +119,19 @@ export function drawWell(ctx: CanvasRenderingContext2D, c: number, palette: Pale
   ctx.fill();
 }
 
+/** The soft shadow under a lifted block: a blurred rounded square in the board shadow colour. */
+export function drawBlockShadow(ctx: CanvasRenderingContext2D, c: number, palette: Palette): void {
+  const pad = c * (CELL_STYLE.inset + 0.08);
+  const s = c - 2 * pad;
+  ctx.save();
+  ctx.shadowColor = palette.board.shadow;
+  ctx.shadowBlur = c * 0.18;
+  roundRectPath(ctx, pad, pad, s, s, s * CELL_STYLE.radius);
+  ctx.fillStyle = palette.board.shadow;
+  ctx.fill();
+  ctx.restore();
+}
+
 /** Ghost preview outline: a soft white rounded border, drawn over a faded block. */
 export function drawGhostOutline(ctx: CanvasRenderingContext2D, c: number, palette: Palette): void {
   const pad = c * CELL_STYLE.inset;
@@ -158,7 +174,7 @@ export function drawBoardBase(
   ctx.shadowColor = rgba(palette.board.shadow, 0.28);
   ctx.shadowBlur = c * 0.45;
   ctx.shadowOffsetY = c * 0.12;
-  roundRectPath(ctx, m - pad, m - pad, size + 2 * pad, size + 2 * pad, c * 0.4);
+  roundRectPath(ctx, m - pad, m - pad, size + 2 * pad, size + 2 * pad, c * PANEL_RADIUS);
   ctx.fillStyle = palette.board.panel;
   ctx.fill();
   ctx.restore();
@@ -180,7 +196,7 @@ export function drawBoardBase(
   const pattern = sand ? ctx.createPattern(sand, 'repeat') : null;
   if (pattern) {
     ctx.save();
-    roundRectPath(ctx, m - pad, m - pad, size + 2 * pad, size + 2 * pad, c * 0.4);
+    roundRectPath(ctx, m - pad, m - pad, size + 2 * pad, size + 2 * pad, c * PANEL_RADIUS);
     ctx.clip();
     ctx.globalAlpha = FEEL.sand.panelAlpha;
     ctx.fillStyle = pattern;
@@ -312,6 +328,7 @@ export class SpriteSet {
   private key = '';
   private blocks: SpriteCanvas[] = [];
   private ghost: SpriteCanvas | null = null;
+  private shadow: SpriteCanvas | null = null;
   private highlight: SpriteCanvas | null = null;
   private base: SpriteCanvas | null = null;
   /** [type][colour + 1]: index 0 is white, then the palette glass colours. */
@@ -350,6 +367,7 @@ export class SpriteSet {
       make((ctx) => drawGlassBlock(ctx, cellSize, color)),
     );
     this.ghost = make((ctx) => drawGhostOutline(ctx, cellSize, this.palette));
+    this.shadow = make((ctx) => drawBlockShadow(ctx, cellSize, this.palette));
     this.highlight = make((ctx) => drawClearHighlight(ctx, cellSize, this.palette));
     const tile = FEEL.sand.tileSize;
     const sand = this.factory(tile, tile);
@@ -393,6 +411,10 @@ export class SpriteSet {
 
   get ghostOutline(): SpriteCanvas {
     return this.need(this.ghost);
+  }
+
+  get blockShadow(): SpriteCanvas {
+    return this.need(this.shadow);
   }
 
   get clearHighlight(): SpriteCanvas {
