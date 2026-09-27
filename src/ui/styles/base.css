@@ -798,3 +798,13 @@ button:focus-visible {
     transform: translate(var(--to-x), var(--to-y)) scale(1.1);
   }
 }
+
+/* ---------- Keyboard focus (T2.17) ---------- */
+
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}

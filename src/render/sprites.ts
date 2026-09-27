@@ -29,6 +29,8 @@ export const CELL_STYLE = {
   glassAlpha: 0.88,
   /** Board panel padding around the grid, as a share of a cell. */
   panelPad: 0.18,
+  /** Keyboard focus ring width, as a share of a cell. */
+  focusWidth: 0.06,
   /** Extra room around the board sprite for its shadow, as a share of a cell. */
   shadowMargin: 0.6,
 } as const;

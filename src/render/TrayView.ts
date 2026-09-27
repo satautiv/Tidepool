@@ -8,6 +8,7 @@ import { getShape, type Shape } from '../core/shapes';
 import { FEEL } from './feel';
 import type { SceneContext, SceneView } from './GameScene';
 import { rectContains, type Layout, type Rect } from './layout';
+import { CELL_STYLE, PANEL_RADIUS, roundRectPath } from './sprites';
 import { Ease } from './tween';
 
 /** Where a shape sits when centred in a slot at the tray scale (CSS px). */
@@ -44,6 +45,15 @@ export class TrayView implements SceneView {
   setTray(tray: readonly (TraySlot | null)[], animate = false): void {
     this.tray = tray;
     this.dealClock = animate ? 0 : null;
+    this.invalidate();
+  }
+
+  private focused: number | null = null;
+
+  /** The slot picked with the keyboard: drawn with a focus ring. */
+  setFocused(slot: number | null): void {
+    if (slot === this.focused) return;
+    this.focused = slot;
     this.invalidate();
   }
 
@@ -123,5 +133,24 @@ export class TrayView implements SceneView {
       }
       ctx.restore();
     });
+
+    // Keyboard focus: a ring around the picked slot.
+    const slot = this.focused === null ? null : layout.traySlots[this.focused];
+    if (slot) {
+      const inset = layout.cellSize * CELL_STYLE.inset;
+      ctx.save();
+      ctx.lineWidth = Math.max(2, layout.cellSize * CELL_STYLE.focusWidth);
+      ctx.strokeStyle = sprites.currentPalette.board.panelEdge;
+      roundRectPath(
+        ctx,
+        slot.x + inset,
+        slot.y + inset,
+        slot.width - 2 * inset,
+        slot.height - 2 * inset,
+        layout.cellSize * PANEL_RADIUS,
+      );
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 }

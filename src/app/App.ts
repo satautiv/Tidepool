@@ -16,10 +16,12 @@ import {
 } from '../core/game';
 import { multiplier } from '../core/scoring';
 import { getShape } from '../core/shapes';
+import { KeyboardController } from '../input/KeyboardController';
 import {
   bindPointerEvents,
   DragController,
   releasePoint,
+  type DragState,
   type DragHost,
   type PlaceIntent,
 } from '../input/DragController';
@@ -137,6 +139,7 @@ export class App {
   readonly renderer: Renderer;
   readonly scene: GameScene;
   readonly drag: DragController;
+  readonly keys: KeyboardController;
   readonly router: Router;
   readonly gameScreen: GameScreen;
   readonly menuScreen: MenuScreen;
@@ -206,6 +209,8 @@ export class App {
 
     this.drag = new DragController(this.dragHost(), {
       onStart: (d) => {
+        this.keys.cancel(); // a pointer drag takes over from a keyboard selection
+        this.trayView.setFocused(null);
         this.trayView.setDragging(d.slot);
         this.bus.emit('pickUp', { slot: d.slot });
         if (this.tutorialRun) this.finishTutorial();
@@ -223,7 +228,15 @@ export class App {
         );
       },
     });
-    this.dragView = new DragView(() => this.drag.state);
+    this.keys = new KeyboardController({
+      pieceOf: (slot) => {
+        const piece = this.stateValue.tray[slot];
+        return piece ? getShape(piece.shape) : null;
+      },
+      canPlace: (slot, row, col) => this.dragHost().canPlace(slot, row, col),
+    });
+    // The keyboard selection is drawn like a drag: the same ghost, lifted piece and snap.
+    this.dragView = new DragView(() => this.activePiece());
 
     // Board-side views move with the shake; the dragged piece stays under the finger.
     this.scene.add(this.shake);
@@ -237,7 +250,7 @@ export class App {
     this.scene.add(this.caustics, { shake: true });
     this.scene.add(
       new GhostView(
-        () => this.drag.state,
+        () => this.activePiece(),
         () => this.stateValue.board,
       ),
       { shake: true },
@@ -362,6 +375,7 @@ export class App {
     const page = env?.page ?? { window, document };
     attachViewport(this.renderer, this.opts.canvas, env?.viewport);
     bindPointerEvents(this.opts.canvas, this.drag, page.window);
+    page.window.addEventListener('keydown', (e) => this.onKey(e as KeyboardEvent));
     this.lifecycle = new Lifecycle(page);
     // The system "reduce motion" switch can change while the game is open.
     if (!this.opts.prefersReducedMotion && typeof matchMedia === 'function') {
@@ -721,6 +735,114 @@ export class App {
     this.tutorialDoneLocal = true;
     this.opts.save?.update((s) => (s.tutorialDone = true));
     this.gameScreen.hint.hide();
+  }
+
+  /** A pointer drag, or the keyboard selection presented as one. */
+  private activePiece(): DragState | null {
+    if (this.drag.state) return this.drag.state;
+    const sel = this.keys.state;
+    const layout = this.scene.layout;
+    const piece = sel && this.stateValue.tray[sel.slot];
+    const from = sel && this.trayView.pieceRect(sel.slot);
+    if (!sel || !layout || !piece || !from) return null;
+    const c = layout.cellSize;
+    return {
+      slot: sel.slot,
+      shape: getShape(piece.shape),
+      color: piece.color,
+      pointerId: -1,
+      kind: 'mouse',
+      x: layout.board.x + sel.col * c,
+      y: layout.board.y + sel.row * c,
+      from,
+      target: { row: sel.row, col: sel.col },
+    };
+  }
+
+  /** Whether keys drive the game right now (not on a menu, dialog or ad). */
+  private get keysActive(): boolean {
+    return (
+      this.screen === 'game' &&
+      this.router.screen === this.gameScreen &&
+      !this.paused &&
+      !this.adShowing &&
+      !this.stateValue.over &&
+      !this.drag.state
+    );
+  }
+
+  /**
+   * Keyboard play (T2.17): 1/2/3 pick a piece, arrows move it, Enter/Space place, Esc puts it
+   * back or toggles pause, and closes Settings. Game keys never scroll the page (portals).
+   */
+  onKey(e: KeyboardEvent): void {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const handled = this.handleKey(e.key);
+    if (handled) e.preventDefault();
+  }
+
+  private handleKey(key: string): boolean {
+    if (key === 'Escape') {
+      if (this.router.screen === this.settingsScreen) return (this.closeSettings(), true);
+      if (this.keys.state) return (this.cancelKeySelection(), true);
+      if (this.paused) return (this.resume(), true);
+      if (this.screen === 'game' && !this.stateValue.over) return (this.pause(), true);
+      return false;
+    }
+    if (!this.keysActive) return false;
+    const redraw = () => this.renderer.requestRedraw();
+    switch (key) {
+      case '1':
+      case '2':
+      case '3': {
+        const slot = Number(key) - 1;
+        if (this.trayView.dealing) return true;
+        const had = this.keys.state;
+        if (this.keys.select(slot)) {
+          if (!had) this.bus.emit('pickUp', { slot });
+          if (this.tutorialRun) this.finishTutorial();
+          this.trayView.setDragging(slot);
+          this.trayView.setFocused(slot);
+          redraw();
+        }
+        return true;
+      }
+      case 'ArrowUp':
+      case 'ArrowDown':
+      case 'ArrowLeft':
+      case 'ArrowRight': {
+        const [dr, dc] = {
+          ArrowUp: [-1, 0],
+          ArrowDown: [1, 0],
+          ArrowLeft: [0, -1],
+          ArrowRight: [0, 1],
+        }[key];
+        if (this.keys.move(dr!, dc!)) redraw();
+        return true;
+      }
+      case 'Enter':
+      case ' ': {
+        const piece = this.activePiece();
+        const intent = this.keys.confirm();
+        this.trayView.setFocused(null);
+        if (!intent || !piece) return true;
+        this.place(intent, { x: piece.x, y: piece.y });
+        return true;
+      }
+      default:
+        return false;
+    }
+  }
+
+  private cancelKeySelection(): void {
+    const piece = this.activePiece();
+    this.keys.cancel();
+    this.trayView.setFocused(null);
+    if (!piece) return;
+    this.bus.emit('dropCancelled', { slot: piece.slot });
+    this.dragView.returnToTray(piece, this.trayView.pieceRect(piece.slot), () =>
+      this.trayView.setDragging(null),
+    );
   }
 
   /** Shows the ghost hand on the tutorial run's first move, where the gap is. */

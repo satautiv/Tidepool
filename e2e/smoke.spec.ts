@@ -137,3 +137,16 @@ test('a reload mid-run restores the same run', async ({ page }) => {
   const after = await gameState(page);
   expect(after).toEqual(before);
 });
+
+test('plays with the keyboard: pick, move, place', async ({ page }) => {
+  await boot(page);
+  await page.keyboard.press('3');
+  await page.keyboard.press('ArrowUp');
+  await page.keyboard.press('Enter');
+  await expect.poll(async () => (await gameState(page)).placed).toBe(1);
+  expect((await gameState(page)).tray[2]).toBeNull();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.pause')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.pause')).toBeHidden();
+});

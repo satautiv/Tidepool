@@ -1122,3 +1122,72 @@ describe('App first-time hint', () => {
     expect(boardToAscii(app.state.board)).not.toEqual(FIRST_RUN.board);
   });
 });
+
+describe('App keyboard play', () => {
+  function key(app: App, k: string) {
+    const e = new KeyboardEvent('keydown', { key: k, cancelable: true });
+    app.onKey(e);
+    return e.defaultPrevented;
+  }
+
+  it('plays a full game with the keyboard only', () => {
+    const { app } = makeApp('keys');
+    let moves = 0;
+    for (let i = 0; i < 2000 && !app.state.over; i++) {
+      app.scene.update(1); // let the tray deal in
+      const slot = app.state.tray.findIndex(
+        (t, s) => t !== null && app.keys.select(s) && (app.keys.cancel(), true),
+      );
+      expect(slot).toBeGreaterThanOrEqual(0);
+      key(app, String(slot + 1));
+      key(app, 'ArrowLeft');
+      key(app, 'ArrowUp');
+      expect(key(app, 'Enter')).toBe(true);
+      moves++;
+    }
+    expect(app.state.over).toBe(true);
+    expect(app.state.stats.placed).toBe(moves);
+  });
+
+  it('shows the piece on the board and the ghost, and Esc puts it back', () => {
+    const { app } = makeApp('keys2');
+    app.scene.update(1);
+    key(app, '1');
+    expect(app.keys.state).not.toBeNull();
+    const picked = vi.fn();
+    app.bus.on('dropCancelled', picked);
+    expect(key(app, 'Escape')).toBe(true);
+    expect(app.keys.state).toBeNull();
+    expect(picked).toHaveBeenCalledOnce();
+    expect(app.isPaused).toBe(false);
+  });
+
+  it('Esc toggles pause; keys do nothing while paused or on the menu', () => {
+    const { app } = makeApp('keys3');
+    app.scene.update(1);
+    expect(key(app, 'Escape')).toBe(true);
+    expect(app.isPaused).toBe(true);
+    expect(key(app, '1')).toBe(false);
+    key(app, 'Escape');
+    expect(app.isPaused).toBe(false);
+    app.showMenu();
+    expect(key(app, 'ArrowDown')).toBe(false); // the page may use arrows on the menu
+    expect(key(app, 'Escape')).toBe(false);
+  });
+
+  it('stops arrows and space from scrolling during play', () => {
+    const { app } = makeApp('keys4');
+    app.scene.update(1);
+    expect(key(app, 'ArrowDown')).toBe(true);
+    expect(key(app, ' ')).toBe(true);
+    expect(key(app, 'x')).toBe(false);
+  });
+
+  it('closes Settings with Esc', async () => {
+    const { app, uiRoot } = makeApp('keys5', undefined, undefined, { extra: { startIn: 'menu' } });
+    app.openSettings();
+    expect(key(app, 'Escape')).toBe(true);
+    await new Promise((r) => setTimeout(r, 250));
+    expect(uiRoot.querySelector('.menu')).not.toBeNull();
+  });
+});

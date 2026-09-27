@@ -457,6 +457,13 @@ The palettes are data (`render/palettes.ts`). As built (T2.14):
 
 Keyboard play (arrow keys to move the ghost, 1–3 to select a slot, Enter to place) is a stretch goal for accessibility and desktop portals (T2.17).
 
+As built (T2.17): `input/KeyboardController.ts` is pure selection logic:
+- **1/2/3** pick a piece at the valid spot nearest the centre.
+- **Arrows** jump to the next valid spot straight along the row or column, and only then fan out to neighbouring lines.
+- **Enter/Space** place; **Esc** puts the piece back, then toggles pause, and closes Settings.
+
+The App presents the selection as a synthetic `DragState`, so the ghost, the lifted piece, the snap and the return-to-tray animation are shared with pointer drags. The picked tray slot gets a focus ring, and UI controls get `:focus-visible` outlines. Game keys call `preventDefault` only during play, so arrows and space never scroll a portal page, and the menus keep the browser's own keyboard behaviour. A pointer drag cancels a keyboard selection.
+
 ---
 
 ## 9. Layout
