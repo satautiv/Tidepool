@@ -293,19 +293,95 @@ describe('App persistence', () => {
 });
 
 describe('App ads', () => {
-  async function withAds() {
+  async function withAds(opts: { rewardedReady?: boolean; returning?: boolean } = {}) {
     const save = new SaveStore(new MemoryBackend());
     await save.load();
+    if (opts.returning) save.update((s) => (s.ads.sessionCount = 1));
     let t = 0;
-    const service = new NoAdsService({ wait: async () => {} });
+    const service = new NoAdsService({
+      wait: async () => {},
+      rewardedReady: opts.rewardedReady ?? true,
+    });
     const ads = new AdManager(service, save, { now: () => t });
     await ads.init();
     const signals: string[] = [];
     service.gameplayStart = () => signals.push('start');
     service.gameplayStop = () => signals.push('stop');
     const made = makeApp('ads', save, ads);
-    return { ...made, ads, signals, tick: (ms: number) => (t += ms) };
+    return { ...made, ads, service, signals, tick: (ms: number) => (t += ms) };
   }
+
+  const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+  /** Plays first-fit moves until game over and lets the Game Over sequence finish. */
+  async function playToGameOver(app: App) {
+    for (let i = 0; i < 1000 && !app.state.over; i++) app.place(firstMove(app));
+    for (let i = 0; i < 5; i++) {
+      await Promise.resolve();
+      app.scene.update(1);
+    }
+    await tick();
+  }
+
+  const button = (root: HTMLElement, sel: string) => root.querySelector<HTMLButtonElement>(sel)!;
+
+  it('offers a second chance once per run, which continues the same run', async () => {
+    const { app, uiRoot } = await withAds();
+    await playToGameOver(app);
+    const offer = button(uiRoot, '.gameover__second-chance');
+    expect(offer.hidden).toBe(false);
+    const score = app.state.score;
+    offer.click();
+    await tick();
+    expect(uiRoot.querySelector<HTMLElement>('.gameover')!.hidden).toBe(true);
+    expect(app.state.over).toBe(false);
+    expect(app.state.secondChanceUsed).toBe(true);
+    expect(app.state.score).toBe(score);
+    expect(app.drag.isLocked).toBe(false);
+
+    await playToGameOver(app);
+    expect(button(uiRoot, '.gameover__second-chance').hidden).toBe(true);
+    button(uiRoot, '.gameover__again').click();
+    await tick();
+    await playToGameOver(app);
+    expect(button(uiRoot, '.gameover__second-chance').hidden).toBe(false); // new run, new chance
+  });
+
+  it('shows no reward button when no ad is ready, and Play again still works', async () => {
+    const { app, uiRoot } = await withAds({ rewardedReady: false });
+    await playToGameOver(app);
+    expect(button(uiRoot, '.gameover__second-chance').hidden).toBe(true);
+    button(uiRoot, '.gameover__again').click();
+    await tick();
+    expect(app.state.over).toBe(false);
+    expect(app.state.stats.placed).toBe(0);
+  });
+
+  it('hides the button and keeps the panel when the ad is not completed', async () => {
+    const { app, uiRoot, service } = await withAds();
+    service.showRewarded = async () => false;
+    await playToGameOver(app);
+    button(uiRoot, '.gameover__second-chance').click();
+    await tick();
+    expect(button(uiRoot, '.gameover__second-chance').hidden).toBe(true);
+    expect(uiRoot.querySelector<HTMLElement>('.gameover')!.hidden).toBe(false);
+    expect(app.state.over).toBe(true);
+  });
+
+  it('plays a break ad between runs when the policy allows, then starts the next run', async () => {
+    const { app, uiRoot, service, tick: advance } = await withAds({ returning: true });
+    const shown = vi.fn(async () => {});
+    service.showInterstitial = shown;
+    advance(200_000);
+    await playToGameOver(app);
+    button(uiRoot, '.gameover__again').click();
+    button(uiRoot, '.gameover__again').click(); // a double tap doesn't start two ads
+    expect(app.state.over).toBe(true);
+    await tick();
+    expect(shown).toHaveBeenCalledOnce();
+    expect(shown).toHaveBeenCalledWith('runEnd');
+    expect(app.state.over).toBe(false);
+  });
 
   it('signals gameplay for the run, stops it at game over and restarts it for the next run', async () => {
     const { app, signals, ads, tick } = await withAds();

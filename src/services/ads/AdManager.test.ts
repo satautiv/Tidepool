@@ -109,7 +109,7 @@ describe('interstitial policy (D19)', () => {
     const { ads, clock } = await setup();
     play(ads, clock, 10 * MIN);
     expect(ads.canShowInterstitial()).toBe(false);
-    expect(await ads.requestBreak('betweenRuns')).toBe('skipped');
+    expect(await ads.requestBreak('runEnd')).toBe('skipped');
   });
 
   it('needs 180 s of gameplay time since the session started', async () => {
@@ -146,7 +146,7 @@ describe('interstitial policy (D19)', () => {
   it('resets the gameplay timer after an interstitial', async () => {
     const { ads, clock, onAdStart, onAdEnd } = await setup({ store: returningPlayer() });
     play(ads, clock, 3 * MIN);
-    expect(await ads.requestBreak('betweenRuns')).toBe('shown');
+    expect(await ads.requestBreak('runEnd')).toBe('shown');
     expect(onAdStart).toHaveBeenCalledOnce();
     expect(onAdEnd).toHaveBeenCalledOnce();
     expect(ads.gameplayMs).toBe(0);
@@ -293,7 +293,7 @@ describe('misbehaving providers never block the game', () => {
       store: returningPlayer(),
     });
     play(ads, clock, 3 * MIN);
-    expect(await ads.requestBreak('betweenRuns')).toBe('failed');
+    expect(await ads.requestBreak('runEnd')).toBe('failed');
     ads.runStarted();
     expect(await ads.rewarded('secondChance')).toBe(false);
     expect(onAdEnd).toHaveBeenCalledTimes(2);
@@ -309,7 +309,7 @@ describe('misbehaving providers never block the game', () => {
     });
     play(ads, clock, 3 * MIN);
     let result: string | undefined;
-    void ads.requestBreak('betweenRuns').then((r) => (result = r));
+    void ads.requestBreak('runEnd').then((r) => (result = r));
     await flush();
     clock.advance(7_999);
     await flush();
@@ -347,7 +347,7 @@ describe('misbehaving providers never block the game', () => {
       await done;
       expect(ads.isRewardedAvailable('secondChance')).toBe(false);
       play(ads, clock, 3 * MIN);
-      expect(await ads.requestBreak('betweenRuns')).toBe('skipped');
+      expect(await ads.requestBreak('runEnd')).toBe('skipped');
     }
   });
 
@@ -369,13 +369,13 @@ describe('NoAdsService', () => {
       overlay: (label) => (labels.push(label), closed),
     });
     expect(await dev.showRewarded('secondChance')).toBe(true);
-    await dev.showInterstitial('betweenRuns');
+    await dev.showInterstitial('runEnd');
     expect(labels).toEqual(['[Rewarded ad placeholder]', '[Interstitial placeholder]']);
     expect(closed).toHaveBeenCalledTimes(2);
 
     const wait = vi.fn(async () => {});
     const prod = new NoAdsService({ wait });
-    await prod.showInterstitial('betweenRuns');
+    await prod.showInterstitial('runEnd');
     expect(wait).not.toHaveBeenCalled();
   });
 

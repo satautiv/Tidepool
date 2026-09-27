@@ -18,4 +18,4 @@ export interface AdService {
 export type RewardedPlacement = 'secondChance' | 'freeBooster' | 'doubleReward' | 'dailyBonus';
 
 /** Interstitial placements: break points between runs or levels only. */
-export type BreakPlacement = 'betweenRuns' | 'betweenLevels';
+export type BreakPlacement = 'runEnd' | 'levelEnd';

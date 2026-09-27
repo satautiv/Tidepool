@@ -7,6 +7,7 @@ export interface GameScreenActions {
   onPause: () => void;
   onPlayAgain: () => void;
   onMenu: () => void;
+  onSecondChance?: () => void;
 }
 
 export class GameScreen implements Screen {

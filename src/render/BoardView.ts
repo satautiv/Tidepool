@@ -76,6 +76,16 @@ export class BoardView implements SceneView {
     this.invalidate();
   }
 
+  /** Second chance: brings the faded blocks back. */
+  fadeIn(): void {
+    this.tweener.to(
+      this.fade,
+      { alpha: 1 },
+      { duration: BOARD_FEEL.fadeDuration, ease: Ease.quadOut },
+    );
+    this.invalidate();
+  }
+
   private flushIdle(): void {
     if (this.busy) return;
     const waiters = this.idleWaiters;

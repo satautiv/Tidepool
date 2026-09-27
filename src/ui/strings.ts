@@ -7,5 +7,6 @@ export const STRINGS = {
   newBest: 'New best!',
   playAgain: 'Play again',
   menu: 'Menu',
+  secondChance: 'Watch an ad to keep going',
   streak: (multiplier: number) => `×${multiplier}`,
 } as const;

@@ -172,6 +172,10 @@ button {
   transform: scale(0.96);
 }
 
+.button:disabled {
+  opacity: 0.6;
+}
+
 .button--primary {
   min-height: 56px;
   background: var(--accent);
@@ -243,8 +247,22 @@ button {
   width: 100%;
 }
 
-.gameover__extra:empty {
+.gameover__extra {
+  display: grid;
+  width: 100%;
+}
+
+.gameover__extra:not(:has(> :not([hidden]))) {
   display: none;
+}
+
+.gameover__second-chance[hidden] {
+  display: none;
+}
+
+.button--reward {
+  background: #7ed6c4;
+  color: #1f3b40;
 }
 
 @keyframes fade-in {

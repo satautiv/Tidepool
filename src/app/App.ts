@@ -4,6 +4,7 @@
  */
 import { canPlace } from '../core/board';
 import {
+  continueWithSecondChance,
   deserialize,
   newEndless,
   placePiece,
@@ -88,6 +89,8 @@ export class App {
   private bestAtRunStart = 0;
   private readonly seed: () => string;
   private readonly palette: Palette;
+  /** A break ad is running between Game Over and the next run. */
+  private leaving = false;
 
   constructor(private readonly opts: AppOptions) {
     this.palette = opts.palette ?? TIDEPOOL;
@@ -131,12 +134,14 @@ export class App {
     this.router = new Router(opts.uiRoot);
     this.gameScreen = new GameScreen({
       onPause: () => this.bus.emit('pause', undefined),
-      onPlayAgain: () => this.newRun(),
+      onPlayAgain: () => this.leaveRun(() => this.newRun()),
       // Until the main menu exists (T2.12), Menu also starts a new run.
-      onMenu: () => {
-        this.bus.emit('menu', undefined);
-        this.newRun();
-      },
+      onMenu: () =>
+        this.leaveRun(() => {
+          this.bus.emit('menu', undefined);
+          this.newRun();
+        }),
+      onSecondChance: () => void this.useSecondChance(),
     });
 
     if (opts.ads) {
@@ -231,8 +236,50 @@ export class App {
       best: this.best,
       newBest: run.score > this.bestAtRunStart,
     };
-    this.gameScreen.gameOver.show(info);
+    const secondChance =
+      !run.secondChanceUsed && !!this.opts.ads?.isRewardedAvailable('secondChance');
+    this.gameScreen.gameOver.show({ ...info, secondChance });
     this.bus.emit('gameOver', info);
+  }
+
+  /**
+   * Game Over → Play again / Menu: a break point, so an interstitial may play first (the
+   * AdManager decides, and never blocks). Without ads this is synchronous.
+   */
+  private leaveRun(next: () => void): void {
+    const ads = this.opts.ads;
+    if (!ads) return next();
+    if (this.leaving) return;
+    this.leaving = true;
+    void ads.requestBreak('runEnd').then(() => {
+      this.leaving = false;
+      next();
+    });
+  }
+
+  /** The opt-in rewarded second chance (D11). A failed or skipped ad just hides the button. */
+  private async useSecondChance(): Promise<void> {
+    const ads = this.opts.ads;
+    const run = this.stateValue;
+    if (!ads || !run.over || this.leaving) return;
+    const panel = this.gameScreen.gameOver;
+    panel.setSecondChance('busy');
+    const earned = await ads.rewarded('secondChance');
+    if (this.stateValue !== run) return;
+    const step = earned ? continueWithSecondChance(run) : null;
+    if (!step || 'error' in step) {
+      panel.setSecondChance('hidden');
+      return;
+    }
+    this.stateValue = step.state;
+    panel.hide();
+    this.boardView.fadeIn();
+    this.trayView.setTray(step.state.tray, true);
+    this.drag.setLocked(false);
+    this.updateHud();
+    this.persistRun(step.events);
+    ads.gameplayStart();
+    this.bus.emit('game', { events: step.events, state: step.state });
   }
 
   /** Saves the run after every change, plus the best score and lifetime counters. */
