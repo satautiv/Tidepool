@@ -489,6 +489,7 @@ Boot/Loader ─▶ Main Menu ─┬─▶ Endless Game ─▶ (Pause) ─▶ Gam
                           └─▶ Settings (sound, music, palette, colour-blind, reduced motion, low power, reset progress)
 ```
 
+- As built (T2.16): on a fresh install (no games played, `tutorialDone` false), the first run starts on `app/tutorial.ts` `FIRST_RUN`. The bottom row is full except a 2-cell gap, and slot 0 holds a horizontal domino, so the first move clears a line. A text-free ghost hand (`ui/components/Hint.ts`, SVG plus a CSS loop) drags from that piece to the release point. `input/DragController.ts` `releasePoint()` computes it, including the touch lift on coarse pointers, and the dev hook shares it. The hand hides while paused or on the menu. The first pick-up sets `tutorialDone` in the save, so it never returns. A reload before the first move keeps it.
 - As built (T2.13): `ui/screens/SettingsScreen.ts` is driven by a `SettingsModel` from the App:
   - Every change goes through `App.applySettings`, which writes the save and re-applies the audio buses at once.
   - Sound and music are each a switch plus a volume slider. Haptics shows only where `navigator.vibrate` exists. The palette choice shows with more than one palette.

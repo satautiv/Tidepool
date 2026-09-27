@@ -67,14 +67,17 @@ test('dragging a piece onto the board scores its size', async ({ page, isMobile 
     },
     { row: 2, col: 2, touch: isMobile },
   );
-  expect(filledCells((await gameState(page)).board)).toBe(0);
+  // A fresh install starts on the friendly first-run board, with the hint showing.
+  await expect(page.locator('.hint')).toBeVisible();
+  const before = filledCells((await gameState(page)).board);
 
   await drag(page, from, to, isMobile);
   await expect.poll(async () => (await gameState(page)).placed).toBe(1);
+  await expect(page.locator('.hint')).toBeHidden();
   const state = await gameState(page);
-  // 1 point per placed cell, and nothing can clear on an empty board.
-  expect(filledCells(state.board)).toBeGreaterThan(0);
-  expect(state.score).toBe(filledCells(state.board));
+  // 1 point per placed cell; row 2 can't be completed by one piece, so nothing clears.
+  expect(filledCells(state.board)).toBeGreaterThan(before);
+  expect(state.score).toBe(filledCells(state.board) - before);
   expect(state.tray[0]).toBeNull();
   await expect(page.locator('.hud__score')).toHaveText(String(state.score));
 });

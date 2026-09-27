@@ -61,6 +61,7 @@ export function makeApp(
     uiClock: instantClock(),
     setInterval: () => 0, // no ambient ticker unless a test drives it
     startIn: 'game', // most tests play; menu tests pass startIn: 'menu'
+    tutorial: false, // tutorial tests turn it on
     ...(save ? { save } : {}),
     ...(ads ? { ads } : {}),
     ...opts.extra,

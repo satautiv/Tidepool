@@ -7,7 +7,7 @@ import { boardFromAscii, boardToAscii } from '../core/board';
 import { isGameOver } from '../core/game';
 import { slotShape } from '../core/generator';
 import type { ShapeId } from '../core/shapes';
-import { DRAG } from '../input/DragController';
+import { releasePoint } from '../input/DragController';
 import type { App } from './App';
 
 export interface Point {
@@ -101,18 +101,9 @@ export function createTestHook(app: App, canvas: HTMLCanvasElement): TestHook {
       const g = geometry();
       const piece = app.state.tray[slot];
       if (!g || !piece) return null;
-      const shape = slotShape(piece);
-      const c = g.cellSize;
       const o = offset();
-      const x = o.left + g.board.x + col * c + (shape.width * c) / 2;
-      const top = o.top + g.board.y + row * c;
-      // Mirrors DragController.positioned: mouse keeps the grab point (the centre), touch
-      // floats the piece above the finger.
-      const y =
-        kind === 'touch'
-          ? top + shape.height * c + DRAG.touchLiftCells * c
-          : top + (shape.height * c) / 2;
-      return { x, y };
+      const p = releasePoint(g, slotShape(piece), row, col, kind);
+      return { x: o.left + p.x, y: o.top + p.y };
     },
   };
   return hook;

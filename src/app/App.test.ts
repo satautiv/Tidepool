@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it, vi } from 'vitest';
-import { boardFromAscii } from '../core/board';
+import { boardFromAscii, boardToAscii } from '../core/board';
 import { slotShape } from '../core/generator';
 import { FEEL } from '../render/feel';
 import { readSafeArea } from '../render/viewport';
@@ -11,6 +11,7 @@ import { NoAdsService } from '../services/ads/NoAdsService';
 import { MemoryBackend } from '../services/storage/StorageBackend';
 import { SAVE_KEY, SaveStore } from '../services/storage/SaveStore';
 import { randomSeed, type App } from './App';
+import { FIRST_RUN } from './tutorial';
 import { firstMove, makeApp } from './testing';
 
 const text = (root: HTMLElement, sel: string) => root.querySelector(sel)?.textContent;
@@ -1061,5 +1062,63 @@ describe('App reduced motion and low power', () => {
     // Cells faded in one short step, with no waves left running.
     app.scene.update(0.01);
     expect(app.scene.isAnimating()).toBe(app.particles.system.count > 0);
+  });
+});
+
+describe('App first-time hint', () => {
+  async function fresh(backend = new MemoryBackend()) {
+    const save = new SaveStore(backend);
+    await save.load();
+    const made = makeApp('any-seed', save, undefined, {
+      extra: { tutorial: true, startIn: 'menu', coarsePointer: () => false },
+    });
+    return { ...made, save, backend };
+  }
+  const hintEl = (root: HTMLElement) => root.querySelector<HTMLElement>('.hint')!;
+
+  it('starts a fresh install on the friendly board and shows the hand in the game', async () => {
+    const { app, uiRoot } = await fresh();
+    expect(boardToAscii(app.state.board)).toEqual(FIRST_RUN.board);
+    expect(app.state.tray.map((t) => t?.shape)).toEqual(['i2h', 'dot', 'sq2']);
+    uiRoot.querySelector<HTMLButtonElement>('.menu__play')!.click();
+    const hint = hintEl(uiRoot);
+    expect(hint.hidden).toBe(false);
+    // It drags from the slot-0 piece to where the domino fills the gap.
+    const rect = app.slotPieceRect(0)!;
+    expect(hint.style.getPropertyValue('--from-x')).toBe(`${rect.x + rect.width / 2}px`);
+    app.pause();
+    expect(hint.hidden).toBe(true);
+    app.resume();
+    expect(hint.hidden).toBe(false);
+  });
+
+  it('the suggested move clears a line at once', async () => {
+    const { app } = await fresh();
+    const { slot, row, col } = FIRST_RUN.target;
+    app.place({ slot, row, col });
+    expect(app.state.stats.linesCleared).toBe(1);
+  });
+
+  it('is gone for good after the first drag, even across reloads', async () => {
+    const { app, uiRoot, save, backend } = await fresh();
+    app.play();
+    app.scene.update(1);
+    const r = app.slotPieceRect(1)!;
+    app.drag.pointerDown({ id: 1, kind: 'mouse', x: r.x + 1, y: r.y + 1 });
+    expect(hintEl(uiRoot).hidden).toBe(true);
+    expect(save.current.tutorialDone).toBe(true);
+    app.drag.cancel();
+    await save.flush();
+    const { app: again, uiRoot: root2 } = await fresh(backend);
+    again.play();
+    expect(hintEl(root2).hidden).toBe(true);
+  });
+
+  it('only on a first install: a player with games behind them gets a normal run', async () => {
+    const save = new SaveStore(new MemoryBackend());
+    await save.load();
+    save.update((s) => (s.stats.gamesPlayed = 3));
+    const { app } = makeApp('normal', save, undefined, { extra: { tutorial: true } });
+    expect(boardToAscii(app.state.board)).not.toEqual(FIRST_RUN.board);
   });
 });

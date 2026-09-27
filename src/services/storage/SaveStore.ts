@@ -53,6 +53,8 @@ export interface SaveV1 {
   endlessRun: string | null;
   /** Best score when the saved run started, so a resumed run can still say "New best!". */
   endlessRunBestAtStart: number;
+  /** The first-time hint has been used up (T2.16). */
+  tutorialDone: boolean;
   /** Play time of the saved run so far, across reloads (analytics `run_end.durationMs`). */
   endlessRunMs: number;
   ads: AdsSave;
@@ -80,6 +82,7 @@ export function defaultSave(now: number): Save {
     endlessRun: null,
     endlessRunBestAtStart: 0,
     endlessRunMs: 0,
+    tutorialDone: false,
     ads: {
       sessionCount: 0,
       lastSessionStart: 0,

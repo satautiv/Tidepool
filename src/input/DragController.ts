@@ -86,6 +86,28 @@ export const DRAG = {
   magnetRadius: 0.75,
 };
 
+/**
+ * Where to release a piece picked up at the centre of its tray rect so its top-left lands on
+ * (row, col): the inverse of the controller's positioning. Mouse and pen keep the grab point
+ * (the piece's centre); touch floats the piece above the finger.
+ */
+export function releasePoint(
+  geo: BoardGeometry,
+  shape: Pick<Shape, 'width' | 'height'>,
+  row: number,
+  col: number,
+  kind: PointerKind,
+): { x: number; y: number } {
+  const c = geo.cellSize;
+  const top = geo.board.y + row * c;
+  const x = geo.board.x + col * c + (shape.width * c) / 2;
+  const y =
+    kind === 'touch'
+      ? top + shape.height * c + DRAG.touchLiftCells * c
+      : top + (shape.height * c) / 2;
+  return { x, y };
+}
+
 export class DragController {
   private drag: DragState | null = null;
   /** Grab point inside the piece, as a fraction of its size (mouse/pen). */

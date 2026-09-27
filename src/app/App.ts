@@ -2,7 +2,7 @@
  * Composition root (docs/PLAN.md §3.1–3.3). Owns the Endless state, turns drag intents into
  * core moves, and fans the resulting events out to the renderer and the UI.
  */
-import { canPlace } from '../core/board';
+import { boardToAscii, canPlace } from '../core/board';
 import { BOARD_SIZE } from '../core/config';
 import {
   continueWithSecondChance,
@@ -19,6 +19,7 @@ import { getShape } from '../core/shapes';
 import {
   bindPointerEvents,
   DragController,
+  releasePoint,
   type DragHost,
   type PlaceIntent,
 } from '../input/DragController';
@@ -54,6 +55,7 @@ import { STRINGS } from '../ui/strings';
 import { defaultSave, type Settings } from '../services/storage/SaveStore';
 import type { Screen } from '../ui/Router';
 import { EventBus } from './events';
+import { FIRST_RUN, firstRunState } from './tutorial';
 
 export interface AppEvents {
   /** Every batch of core events produced by a move or a new run. */
@@ -97,6 +99,10 @@ export interface AppOptions {
   ads?: AdManager;
   /** Whether this device can vibrate (the Settings haptics row). */
   hapticsSupported?: boolean;
+  /** The first-time hint and friendly first board on a fresh install. Default true. */
+  tutorial?: boolean;
+  /** Whether the pointer is a finger (the hint shows the touch lift). Default: CSS query. */
+  coarsePointer?: () => boolean;
   /** The first screen after boot. Default: the main menu. */
   startIn?: 'menu' | 'game';
   /** Safe-area insets for the canvas layout. Default: read from CSS `env()`. */
@@ -144,6 +150,9 @@ export class App {
   /** Whether the current run has been announced (ads run start, `runStart`) yet. */
   private announced = false;
   private runResumed = false;
+  /** This run is the first-run tutorial and its hint hasn't been used yet. */
+  private tutorialRun = false;
+  private tutorialDoneLocal = false;
   private readonly boardView: BoardView;
   private readonly trayView: TrayView;
   private readonly dragView: DragView;
@@ -193,12 +202,13 @@ export class App {
     this.boardView = new BoardView(redraw);
     this.trayView = new TrayView(redraw);
     this.best = opts.save?.current.stats.bestScore ?? 0;
-    this.stateValue = this.restoreRun() ?? this.freshRun(this.seed());
+    this.stateValue = this.restoreRun() ?? this.startingRun();
 
     this.drag = new DragController(this.dragHost(), {
       onStart: (d) => {
         this.trayView.setDragging(d.slot);
         this.bus.emit('pickUp', { slot: d.slot });
+        if (this.tutorialRun) this.finishTutorial();
       },
       onMove: redraw,
       onPlace: (intent, d) => {
@@ -242,6 +252,7 @@ export class App {
         if (this.drag.state) this.drag.cancel();
         this.gameScreen.hud.setRect(layout.hud);
         this.gameScreen.fx.setRect(layout.board);
+        this.updateHint();
       },
       draw() {},
     });
@@ -320,6 +331,7 @@ export class App {
     this.opts.ads?.gameplayStop();
     this.syncInput();
     this.gameScreen.pause.show();
+    this.updateHint();
     this.bus.emit('pause', undefined);
   }
 
@@ -330,6 +342,7 @@ export class App {
     this.startRunClock();
     this.opts.ads?.gameplayStart();
     this.syncInput();
+    this.updateHint();
     this.bus.emit('resume', undefined);
   }
 
@@ -402,6 +415,7 @@ export class App {
     else this.announce();
     this.startRunClock();
     this.syncInput();
+    this.updateHint();
   }
 
   /** Shows the main menu over the tidepool. The run waits, saved, for Continue. */
@@ -418,6 +432,7 @@ export class App {
       void this.router.show(this.menuScreen);
     }
     this.refreshMenu();
+    this.updateHint();
     this.bus.emit('menu', undefined);
   }
 
@@ -528,6 +543,8 @@ export class App {
   newRun(seed = this.seed()): void {
     this.finishRun(this.stateValue, this.runElapsed());
     this.stateValue = this.freshRun(seed);
+    this.tutorialRun = false;
+    this.updateHint();
     this.gameScreen.gameOver.hide();
     this.gameScreen.pause.hide();
     this.paused = false;
@@ -579,6 +596,7 @@ export class App {
       step.events.some((e) => e.type === 'dealt'),
     );
     this.updateHud();
+    this.updateHint();
     this.showScoreFx(step.events);
     this.feedback(step.events);
     this.persistRun(step.events);
@@ -680,6 +698,48 @@ export class App {
     if (emit) this.bus.emit('runEnd', { state: run, durationMs });
   }
 
+  /** The run a new player starts with: the friendly first-run board, or a normal run. */
+  private startingRun(): EndlessState {
+    const first = (this.opts.tutorial ?? true) && !this.tutorialDone() && this.gamesPlayed() === 0;
+    if (!first) return this.freshRun(this.seed());
+    this.tutorialRun = true;
+    this.freshRun(FIRST_RUN.seed);
+    return firstRunState();
+  }
+
+  private tutorialDone(): boolean {
+    return this.opts.save?.current.tutorialDone ?? this.tutorialDoneLocal;
+  }
+
+  private gamesPlayed(): number {
+    return this.opts.save?.current.stats.gamesPlayed ?? 0;
+  }
+
+  /** The first drag used up the hint: it never comes back. */
+  private finishTutorial(): void {
+    this.tutorialRun = false;
+    this.tutorialDoneLocal = true;
+    this.opts.save?.update((s) => (s.tutorialDone = true));
+    this.gameScreen.hint.hide();
+  }
+
+  /** Shows the ghost hand on the tutorial run's first move, where the gap is. */
+  private updateHint(): void {
+    const hint = this.gameScreen.hint;
+    const layout = this.scene.layout;
+    const s = this.stateValue;
+    const { slot, row, col } = FIRST_RUN.target;
+    const piece = s.tray[slot];
+    const rect = this.trayView.pieceRect(slot);
+    const show = this.tutorialRun && this.screen === 'game' && !this.paused && s.stats.placed === 0;
+    if (!show || !layout || !piece || !rect) return hint.hide();
+    const coarse =
+      this.opts.coarsePointer?.() ??
+      (typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches);
+    const to = releasePoint(layout, getShape(piece.shape), row, col, coarse ? 'touch' : 'mouse');
+    hint.show({ x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }, to);
+  }
+
   private freshRun(seed: string): EndlessState {
     this.runSeed = seed;
     this.runMsBefore = 0;
@@ -731,6 +791,12 @@ export class App {
     }
     this.runMsBefore = save.current.endlessRunMs;
     this.runStretchStart = this.now();
+    // Reloaded before the first move of the first run: the hint still applies.
+    this.tutorialRun =
+      (this.opts.tutorial ?? true) &&
+      !save.current.tutorialDone &&
+      run.stats.placed === 0 &&
+      boardToAscii(run.board).join('') === FIRST_RUN.board.join('');
     this.bestAtRunStart = save.current.endlessRunBestAtStart;
     return run;
   }

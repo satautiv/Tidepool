@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, expect, it, vi } from 'vitest';
 import { FxLayer } from './components/FxLayer';
+import { Hint } from './components/Hint';
 import { Toast } from './components/Toast';
 import { SettingsScreen, type SettingsModel, type SettingsValues } from './screens/SettingsScreen';
 import { GameOverPanel } from './components/GameOverPanel';
@@ -440,5 +441,19 @@ describe('Toast', () => {
     expect(toast.visible).toBe(true);
     timers[1]!();
     expect(toast.visible).toBe(false);
+  });
+});
+
+describe('Hint', () => {
+  it('loops the hand between two points and hides', () => {
+    const hint = new Hint();
+    expect(hint.visible).toBe(false);
+    hint.show({ x: 10, y: 20 }, { x: 30, y: 40 });
+    expect(hint.visible).toBe(true);
+    expect(hint.el.style.getPropertyValue('--to-y')).toBe('40px');
+    expect(hint.el.querySelector('svg')).not.toBeNull();
+    expect(hint.el.textContent!.trim()).toBe(''); // no text
+    hint.hide();
+    expect(hint.visible).toBe(false);
   });
 });
