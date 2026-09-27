@@ -424,6 +424,7 @@ The palettes are data (`render/palettes.ts`). Colour-blind and cosmetic themes (
   - `render/feel.ts` (`FEEL`) holds every §11 number, grouped by moment. Views read it at use time, so the dev panel (`?feel=1`, `app/FeelPanel.ts`) tunes values live and copies them as JSON. A test fails if the view files contain decimal literals or literal durations.
 - The visual state (`BoardView`) keeps per-cell display properties: scale, alpha, offsetY and highlight. It animates towards the logical state.
 - `particles.ts`: an object pool (≥ 512 particles, no allocations per frame) with position, velocity, gravity, life, size, rotation, colour and sprite type (bubble, sparkle, droplet).
+  - As built (T2.02): struct-of-arrays in fixed typed arrays, with live particles packed in `[0, count)` (swap-remove). When the pool is full, new particles are dropped. `burst(type, x, y, count, spread, speed, {color, angle, lifeScale})` and `line(type, x0, y0, x1, y1, countPerPx, speed, opts)` emit particles. Per-type physics lives in `FEEL.particles`. `density` scales counts and carries fractions between emits. Sparkles draw in a second, `lighter` pass. `draw` takes an (ox, oy) offset for screen shake. Sprites: 4 types × (white + palette colours), 16 CSS px, scaled when drawn.
 
 ### 7.5 Background & caustics
 - The sand texture is generated once by procedural noise into an offscreen canvas and scaled to the board.

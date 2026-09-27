@@ -80,6 +80,52 @@ export const FEEL = {
   button: {
     pressScale: 0.96,
   },
+  /**
+   * Per particle type: gravity (px/s², negative rises), drag (per second), life (s), size
+   * (CSS px, start → end), alpha (start → end), spin (rad/s, ± random).
+   */
+  particles: {
+    bubble: {
+      gravity: -90,
+      drag: 1.2,
+      life: 0.9,
+      sizeFrom: 5,
+      sizeTo: 9,
+      alphaFrom: 0.9,
+      alphaTo: 0,
+      spin: 0,
+    },
+    sparkle: {
+      gravity: 40,
+      drag: 3,
+      life: 0.55,
+      sizeFrom: 10,
+      sizeTo: 2,
+      alphaFrom: 1,
+      alphaTo: 0,
+      spin: 6,
+    },
+    droplet: {
+      gravity: 420,
+      drag: 0.6,
+      life: 0.7,
+      sizeFrom: 6,
+      sizeTo: 4,
+      alphaFrom: 0.85,
+      alphaTo: 0,
+      spin: 0,
+    },
+    dot: {
+      gravity: 0,
+      drag: 2,
+      life: 0.5,
+      sizeFrom: 6,
+      sizeTo: 0,
+      alphaFrom: 0.8,
+      alphaTo: 0,
+      spin: 0,
+    },
+  },
   reducedMotion: {
     /** Replaces staggered cell animations. */
     fadeDuration: 0.15,
@@ -121,24 +167,39 @@ export const FEEL_TWEAKS: readonly FeelTweak[] = [
   { path: 'gameOver.fadeDuration', min: 0.1, max: 2, step: 0.05 },
 ];
 
-type Group = Record<string, number>;
+type Tree = { [key: string]: number | Tree };
+
+/** The object holding the last path segment, and that segment. */
+function locate(path: string, feel: Feel): [Tree, string] | null {
+  const keys = path.split('.');
+  const last = keys.pop()!;
+  let node: number | Tree | undefined = feel as unknown as Tree;
+  for (const key of keys) {
+    node = typeof node === 'object' ? node[key] : undefined;
+  }
+  return typeof node === 'object' ? [node, last] : null;
+}
 
 export function getFeel(path: string, feel: Feel = FEEL): number {
-  const [group, key] = path.split('.');
-  const value = (feel as unknown as Record<string, Group | undefined>)[group!]?.[key!];
+  const found = locate(path, feel);
+  const value = found?.[0][found[1]];
   if (typeof value !== 'number') throw new Error(`Unknown feel value ${path}`);
   return value;
 }
 
 export function setFeel(path: string, value: number, feel: Feel = FEEL): void {
   getFeel(path, feel); // validates the path
-  const [group, key] = path.split('.');
-  (feel as unknown as Record<string, Group>)[group!]![key!] = value;
+  const [node, key] = locate(path, feel)!;
+  node[key] = value;
 }
 
-/** Restores every value to the shipped defaults, in place. */
+/** Restores every value to the shipped defaults, in place (objects keep their identity). */
 export function resetFeel(feel: Feel = FEEL): void {
-  for (const [group, values] of Object.entries(FEEL_DEFAULTS)) {
-    Object.assign((feel as unknown as Record<string, Group>)[group]!, values);
-  }
+  const copy = (into: Tree, from: Tree) => {
+    for (const [key, value] of Object.entries(from)) {
+      if (typeof value === 'number') into[key] = value;
+      else copy(into[key] as Tree, value);
+    }
+  };
+  copy(feel as unknown as Tree, FEEL_DEFAULTS as unknown as Tree);
 }

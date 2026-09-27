@@ -170,6 +170,93 @@ export function drawBoardBase(ctx: CanvasRenderingContext2D, c: number, palette:
   }
 }
 
+export const PARTICLE_TYPES = ['bubble', 'sparkle', 'droplet', 'dot'] as const;
+export type ParticleType = (typeof PARTICLE_TYPES)[number];
+/** Colour index for neutral (white) particles; other indexes are palette glass colours. */
+export const WHITE = -1;
+/** Particle sprites are drawn at this size (CSS px) and scaled when blitted. */
+export const PARTICLE_SPRITE_SIZE = 16;
+
+/** One particle of `type`, centred in an `s`-sized square. */
+export function drawParticle(
+  ctx: CanvasRenderingContext2D,
+  type: ParticleType,
+  s: number,
+  color: string,
+): void {
+  const c = s / 2;
+  ctx.save();
+  switch (type) {
+    case 'bubble': {
+      // A thin ring with a tinted inside and a highlight at the top-left.
+      const fill = ctx.createRadialGradient(c, c, 0, c, c, c);
+      fill.addColorStop(0, rgba(color, 0.05));
+      fill.addColorStop(0.8, rgba(lighten(color, 0.4), 0.25));
+      fill.addColorStop(1, rgba('#FFFFFF', 0));
+      ctx.fillStyle = fill;
+      ctx.beginPath();
+      ctx.arc(c, c, c * 0.95, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = rgba(lighten(color, 0.6), 0.9);
+      ctx.lineWidth = s * 0.07;
+      ctx.beginPath();
+      ctx.arc(c, c, c * 0.8, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = rgba('#FFFFFF', 0.9);
+      ctx.beginPath();
+      ctx.arc(c * 0.65, c * 0.62, s * 0.09, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case 'sparkle': {
+      // A 4-point star with a hot centre.
+      const glow = ctx.createRadialGradient(c, c, 0, c, c, c);
+      glow.addColorStop(0, rgba('#FFFFFF', 1));
+      glow.addColorStop(0.35, rgba(lighten(color, 0.5), 0.9));
+      glow.addColorStop(1, rgba(color, 0));
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const r = i % 2 === 0 ? c : c * 0.22;
+        const a = (i * Math.PI) / 4 - Math.PI / 2;
+        const x = c + Math.cos(a) * r;
+        const y = c + Math.sin(a) * r;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case 'droplet': {
+      // A teardrop pointing up, with a small highlight.
+      const body = ctx.createLinearGradient(0, 0, s, s);
+      body.addColorStop(0, rgba(lighten(color, 0.45), 0.95));
+      body.addColorStop(1, rgba(color, 0.9));
+      ctx.fillStyle = body;
+      ctx.beginPath();
+      ctx.moveTo(c, s * 0.05);
+      ctx.bezierCurveTo(c + s * 0.38, s * 0.45, c + s * 0.34, s * 0.95, c, s * 0.95);
+      ctx.bezierCurveTo(c - s * 0.34, s * 0.95, c - s * 0.38, s * 0.45, c, s * 0.05);
+      ctx.fill();
+      ctx.fillStyle = rgba('#FFFFFF', 0.7);
+      ctx.beginPath();
+      ctx.arc(c - s * 0.1, s * 0.62, s * 0.07, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case 'dot': {
+      const soft = ctx.createRadialGradient(c, c, 0, c, c, c);
+      soft.addColorStop(0, rgba(lighten(color, 0.3), 1));
+      soft.addColorStop(1, rgba(color, 0));
+      ctx.fillStyle = soft;
+      ctx.fillRect(0, 0, s, s);
+      break;
+    }
+  }
+  ctx.restore();
+}
+
 /** All sprites for one palette at one cell size. Rebuilt only when the key changes. */
 export class SpriteSet {
   private key = '';
@@ -177,6 +264,8 @@ export class SpriteSet {
   private ghost: SpriteCanvas | null = null;
   private highlight: SpriteCanvas | null = null;
   private base: SpriteCanvas | null = null;
+  /** [type][colour + 1]: index 0 is white, then the palette glass colours. */
+  private particles: SpriteCanvas[][] = [];
   /** Number of full rebuilds, for tests and the debug overlay. */
   builds = 0;
   cellSize = 0;
@@ -216,6 +305,13 @@ export class SpriteSet {
       (ctx) => drawBoardBase(ctx, cellSize, this.palette),
       Math.round(baseCss * dpr),
     );
+    const particlePx = Math.round(PARTICLE_SPRITE_SIZE * dpr);
+    const tints = ['#FFFFFF', ...this.palette.glass];
+    this.particles = PARTICLE_TYPES.map((type) =>
+      tints.map((tint) =>
+        make((ctx) => drawParticle(ctx, type, PARTICLE_SPRITE_SIZE, tint), particlePx),
+      ),
+    );
   }
 
   get ready(): boolean {
@@ -238,6 +334,14 @@ export class SpriteSet {
 
   get boardBase(): SpriteCanvas {
     return this.need(this.base);
+  }
+
+  /** A particle sprite; `color` is a palette index or WHITE. Falls back to white. */
+  particle(typeIndex: number, color: number): SpriteCanvas {
+    const row = this.particles[typeIndex];
+    const sprite = row?.[color + 1] ?? row?.[0];
+    if (!sprite) throw new Error(`No particle sprite ${typeIndex}/${color}`);
+    return sprite;
   }
 
   private need(sprite: SpriteCanvas | null): SpriteCanvas {

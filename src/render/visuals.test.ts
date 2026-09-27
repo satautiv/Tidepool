@@ -7,7 +7,7 @@ import { GameScene } from './GameScene';
 import { computeLayout } from './layout';
 import { PALETTES, TIDEPOOL, validatePalette, type Palette } from './palettes';
 import type { FrameInfo } from './Renderer';
-import { CELL_STYLE, SpriteSet } from './sprites';
+import { CELL_STYLE, PARTICLE_SPRITE_SIZE, SpriteSet } from './sprites';
 import { fakeCanvasFactory, fakeContext } from './testing';
 
 const frame: FrameInfo = { dt: 0, time: 0, viewport: { width: 390, height: 844, dpr: 2 } };
@@ -59,7 +59,12 @@ describe('SpriteSet', () => {
 
     sprites.build(40, 2);
     expect(sprites.ready).toBe(true);
-    expect(created).toHaveLength(COLOR_COUNT + 3);
+    // Blocks, ghost, highlight, base, then 4 particle types × (white + each colour).
+    expect(created).toHaveLength(COLOR_COUNT + 3 + 4 * (COLOR_COUNT + 1));
+    expect(sprites.particle(0, -1).width).toBe(PARTICLE_SPRITE_SIZE * 2);
+    expect(sprites.particle(1, 2)).toBe(created[COLOR_COUNT + 3 + (COLOR_COUNT + 1) + 3]);
+    expect(sprites.particle(3, 99)).toBe(sprites.particle(3, -1)); // unknown colour → white
+    expect(() => sprites.particle(9, 0)).toThrow('No particle sprite');
     expect(sprites.block(0).width).toBe(80);
     expect(sprites.ghostOutline.width).toBe(80);
     expect(sprites.clearHighlight.width).toBe(80);

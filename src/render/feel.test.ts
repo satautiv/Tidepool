@@ -11,6 +11,13 @@ describe('feel config', () => {
     expect(feel.drop.placeDuration).toBe(0.3);
     resetFeel(feel);
     expect(feel).toEqual(FEEL_DEFAULTS);
+    setFeel('particles.bubble.life', 3, feel);
+    expect(getFeel('particles.bubble.life', feel)).toBe(3);
+    const bubble = feel.particles.bubble;
+    resetFeel(feel);
+    expect(feel.particles.bubble).toBe(bubble); // reset in place, never aliasing the defaults
+    expect(bubble.life).toBe(FEEL_DEFAULTS.particles.bubble.life);
+    expect(() => getFeel('particles', feel)).toThrow(/Unknown feel value/);
     expect(() => getFeel('drop.nope', feel)).toThrow(/Unknown feel value/);
     expect(() => setFeel('nope.x', 1, feel)).toThrow(/Unknown feel value/);
   });

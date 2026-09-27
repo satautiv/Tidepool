@@ -26,6 +26,7 @@ import { DebugOverlay } from '../render/DebugOverlay';
 import { DragView } from '../render/DragView';
 import { GameScene } from '../render/GameScene';
 import { GhostView } from '../render/GhostView';
+import { ParticleView } from '../render/particles';
 import { TIDEPOOL, type Palette } from '../render/palettes';
 import { Renderer, type RendererOptions } from '../render/Renderer';
 import { SpriteSet, type CanvasFactory } from '../render/sprites';
@@ -91,6 +92,8 @@ export class App {
   private readonly boardView: BoardView;
   private readonly trayView: TrayView;
   private readonly dragView: DragView;
+  /** Bubbles, sparkles and droplets for effects (T2.03). */
+  readonly particles = new ParticleView();
   private stateValue: EndlessState;
   private best = 0;
   private bestAtRunStart = 0;
@@ -140,6 +143,7 @@ export class App {
         () => this.stateValue.board,
       ),
     );
+    this.scene.add(this.particles);
     this.scene.add(this.trayView);
     this.scene.add(this.dragView);
     this.scene.add({
