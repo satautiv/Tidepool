@@ -22,6 +22,7 @@ import {
   type PlaceIntent,
 } from '../input/DragController';
 import { BoardView } from '../render/BoardView';
+import { ClearFx } from '../render/ClearFx';
 import { DebugOverlay } from '../render/DebugOverlay';
 import { DragView } from '../render/DragView';
 import { GameScene } from '../render/GameScene';
@@ -94,6 +95,7 @@ export class App {
   private readonly dragView: DragView;
   /** Bubbles, sparkles and droplets for effects (T2.03). */
   readonly particles = new ParticleView();
+  private readonly clearFx = new ClearFx(this.particles.system);
   private stateValue: EndlessState;
   private best = 0;
   private bestAtRunStart = 0;
@@ -143,6 +145,7 @@ export class App {
         () => this.stateValue.board,
       ),
     );
+    this.scene.add(this.clearFx);
     this.scene.add(this.particles);
     this.scene.add(this.trayView);
     this.scene.add(this.dragView);
@@ -297,6 +300,7 @@ export class App {
     const before = this.stateValue.board;
     this.stateValue = step.state;
     this.boardView.applyMove(before, step.events, step.state.board);
+    this.clearFx.play(before, step.events);
     this.trayView.setTray(
       step.state.tray,
       step.events.some((e) => e.type === 'dealt'),
@@ -454,6 +458,8 @@ export class App {
 
   private showRun(animateTray: boolean, resumed = false): void {
     if (!resumed) this.bestAtRunStart = this.best;
+    this.clearFx.reset();
+    this.particles.system.clear();
     this.boardView.setBoard(this.stateValue.board);
     this.trayView.setTray(this.stateValue.tray, animateTray);
     this.updateHud();

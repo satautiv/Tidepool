@@ -22,6 +22,8 @@ interface Dissolving {
   alpha: number;
   offsetY: number;
   scale: number;
+  /** 0..1 extra brightness, drawn additively. */
+  glow: number;
 }
 
 export class BoardView implements SceneView {
@@ -110,19 +112,27 @@ export class BoardView implements SceneView {
       const originCol = placed.col + (shape.width - 1) / 2;
       for (const index of cleared.cells) {
         const color = before.cells[index]!.color ?? placed.color;
-        const cell: Dissolving = { index, color, alpha: 1, offsetY: 0, scale: 1 };
+        const cell: Dissolving = { index, color, alpha: 1, offsetY: 0, scale: 1, glow: 0 };
         this.dissolving.push(cell);
         const dist = Math.hypot(
           Math.floor(index / BOARD_SIZE) - originRow,
           (index % BOARD_SIZE) - originCol,
         );
+        const fx = FEEL.lineClear;
+        const delay = dist * fx.stagger;
+        // Lift and brighten, then fade and shrink away.
         this.tweener.to(
           cell,
-          { alpha: 0, offsetY: -FEEL.lineClear.lift, scale: FEEL.lineClear.scaleTo },
+          { offsetY: -fx.lift, glow: 1 },
+          { duration: fx.liftDuration, delay, ease: Ease.quadOut },
+        );
+        this.tweener.to(
+          cell,
+          { alpha: 0, scale: fx.scaleTo, glow: 0 },
           {
-            duration: FEEL.lineClear.duration,
-            delay: dist * FEEL.lineClear.stagger,
-            ease: Ease.quadOut,
+            duration: fx.duration,
+            delay: delay + fx.liftDuration,
+            ease: Ease.quadIn,
             onComplete: () => {
               this.dissolving = this.dissolving.filter((d) => d !== cell);
               this.flushIdle();
@@ -171,6 +181,14 @@ export class BoardView implements SceneView {
       ctx.save();
       for (const d of this.dissolving) {
         ctx.globalAlpha = d.alpha;
+        blit(d.index, d.color, d.scale, d.offsetY);
+      }
+      // The brief brighten: the same glass again, added on top.
+      ctx.globalCompositeOperation = 'lighter';
+      for (const d of this.dissolving) {
+        const glow = d.alpha * d.glow * FEEL.lineClear.glow;
+        if (glow <= 0) continue;
+        ctx.globalAlpha = glow;
         blit(d.index, d.color, d.scale, d.offsetY);
       }
       ctx.restore();

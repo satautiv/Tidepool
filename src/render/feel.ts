@@ -35,15 +35,36 @@ export const FEEL = {
     returnDuration: 0.2,
   },
   lineClear: {
-    duration: 0.26,
+    /** Cells first lift and brighten over `liftDuration`, then fade and shrink over `duration`. */
+    liftDuration: 0.08,
+    duration: 0.22,
     /** Delay per cell of distance from the placed piece, so clears ripple outward. */
     stagger: 0.022,
     /** How far dissolving cells lift, and the scale they shrink to. */
     lift: 6,
     scaleTo: 0.8,
+    /** Peak extra brightness (additive) while lifting. */
+    glow: 0.25,
+    /** Wave band sweeping each cleared line: duration, width (cells), sine wobble (px). */
     waveDuration: 0.28,
+    waveWidth: 1.6,
+    waveWobble: 2.5,
+    waveAlpha: 0.75,
+    /** Bubbles per line: `bubblesMin` for a single line, rising to `bubblesMax` at 4+ lines. */
     bubblesMin: 6,
     bubblesMax: 10,
+    bubbleSpeed: 70,
+    /** Sparkles per line in the cleared glass colours, plus more per extra line. */
+    sparklesPerLine: 3,
+    sparklesPerExtraLine: 2,
+    sparkleSpeed: 120,
+    /** Extra burst where a row and a column cross. */
+    crossSparkles: 5,
+    crossDroplets: 3,
+    /** 3+ lines: a splash of droplets from the centre of the clear, per line. */
+    splashLines: 3,
+    splashDropletsPerLine: 4,
+    splashSpeed: 260,
   },
   callout: {
     popFrom: 0.6,
@@ -82,48 +103,53 @@ export const FEEL = {
   },
   /**
    * Per particle type: gravity (px/s², negative rises), drag (per second), life (s), size
-   * (CSS px, start → end), alpha (start → end), spin (rad/s, ± random).
+   * (CSS px, start → end), alpha (start → end), spin (rad/s, ± random), additive (1 = draw
+   * with `lighter` blending; it glows on dark themes but washes out on the light sand).
    */
   particles: {
     bubble: {
       gravity: -90,
       drag: 1.2,
       life: 0.9,
-      sizeFrom: 5,
-      sizeTo: 9,
+      sizeFrom: 8,
+      sizeTo: 14,
       alphaFrom: 0.9,
       alphaTo: 0,
       spin: 0,
+      additive: 0,
     },
     sparkle: {
       gravity: 40,
       drag: 3,
       life: 0.55,
-      sizeFrom: 10,
-      sizeTo: 2,
+      sizeFrom: 15,
+      sizeTo: 4,
       alphaFrom: 1,
       alphaTo: 0,
       spin: 6,
+      additive: 0,
     },
     droplet: {
       gravity: 420,
       drag: 0.6,
       life: 0.7,
-      sizeFrom: 6,
-      sizeTo: 4,
+      sizeFrom: 9,
+      sizeTo: 6,
       alphaFrom: 0.85,
       alphaTo: 0,
       spin: 0,
+      additive: 0,
     },
     dot: {
       gravity: 0,
       drag: 2,
       life: 0.5,
-      sizeFrom: 6,
+      sizeFrom: 9,
       sizeTo: 0,
       alphaFrom: 0.8,
       alphaTo: 0,
       spin: 0,
+      additive: 0,
     },
   },
   reducedMotion: {
@@ -160,6 +186,13 @@ export const FEEL_TWEAKS: readonly FeelTweak[] = [
   { path: 'lineClear.stagger', min: 0, max: 0.1, step: 0.002 },
   { path: 'lineClear.lift', min: 0, max: 30, step: 1 },
   { path: 'lineClear.scaleTo', min: 0.2, max: 1.2, step: 0.05 },
+  { path: 'lineClear.liftDuration', min: 0, max: 0.3, step: 0.01 },
+  { path: 'lineClear.glow', min: 0, max: 1, step: 0.05 },
+  { path: 'lineClear.waveDuration', min: 0.1, max: 1, step: 0.02 },
+  { path: 'lineClear.waveAlpha', min: 0, max: 1, step: 0.05 },
+  { path: 'lineClear.bubblesMin', min: 0, max: 20, step: 1 },
+  { path: 'lineClear.bubblesMax', min: 0, max: 30, step: 1 },
+  { path: 'lineClear.sparklesPerLine', min: 0, max: 12, step: 1 },
   { path: 'deal.duration', min: 0.05, max: 0.8, step: 0.01 },
   { path: 'deal.stagger', min: 0, max: 0.3, step: 0.01 },
   { path: 'deal.rise', min: 0, max: 1, step: 0.05 },

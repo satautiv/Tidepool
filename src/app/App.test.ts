@@ -447,3 +447,28 @@ describe('App pause and lifecycle', () => {
     expect(ended.mock.calls[0]![0].durationMs).toBe(1500);
   });
 });
+
+describe('App clear effects', () => {
+  it('lets the next piece be placed while a clear is still animating', () => {
+    const { app } = makeApp();
+    const rows = ['#######.', ...new Array<string>(7).fill('........')];
+    app.loadState({
+      ...app.state,
+      board: boardFromAscii(rows),
+      tray: [
+        { shape: 'dot', color: 1 },
+        { shape: 'dot', color: 2 },
+        { shape: 'sq2', color: 3 },
+      ],
+    });
+    app.place({ slot: 0, row: 0, col: 7 });
+    expect(app.state.stats.linesCleared).toBe(1);
+    expect(app.particles.system.count).toBeGreaterThan(0);
+    app.scene.update(0.05);
+    expect(app.place({ slot: 1, row: 0, col: 0 })).toBeUndefined();
+    expect(app.place({ slot: 2, row: 0, col: 6 })).toBeUndefined();
+    for (let i = 0; i < 120; i++) app.scene.update(1 / 60);
+    expect(app.scene.isAnimating()).toBe(false);
+    expect(app.state.board.cells.filter((c) => c.color !== null)).toHaveLength(5);
+  });
+});

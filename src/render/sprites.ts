@@ -170,12 +170,38 @@ export function drawBoardBase(ctx: CanvasRenderingContext2D, c: number, palette:
   }
 }
 
+/**
+ * The band that sweeps along a cleared line: a soft white-to-aqua strip, `2c` long across
+ * the direction of travel and `c` thick. `vertical` draws it for columns.
+ */
+export function drawWaveBand(
+  ctx: CanvasRenderingContext2D,
+  c: number,
+  palette: Palette,
+  vertical: boolean,
+): void {
+  const len = 2 * c;
+  const g = vertical
+    ? ctx.createLinearGradient(0, 0, 0, len)
+    : ctx.createLinearGradient(0, 0, len, 0);
+  g.addColorStop(0, rgba(palette.highlight, 0));
+  g.addColorStop(0.35, rgba(lighten(palette.highlight, 0.5), 0.55));
+  g.addColorStop(0.5, rgba('#FFFFFF', 0.95));
+  g.addColorStop(0.65, rgba(lighten(palette.highlight, 0.5), 0.55));
+  g.addColorStop(1, rgba(palette.highlight, 0));
+  ctx.fillStyle = g;
+  const pad = c * CELL_STYLE.inset;
+  if (vertical) roundRectPath(ctx, pad, 0, c - 2 * pad, len, c * CELL_STYLE.radius);
+  else roundRectPath(ctx, 0, pad, len, c - 2 * pad, c * CELL_STYLE.radius);
+  ctx.fill();
+}
+
 export const PARTICLE_TYPES = ['bubble', 'sparkle', 'droplet', 'dot'] as const;
 export type ParticleType = (typeof PARTICLE_TYPES)[number];
 /** Colour index for neutral (white) particles; other indexes are palette glass colours. */
 export const WHITE = -1;
 /** Particle sprites are drawn at this size (CSS px) and scaled when blitted. */
-export const PARTICLE_SPRITE_SIZE = 16;
+export const PARTICLE_SPRITE_SIZE = 24;
 
 /** One particle of `type`, centred in an `s`-sized square. */
 export function drawParticle(
@@ -266,6 +292,7 @@ export class SpriteSet {
   private base: SpriteCanvas | null = null;
   /** [type][colour + 1]: index 0 is white, then the palette glass colours. */
   private particles: SpriteCanvas[][] = [];
+  private waves: [row: SpriteCanvas, col: SpriteCanvas] | null = null;
   /** Number of full rebuilds, for tests and the debug overlay. */
   builds = 0;
   cellSize = 0;
@@ -305,6 +332,18 @@ export class SpriteSet {
       (ctx) => drawBoardBase(ctx, cellSize, this.palette),
       Math.round(baseCss * dpr),
     );
+    const makeRect = (w: number, h: number, draw: (ctx: CanvasRenderingContext2D) => void) => {
+      const canvas = this.factory(
+        Math.max(1, Math.round(w * dpr)),
+        Math.max(1, Math.round(h * dpr)),
+      );
+      draw(context(canvas, dpr));
+      return canvas;
+    };
+    this.waves = [
+      makeRect(2 * cellSize, cellSize, (ctx) => drawWaveBand(ctx, cellSize, this.palette, false)),
+      makeRect(cellSize, 2 * cellSize, (ctx) => drawWaveBand(ctx, cellSize, this.palette, true)),
+    ];
     const particlePx = Math.round(PARTICLE_SPRITE_SIZE * dpr);
     const tints = ['#FFFFFF', ...this.palette.glass];
     this.particles = PARTICLE_TYPES.map((type) =>
@@ -334,6 +373,11 @@ export class SpriteSet {
 
   get boardBase(): SpriteCanvas {
     return this.need(this.base);
+  }
+
+  /** The clear wave band for a row (horizontal travel) or a column. */
+  waveBand(vertical: boolean): SpriteCanvas {
+    return this.need(this.waves?.[vertical ? 1 : 0] ?? null);
   }
 
   /** A particle sprite; `color` is a palette index or WHITE. Falls back to white. */

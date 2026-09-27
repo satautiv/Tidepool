@@ -14,7 +14,6 @@ import { WHITE, type ParticleType, type SpriteSet } from './sprites';
 export const DEFAULT_PARTICLE_CAPACITY = 512;
 
 const TYPE_INDEX: Record<ParticleType, number> = { bubble: 0, sparkle: 1, droplet: 2, dot: 3 };
-const SPARKLE = TYPE_INDEX.sparkle;
 /** Types drawn rotated. The rest are round, so rotation is skipped for them. */
 const ROTATES = [false, true, true, false];
 
@@ -52,6 +51,7 @@ export class ParticleSystem {
   private readonly rotation: Float32Array;
   private readonly spin: Float32Array;
   private readonly type: Uint8Array;
+  private readonly additive: Uint8Array;
   private readonly color: Int8Array;
   /** Fractional counts carried between emits, so density 0.25 still emits on average. */
   private carry = 0;
@@ -77,6 +77,7 @@ export class ParticleSystem {
     this.rotation = f();
     this.spin = f();
     this.type = new Uint8Array(capacity);
+    this.additive = new Uint8Array(capacity);
     this.color = new Int8Array(capacity);
   }
 
@@ -150,7 +151,7 @@ export class ParticleSystem {
   }
 
   /**
-   * Normal particles first, then sparkles with additive (`lighter`) blending. Positions are CSS
+   * Normal particles first, then additive ones (`lighter`, per type in FEEL.particles). Positions are CSS
    * px; (ox, oy) offsets everything (screen shake). The transform is left at
    * `dpr` scale plus that offset, which is what the renderer's views draw with.
    */
@@ -181,7 +182,7 @@ export class ParticleSystem {
   ): void {
     for (let i = 0; i < this.count; i++) {
       const type = this.type[i]!;
-      if ((type === SPARKLE) !== additive) continue;
+      if ((this.additive[i] === 1) !== additive) continue;
       const t = this.life[i]! / this.maxLife[i]!;
       const size = this.size0[i]! + (this.size1[i]! - this.size0[i]!) * t;
       const alpha = this.alpha0[i]! + (this.alpha1[i]! - this.alpha0[i]!) * t;
@@ -225,6 +226,7 @@ export class ParticleSystem {
     const cfg = FEEL.particles[typeName];
     const jitter = 0.8 + 0.4 * this.random();
     this.type[i] = TYPE_INDEX[typeName];
+    this.additive[i] = cfg.additive > 0 ? 1 : 0;
     this.color[i] = opts.color ?? WHITE;
     this.x[i] = x;
     this.y[i] = y;
@@ -262,6 +264,7 @@ export class ParticleSystem {
     this.rotation[i] = this.rotation[last]!;
     this.spin[i] = this.spin[last]!;
     this.type[i] = this.type[last]!;
+    this.additive[i] = this.additive[last]!;
     this.color[i] = this.color[last]!;
   }
 }

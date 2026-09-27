@@ -8,6 +8,7 @@ export type Easing = (t: number) => number;
 
 export const Ease = {
   linear: (t: number) => t,
+  quadIn: (t: number) => t * t,
   quadOut: (t: number) => 1 - (1 - t) * (1 - t),
   cubicOut: (t: number) => 1 - (1 - t) ** 3,
   /** Overshoots slightly past 1, then settles. */
