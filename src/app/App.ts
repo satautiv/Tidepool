@@ -273,6 +273,12 @@ export class App {
         if (this.drag.state) this.drag.cancel();
         this.gameScreen.hud.setRect(layout.hud);
         this.gameScreen.fx.setRect(layout.board);
+        // The menu and Settings centre on the board, not the window (the tray sits beside it).
+        const { width, height } = this.renderer.viewport;
+        const b = layout.board;
+        const ui = this.opts.uiRoot.style;
+        ui.setProperty('--board-dx', `${Math.round(b.x + b.width / 2 - width / 2)}px`);
+        ui.setProperty('--board-dy', `${Math.round(b.y + b.height / 2 - height / 2)}px`);
         this.updateHint();
       },
       draw() {},

@@ -873,6 +873,28 @@ describe('App responsive', () => {
     expect(app.scene.layout!.hud.y).toBeGreaterThanOrEqual(47);
   });
 
+  it('tells the menu and Settings where the board centre is (they centre on it)', () => {
+    const { app, uiRoot } = makeApp();
+    const offset = () => ({
+      dx: parseFloat(uiRoot.style.getPropertyValue('--board-dx')),
+      dy: parseFloat(uiRoot.style.getPropertyValue('--board-dy')),
+    });
+    const centre = () => {
+      const b = app.scene.layout!.board;
+      const { width, height } = app.renderer.viewport;
+      return {
+        dx: Math.round(b.x + b.width / 2 - width / 2),
+        dy: Math.round(b.y + b.height / 2 - height / 2),
+      };
+    };
+    expect(offset()).toEqual(centre());
+    expect(Math.abs(offset().dx)).toBeLessThanOrEqual(1); // portrait: centred across
+
+    app.renderer.resize(1162, 895, 1); // landscape: the board sits left of the tray
+    expect(offset()).toEqual(centre());
+    expect(offset().dx).toBeLessThan(-100);
+  });
+
   it('cancels a drag when the layout changes (rotation mid-drag)', () => {
     const { app } = makeApp();
     app.scene.update(1);

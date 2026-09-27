@@ -492,6 +492,13 @@ button:focus-visible {
   gap: clamp(20px, 6vh, 48px);
   padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
     max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  /* Centred on the board (--board-dx/dy: its offset from the window centre, set by the App). */
+  padding-left: calc(max(16px, env(safe-area-inset-left)) + max(0px, 2 * var(--board-dx, 0px)));
+  padding-right: calc(max(16px, env(safe-area-inset-right)) + max(0px, -2 * var(--board-dx, 0px)));
+  padding-top: calc(max(16px, env(safe-area-inset-top)) + max(0px, 2 * var(--board-dy, 0px)));
+  padding-bottom: calc(
+    max(16px, env(safe-area-inset-bottom)) + max(0px, -2 * var(--board-dy, 0px))
+  );
   /* The tidepool keeps shimmering underneath, softened. */
   background: linear-gradient(180deg, rgba(246, 235, 217, 0.72), rgba(205, 235, 242, 0.62));
   pointer-events: auto;
@@ -556,6 +563,9 @@ button:focus-visible {
   overflow-y: auto;
   padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
     max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  /* Centred on the board horizontally; vertically it keeps the window (it can be taller). */
+  padding-left: calc(max(16px, env(safe-area-inset-left)) + max(0px, 2 * var(--board-dx, 0px)));
+  padding-right: calc(max(16px, env(safe-area-inset-right)) + max(0px, -2 * var(--board-dx, 0px)));
   background: linear-gradient(180deg, rgba(246, 235, 217, 0.8), rgba(205, 235, 242, 0.72));
   pointer-events: auto;
 }
