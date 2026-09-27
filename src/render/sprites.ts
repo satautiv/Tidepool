@@ -3,7 +3,7 @@
  * (palette, cell size, DPR) into offscreen canvases; the frame loop only blits them.
  */
 import { BOARD_SIZE } from '../core/config';
-import { darken, lighten, rgba } from './color';
+import { darken, hexToRgb, lighten, rgba } from './color';
 import { drawSandTile } from './background';
 import { FEEL } from './feel';
 import type { Palette } from './palettes';
@@ -62,8 +62,71 @@ function context(canvas: SpriteCanvas, dpr: number): CanvasRenderingContext2D {
   return ctx;
 }
 
-/** One sea-glass block filling a cell of size `c` (CSS px). */
-export function drawGlassBlock(ctx: CanvasRenderingContext2D, c: number, color: string): void {
+/** The glyph for each colour index (T2.14): colour is never the only cue. */
+export const GLYPHS = ['dot', 'stripe', 'ring', 'chevron', 'cross', 'wave'] as const;
+export type Glyph = (typeof GLYPHS)[number];
+
+/** Glyph opacity: visible, but part of the glass rather than printed on it. */
+export const GLYPH_ALPHA = 0.28;
+
+/** Draws `glyph` centred in a block of size `c`, in a tone that contrasts with `color`. */
+export function drawGlyph(ctx: CanvasRenderingContext2D, c: number, color: string, glyph: Glyph) {
+  const m = c / 2;
+  const u = c * 0.13; // glyph unit
+  // Dark glyphs on light glass, light ones on dark glass.
+  const [r, g, b] = hexToRgb(color);
+  const light = 0.299 * r + 0.587 * g + 0.114 * b > 150;
+  ctx.save();
+  ctx.globalAlpha = GLYPH_ALPHA;
+  ctx.strokeStyle = ctx.fillStyle = light ? '#1F3B40' : '#FFFFFF';
+  ctx.lineWidth = Math.max(1, c * 0.07);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  switch (glyph) {
+    case 'dot':
+      ctx.arc(m, m, u * 0.9, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case 'stripe':
+      ctx.moveTo(m - u * 1.6, m + u * 1.6);
+      ctx.lineTo(m + u * 1.6, m - u * 1.6);
+      ctx.stroke();
+      break;
+    case 'ring':
+      ctx.arc(m, m, u * 1.3, 0, Math.PI * 2);
+      ctx.stroke();
+      break;
+    case 'chevron':
+      ctx.moveTo(m - u * 1.5, m + u * 0.7);
+      ctx.lineTo(m, m - u * 0.8);
+      ctx.lineTo(m + u * 1.5, m + u * 0.7);
+      ctx.stroke();
+      break;
+    case 'cross':
+      ctx.moveTo(m - u * 1.2, m - u * 1.2);
+      ctx.lineTo(m + u * 1.2, m + u * 1.2);
+      ctx.moveTo(m + u * 1.2, m - u * 1.2);
+      ctx.lineTo(m - u * 1.2, m + u * 1.2);
+      ctx.stroke();
+      break;
+    case 'wave':
+      ctx.moveTo(m - u * 1.8, m);
+      ctx.bezierCurveTo(m - u, m - u * 1.4, m - u * 0.2, m - u * 1.4, m, m);
+      ctx.bezierCurveTo(m + u * 0.2, m + u * 1.4, m + u, m + u * 1.4, m + u * 1.8, m);
+      ctx.stroke();
+      break;
+  }
+  ctx.restore();
+}
+
+/** One sea-glass block filling a cell of size `c` (CSS px), with an optional glyph. */
+export function drawGlassBlock(
+  ctx: CanvasRenderingContext2D,
+  c: number,
+  color: string,
+  glyph?: Glyph,
+): void {
   const pad = c * CELL_STYLE.inset;
   const s = c - 2 * pad;
   const r = s * CELL_STYLE.radius;
@@ -104,6 +167,7 @@ export function drawGlassBlock(ctx: CanvasRenderingContext2D, c: number, color: 
   ctx.ellipse(hx, hy, s * 0.3, s * 0.15, -0.5, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
+  if (glyph) drawGlyph(ctx, c, color, glyph);
 }
 
 /** An empty, slightly recessed sand cell. */
@@ -157,6 +221,10 @@ export function drawClearHighlight(
   roundRectPath(ctx, pad, pad, s, s, s * CELL_STYLE.radius);
   ctx.fillStyle = g;
   ctx.fill();
+  // An outline too, so the would-clear cue isn't carried by brightness or hue alone.
+  ctx.lineWidth = Math.max(1, c * 0.05);
+  ctx.strokeStyle = rgba(palette.highlight, 0.9);
+  ctx.stroke();
 }
 
 /** The board panel with all 64 empty wells, including room for its drop shadow. */
@@ -343,6 +411,24 @@ export class SpriteSet {
     private readonly factory: CanvasFactory = domCanvasFactory,
   ) {}
 
+  /** Glyphs on the default palette (the "Shape patterns" setting). */
+  private patterns = false;
+
+  /** Turns the per-colour glyphs on or off (always on for palettes that require them). */
+  setPatterns(on: boolean): void {
+    if (on === this.patterns) return;
+    this.patterns = on;
+    this.key = '';
+  }
+
+  get glyphsOn(): boolean {
+    return this.patterns || !!this.palette.glyphs;
+  }
+
+  get currentPalette(): Palette {
+    return this.palette;
+  }
+
   setPalette(palette: Palette): void {
     if (palette === this.palette) return;
     this.palette = palette;
@@ -351,7 +437,7 @@ export class SpriteSet {
 
   /** (Re)builds the sprites for this cell size (CSS px) and DPR, if they changed. */
   build(cellSize: number, dpr: number): void {
-    const key = `${this.palette.id}|${cellSize}|${dpr}`;
+    const key = `${this.palette.id}|${this.glyphsOn}|${cellSize}|${dpr}`;
     if (key === this.key || cellSize <= 0) return;
     this.key = key;
     this.cellSize = cellSize;
@@ -363,8 +449,9 @@ export class SpriteSet {
       draw(context(canvas, dpr));
       return canvas;
     };
-    this.blocks = this.palette.glass.map((color) =>
-      make((ctx) => drawGlassBlock(ctx, cellSize, color)),
+    const glyphs = this.glyphsOn;
+    this.blocks = this.palette.glass.map((color, i) =>
+      make((ctx) => drawGlassBlock(ctx, cellSize, color, glyphs ? GLYPHS[i] : undefined)),
     );
     this.ghost = make((ctx) => drawGhostOutline(ctx, cellSize, this.palette));
     this.shadow = make((ctx) => drawBlockShadow(ctx, cellSize, this.palette));

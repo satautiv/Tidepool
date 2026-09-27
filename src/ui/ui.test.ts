@@ -319,6 +319,7 @@ describe('SettingsScreen', () => {
       musicMuted: false,
       haptics: true,
       palette: 'tidepool',
+      patterns: false,
       reducedMotion: false,
       lowPower: false,
     };
@@ -332,6 +333,7 @@ describe('SettingsScreen', () => {
         { id: 'tidepool', label: 'Tidepool' },
         { id: 'cb', label: 'Colour-blind' },
       ],
+      paletteHasGlyphs: (id: string) => id === 'cb',
       version: '1.2.3',
       build: 'abc1234',
       privacyUrl: 'privacy.html',
@@ -371,6 +373,17 @@ describe('SettingsScreen', () => {
     palette.value = 'cb';
     palette.dispatchEvent(new Event('change'));
     expect(m.values.palette).toBe('cb');
+
+    // The colour-blind palette always has glyphs: the patterns switch is on and locked.
+    const patterns = $<HTMLInputElement>(screen, '[data-setting="patterns"]');
+    expect(patterns.checked).toBe(true);
+    expect(patterns.disabled).toBe(true);
+    palette.value = 'tidepool';
+    palette.dispatchEvent(new Event('change'));
+    expect(patterns.checked).toBe(false);
+    patterns.checked = true;
+    patterns.dispatchEvent(new Event('change'));
+    expect(m.values.patterns).toBe(true);
   });
 
   it('hides haptics where unsupported and the palette choice with one palette', () => {

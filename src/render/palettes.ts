@@ -18,6 +18,8 @@ export interface Palette {
   };
   /** Ghost preview outline and would-clear highlight. */
   readonly highlight: string;
+  /** Per-colour glyphs on the blocks are always on (colour-blind palettes). */
+  readonly glyphs?: boolean;
 }
 
 export const TIDEPOOL: Palette = {
@@ -41,7 +43,31 @@ export const TIDEPOOL: Palette = {
   highlight: '#FFFFFF',
 };
 
-export const PALETTES: Readonly<Record<string, Palette>> = { [TIDEPOOL.id]: TIDEPOOL };
+/**
+ * Colour-blind friendly (T2.14): based on the Okabe–Ito set, which stays distinguishable under
+ * deuteranopia, protanopia and tritanopia, softened towards sea glass and spread in lightness
+ * so neighbours differ in brightness as well as hue. Glyphs are always on.
+ */
+export const COLORBLIND: Palette = {
+  ...TIDEPOOL,
+  id: 'colorblind',
+  // Okabe–Ito hues, nudged (a constrained search) so every pair stays ≥ 23 ΔE apart in normal
+  // vision and under all three simulated deficiencies (palettes.test.ts).
+  glass: [
+    '#56BEF9', // sky blue
+    '#E38E00', // orange
+    '#00946B', // bluish green
+    '#F3EB41', // yellow
+    '#0B57A5', // deep blue
+    '#C778AD', // reddish purple
+  ],
+  glyphs: true,
+};
+
+export const PALETTES: Readonly<Record<string, Palette>> = {
+  [TIDEPOOL.id]: TIDEPOOL,
+  [COLORBLIND.id]: COLORBLIND,
+};
 
 export function validatePalette(p: Palette): void {
   if (p.glass.length !== COLOR_COUNT) {

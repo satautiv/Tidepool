@@ -59,6 +59,14 @@ export class GameScene implements View {
     for (const child of this.children) child.onLayout?.(this.context);
   }
 
+  /** Rebuilds sprites now (palette or glyph change) and re-lays out the views. */
+  refreshSprites(): void {
+    if (!this.context) return;
+    const { layout } = this.context;
+    this.sprites.build(layout.cellSize, layout.dpr);
+    for (const child of this.children) child.onLayout?.(this.context);
+  }
+
   update(dt: number): void {
     for (const child of this.children) child.update?.(dt);
   }

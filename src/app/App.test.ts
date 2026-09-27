@@ -960,3 +960,27 @@ describe('App settings', () => {
     expect(uiRoot.querySelector('.menu__play')!.textContent).toBe('Play');
   });
 });
+
+describe('App palettes', () => {
+  it('switches to the colour-blind palette with glyphs at once, and boots with it', async () => {
+    const backend = new MemoryBackend();
+    const save = new SaveStore(backend);
+    await save.load();
+    const { app } = makeApp('palette', save);
+    expect(app.palette.id).toBe('tidepool');
+    app.applySettings({ palette: 'colorblind' });
+    expect(app.palette.id).toBe('colorblind');
+    expect(app.glyphsOn).toBe(true);
+    await save.flush();
+    const reloaded = new SaveStore(backend);
+    await reloaded.load();
+    expect(makeApp('palette', reloaded).app.palette.id).toBe('colorblind');
+  });
+
+  it('turns shape patterns on for the default palette', () => {
+    const { app } = makeApp();
+    app.applySettings({ patterns: true });
+    expect(app.palette.id).toBe('tidepool');
+    expect(app.glyphsOn).toBe(true);
+  });
+});

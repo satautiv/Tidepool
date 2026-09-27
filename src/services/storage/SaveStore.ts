@@ -15,7 +15,8 @@ export interface Settings {
   musicMuted: boolean;
   haptics: boolean;
   palette: string;
-  colorBlind: boolean;
+  /** Per-colour glyphs on the default palette (always on in the colour-blind palette). */
+  patterns: boolean;
   reducedMotion: boolean | null; // null = follow the system setting
   lowPower: boolean;
 }
@@ -68,7 +69,7 @@ export function defaultSave(now: number): Save {
       musicMuted: false,
       haptics: true,
       palette: 'tidepool',
-      colorBlind: false,
+      patterns: false,
       reducedMotion: null,
       lowPower: false,
     },

@@ -32,7 +32,7 @@ import { GhostView } from '../render/GhostView';
 import { FEEL } from '../render/feel';
 import { ParticleView } from '../render/particles';
 import { Shake } from '../render/shake';
-import { TIDEPOOL, type Palette } from '../render/palettes';
+import { PALETTES, TIDEPOOL, type Palette } from '../render/palettes';
 import { Renderer, type RendererOptions } from '../render/Renderer';
 import { domCanvasFactory, SpriteSet, type CanvasFactory } from '../render/sprites';
 import { TrayView } from '../render/TrayView';
@@ -163,7 +163,7 @@ export class App {
   private best = 0;
   private bestAtRunStart = 0;
   private readonly seed: () => string;
-  private readonly palette: Palette;
+  private readonly sprites: SpriteSet;
   /** A break ad is running between Game Over and the next run. */
   private leaving = false;
   /** Whether this run has already played the "best beaten" glow. */
@@ -180,17 +180,16 @@ export class App {
   private finishedOnBoot: { run: EndlessState; durationMs: number } | null = null;
 
   constructor(private readonly opts: AppOptions) {
-    this.palette = opts.palette ?? TIDEPOOL;
+    const palette = PALETTES[this.settings.palette] ?? opts.palette ?? TIDEPOOL;
+    this.sprites = new SpriteSet(palette, opts.spriteFactory);
+    this.sprites.setPatterns(this.settings.patterns);
     this.seed = opts.seed ?? randomSeed;
     this.haptics = opts.haptics ?? new NoHaptics();
     this.now = opts.now ?? Date.now;
     this.renderer = new Renderer(opts.canvas, opts.renderer);
     const redraw = () => this.renderer.requestRedraw();
 
-    this.scene = new GameScene(
-      new SpriteSet(this.palette, opts.spriteFactory),
-      opts.safeArea ?? (() => readSafeArea()),
-    );
+    this.scene = new GameScene(this.sprites, opts.safeArea ?? (() => readSafeArea()));
     this.boardView = new BoardView(redraw);
     this.trayView = new TrayView(redraw);
     this.best = opts.save?.current.stats.bestScore ?? 0;
@@ -443,12 +442,29 @@ export class App {
     if (save) save.update((s) => Object.assign(s.settings, change));
     else Object.assign(this.localSettings, change);
     this.opts.audio?.refresh();
+    if ('palette' in change || 'patterns' in change) this.applyLook();
     this.renderer.requestRedraw();
+  }
+
+  /** The palette and glyphs from the settings, rebuilt into the sprites at once. */
+  private applyLook(): void {
+    this.sprites.setPalette(PALETTES[this.settings.palette] ?? TIDEPOOL);
+    this.sprites.setPatterns(this.settings.patterns);
+    this.scene.refreshSprites();
+  }
+
+  get palette(): Palette {
+    return this.sprites.currentPalette;
+  }
+
+  get glyphsOn(): boolean {
+    return this.sprites.glyphsOn;
   }
 
   /** Reset progress: the save back to defaults, a fresh run, and the main menu. */
   resetProgress(): void {
     this.opts.save?.reset();
+    this.applyLook();
     this.best = 0;
     this.bestAtRunStart = 0;
     this.stateValue = this.freshRun(this.seed());
@@ -469,7 +485,11 @@ export class App {
       set: (change) => this.applySettings(change),
       resetProgress: () => this.resetProgress(),
       hapticsSupported: this.opts.hapticsSupported ?? false,
-      palettes: [{ id: 'tidepool', label: STRINGS.paletteDefault }],
+      palettes: [
+        { id: 'tidepool', label: STRINGS.paletteDefault },
+        { id: 'colorblind', label: STRINGS.paletteColorblind },
+      ],
+      paletteHasGlyphs: (id) => !!PALETTES[id]?.glyphs,
       version: __APP_VERSION__,
       build: __BUILD_SHA__,
       privacyUrl: 'privacy.html',

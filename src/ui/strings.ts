@@ -25,6 +25,8 @@ export const STRINGS = {
   haptics: 'Vibration',
   palette: 'Colours',
   paletteDefault: 'Tidepool',
+  paletteColorblind: 'Colour-blind friendly',
+  patterns: 'Shape patterns',
   reducedMotion: 'Reduce motion',
   lowPower: 'Battery saver',
   resetProgress: 'Reset progress',

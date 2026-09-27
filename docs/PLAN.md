@@ -416,7 +416,11 @@ Also pre-rendered: the empty-cell "sand well" (a slightly recessed tile), the gh
 | Deep teal | `#26808C` |
 | Background | pale sand `#F6EBD9` → water blue `#CDEBF2` gradient |
 
-The palettes are data (`render/palettes.ts`). Colour-blind and cosmetic themes (Sunset, Moonlit, Arctic) are additional entries.
+The palettes are data (`render/palettes.ts`). As built (T2.14):
+- `COLORBLIND` (`colorblind`) uses Okabe–Ito hues, nudged by a constrained search. `palettes.test.ts` simulates deuteranopia, protanopia and tritanopia (Machado 2009) and requires every pair of colours to stay ≥ 20 CIELAB ΔE apart. The shipped set reaches 23.
+- Each colour has a glyph (dot, stripe, ring, chevron, cross, wave), baked into the block sprites at 28% opacity in a contrasting tone. Glyphs are always on for the colour-blind palette, and optional ("Shape patterns") for the default one.
+- The would-clear highlight now also has an outline.
+- Palette and patterns come from Settings, and apply live through `GameScene.refreshSprites()`. Colour-blind and cosmetic themes (Sunset, Moonlit, Arctic) are additional entries.
 
 ### 7.4 Animation system
 - `tween.ts`: `tween(target, props, duration, easing, delay) → handle`, with an `onComplete` callback. Easings: linear, quadOut, cubicOut, backOut, elasticOut, sineInOut.

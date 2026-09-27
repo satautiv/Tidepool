@@ -14,6 +14,8 @@ export interface SettingsValues {
   musicMuted: boolean;
   haptics: boolean;
   palette: string;
+  /** Per-colour glyphs on the blocks. */
+  patterns: boolean;
   /** The effective value: the setting, or the system preference while it is on "auto". */
   reducedMotion: boolean;
   lowPower: boolean;
@@ -25,6 +27,8 @@ export interface SettingsModel {
   resetProgress(): void;
   hapticsSupported: boolean;
   palettes: readonly { id: string; label: string }[];
+  /** Palettes that always show glyphs (the patterns switch is then on and locked). */
+  paletteHasGlyphs?: (id: string) => boolean;
   version: string;
   build: string;
   privacyUrl: string;
@@ -44,6 +48,7 @@ export class SettingsScreen implements Screen {
     rows.append(this.audioRow('sfx', STRINGS.sound), this.audioRow('music', STRINGS.music));
     if (model.hapticsSupported) rows.append(this.toggleRow('haptics', STRINGS.haptics));
     if (model.palettes.length > 1) rows.append(this.paletteRow());
+    rows.append(this.patternsRow());
     rows.append(
       this.toggleRow('reducedMotion', STRINGS.reducedMotion),
       this.toggleRow('lowPower', STRINGS.lowPower),
@@ -110,6 +115,19 @@ export class SettingsScreen implements Screen {
     return h('label', { class: 'settings__row' }, h('span', { text: label }), input);
   }
 
+  /** Shape patterns: forced on (and locked) for palettes that always use glyphs. */
+  private patternsRow() {
+    const locked = (v: SettingsValues) => this.model.paletteHasGlyphs?.(v.palette) ?? false;
+    const input = this.toggle(
+      STRINGS.patterns,
+      (v) => v.patterns || locked(v),
+      (on) => this.model.set({ patterns: on }),
+    );
+    input.dataset.setting = 'patterns';
+    this.refreshers.push((v) => (input.disabled = locked(v)));
+    return h('label', { class: 'settings__row' }, h('span', { text: STRINGS.patterns }), input);
+  }
+
   /** Sound or music: an on/off switch and a volume slider. */
   private audioRow(bus: 'sfx' | 'music', label: string) {
     const muted = bus === 'sfx' ? 'sfxMuted' : 'musicMuted';
@@ -147,7 +165,10 @@ export class SettingsScreen implements Screen {
     for (const p of this.model.palettes) {
       select.append(h('option', { attrs: { value: p.id }, text: p.label }));
     }
-    select.addEventListener('change', () => this.model.set({ palette: select.value }));
+    select.addEventListener('change', () => {
+      this.model.set({ palette: select.value });
+      this.refresh(); // the patterns switch depends on the palette
+    });
     this.refreshers.push((v) => (select.value = v.palette));
     return h('label', { class: 'settings__row' }, h('span', { text: STRINGS.palette }), select);
   }
