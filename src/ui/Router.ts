@@ -36,7 +36,9 @@ export class Router {
     if (previous) {
       previous.layer.classList.add('screen--leaving');
       await this.wait(ROUTER.fadeMs);
-      previous.screen.unmount();
+      // Navigating back quickly can make the leaving screen current again: then it has
+      // already been mounted into the new layer and must stay.
+      if (previous.screen !== this.current?.screen) previous.screen.unmount();
       previous.layer.remove();
     }
   }

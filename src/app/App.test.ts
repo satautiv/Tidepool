@@ -797,3 +797,91 @@ describe('App responsive', () => {
     expect(app.scene.layout!.orientation).toBe('landscape');
   });
 });
+
+describe('App main menu', () => {
+  const click = (root: HTMLElement, sel: string) =>
+    root.querySelector<HTMLButtonElement>(sel)!.click();
+  const flushRouter = () => new Promise<void>((resolve) => setTimeout(resolve, 250));
+
+  it('boots into the menu, with input off and the run not started yet', async () => {
+    const started = vi.fn();
+    const { app, uiRoot } = makeApp('menu', undefined, undefined, {
+      extra: { startIn: 'menu' },
+      beforeStart: (a) => a.bus.on('runStart', started),
+    });
+    expect(app.currentScreen).toBe('menu');
+    expect(uiRoot.querySelector('.menu')).not.toBeNull();
+    expect(uiRoot.querySelector('.menu__play')!.textContent).toBe('Play');
+    expect(app.drag.isLocked).toBe(true);
+    expect(started).not.toHaveBeenCalled();
+
+    click(uiRoot, '.menu__play');
+    expect(app.currentScreen).toBe('game');
+    expect(started).toHaveBeenCalledOnce();
+    await flushRouter();
+    expect(uiRoot.querySelector('.menu')).toBeNull();
+    expect(uiRoot.querySelector('.hud')).not.toBeNull();
+    expect(app.drag.isLocked).toBe(false);
+  });
+
+  it('boot → Play → pause → Menu → Continue resumes the same run', async () => {
+    const save = new SaveStore(new MemoryBackend());
+    await save.load();
+    const { app, uiRoot } = makeApp('flow', save, undefined, { extra: { startIn: 'menu' } });
+    click(uiRoot, '.menu__play');
+    app.place(firstMove(app));
+    const run = app.state;
+    click(uiRoot, '.hud__pause');
+    click(uiRoot, '.pause__menu');
+    expect(app.currentScreen).toBe('menu');
+    expect(app.isPaused).toBe(false);
+    expect(app.drag.isLocked).toBe(true);
+    await flushRouter();
+    expect(uiRoot.querySelector('.menu__play')!.textContent).toBe('Continue');
+    click(uiRoot, '.menu__play');
+    expect(app.state).toBe(run);
+    expect(app.drag.isLocked).toBe(false);
+  });
+
+  it('shows the best score under Play', () => {
+    const { app, uiRoot } = makeApp('best', undefined, undefined, { extra: { startIn: 'menu' } });
+    expect(uiRoot.querySelector<HTMLElement>('.menu__best')!.hidden).toBe(true);
+    app.play();
+    app.place(firstMove(app));
+    app.showMenu();
+    expect(uiRoot.querySelector('.menu__best')!.textContent).toBe(`Best ${app.bestScore}`);
+  });
+
+  it('Game Over → Menu waits with a fresh run, which starts on Play', async () => {
+    const { app, uiRoot } = makeApp();
+    const starts = vi.fn();
+    app.bus.on('runStart', starts);
+    for (let i = 0; i < 1000 && !app.state.over; i++) app.place(firstMove(app));
+    click(uiRoot, '.gameover__menu');
+    expect(app.currentScreen).toBe('menu');
+    expect(app.state.stats.placed).toBe(0);
+    expect(starts).not.toHaveBeenCalled();
+    await flushRouter();
+    expect(uiRoot.querySelector('.menu__play')!.textContent).toBe('Play');
+    click(uiRoot, '.menu__play');
+    expect(starts).toHaveBeenCalledOnce();
+  });
+
+  it('does not pause or count run time while in the menu', () => {
+    let t = 0;
+    const { app, page } = makeApp('clock-menu', undefined, undefined, {
+      extra: { startIn: 'menu', now: () => t },
+    });
+    const ended = vi.fn();
+    app.bus.on('runEnd', ended);
+    t += 60_000; // idling on the menu
+    page.hide();
+    page.show();
+    expect(app.isPaused).toBe(false);
+    app.play();
+    app.place(firstMove(app));
+    t += 2000;
+    app.newRun();
+    expect(ended.mock.calls[0]![0].durationMs).toBe(2000);
+  });
+});

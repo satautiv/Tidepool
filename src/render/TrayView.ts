@@ -29,6 +29,8 @@ export class TrayView implements SceneView {
   /** Seconds since the current deal-in started, or null when not animating. */
   private dealClock: number | null = null;
   private layout: Layout | null = null;
+  /** Hidden behind the main menu (only the board shows through). */
+  hidden = false;
 
   constructor(private readonly invalidate: () => void = () => {}) {}
 
@@ -94,6 +96,7 @@ export class TrayView implements SceneView {
   }
 
   draw(ctx: CanvasRenderingContext2D, { layout, sprites }: SceneContext): void {
+    if (this.hidden) return;
     const cell = layout.cellSize * layout.trayScale;
     this.tray.forEach((piece, i) => {
       if (!piece) return;

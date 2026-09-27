@@ -485,6 +485,11 @@ Boot/Loader ─▶ Main Menu ─┬─▶ Endless Game ─▶ (Pause) ─▶ Gam
                           └─▶ Settings (sound, music, palette, colour-blind, reduced motion, low power, reset progress)
 ```
 
+- As built (T2.12):
+  - The game boots into `ui/screens/MenuScreen.ts`: a CSS title with rippling letters, Play/Continue with the best score under it, Voyage (disabled, "soon") and Settings. It sits over the live canvas, where the board and caustics show through softened and the tray is hidden.
+  - `App.play()` / `App.showMenu()` switch screens. Input and the run clock only run in the game. The ads' run start and `runStart` fire when a run is first entered, not at boot.
+  - Pause → Menu keeps the run for Continue. Game Over → Menu passes the break point, then leaves a fresh run waiting behind the menu.
+  - The Router no longer unmounts a screen that became current again during its fade-out.
 - Screens are classes with `mount(root)` / `unmount()` and receive services through their constructor. A small `Router` in `app/` switches screens with a 200 ms cross-fade.
 - **HUD (Endless):** score (animated count-up), best score, streak chip (`×1.5`, pulses when it rises, dims when the current set has no clear yet), and a pause button.
 - **HUD (Voyage):** goal counters with icons, moves left (turns coral when ≤ 3), booster bar, and pause.

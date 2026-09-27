@@ -1,5 +1,10 @@
 /** All user-facing text (docs/PLAN.md §10), ready for localisation (T6.09). */
 export const STRINGS = {
+  title: 'Tidepool',
+  play: 'Play',
+  continue: 'Continue',
+  voyage: 'Voyage',
+  comingSoon: 'soon',
   score: 'Score',
   best: 'Best',
   pause: 'Pause',

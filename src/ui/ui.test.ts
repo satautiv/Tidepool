@@ -233,6 +233,20 @@ describe('Router', () => {
     expect(waits).toContain(ROUTER.fadeMs);
   });
 
+  it('keeps a screen that becomes current again before its fade-out ends', async () => {
+    const root = h('div');
+    const router = new Router(root, async () => {});
+    const a = screen('A');
+    const b = screen('B');
+    await router.show(a);
+    const toB = router.show(b);
+    const backToA = router.show(a);
+    await Promise.all([toB, backToA]);
+    expect(router.screen).toBe(a);
+    expect(a.mounted).toBe(true);
+    expect(root.textContent).toBe('A');
+  });
+
   it('defaults to real timers', async () => {
     const router = new Router(h('div'));
     await router.show(screen('A'));

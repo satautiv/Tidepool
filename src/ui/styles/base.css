@@ -480,3 +480,68 @@ button:focus-visible {
   margin: 0 0 4px;
   font-weight: 700;
 }
+
+/* ---------- Main menu ---------- */
+
+.menu {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: clamp(20px, 6vh, 48px);
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  /* The tidepool keeps shimmering underneath, softened. */
+  background: linear-gradient(180deg, rgba(246, 235, 217, 0.72), rgba(205, 235, 242, 0.62));
+  pointer-events: auto;
+}
+
+.menu__title {
+  margin: 0;
+  font-size: clamp(48px, 14vmin, 96px);
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  color: #fff;
+  -webkit-text-stroke: 2px var(--accent);
+  paint-order: stroke fill;
+  text-shadow: 0 6px 24px rgba(38, 128, 140, 0.35);
+}
+
+.menu__title span {
+  display: inline-block;
+  animation: title-bob 3.2s ease-in-out infinite;
+}
+
+@keyframes title-bob {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.menu__actions {
+  display: grid;
+  gap: 12px;
+  width: min(300px, 80vw);
+  justify-items: stretch;
+  text-align: center;
+}
+
+.menu__play {
+  min-height: 64px;
+  font-size: 24px;
+}
+
+.menu__best {
+  margin-top: -4px;
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.menu__best[hidden] {
+  display: none;
+}
+
+.menu__voyage:disabled {
+  opacity: 0.55;
+}

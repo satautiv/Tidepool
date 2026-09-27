@@ -10,9 +10,10 @@ declare global {
 const gameState = (page: Page) => page.evaluate(() => window.__tidepool.getState());
 const filledCells = (board: string[]) => board.join('').replaceAll('.', '').length;
 
-/** Boots a seeded run and waits until the tray has dealt in. */
+/** Boots a seeded run, taps Play on the main menu, and waits until the tray has dealt in. */
 async function boot(page: Page, seed = 'e2e') {
   await page.goto(`/?seed=${seed}`);
+  await page.locator('.menu__play').click();
   await page.waitForFunction(() => window.__tidepool?.slotCenter(0) != null);
   await page.waitForTimeout(700); // deal-in animation
 }
@@ -42,9 +43,12 @@ async function drag(page: Page, from: Point, to: Point, touch: boolean) {
   await touchAt('touchEnd');
 }
 
-test('boots with the canvas and a zero score', async ({ page }) => {
+test('boots to the main menu, then plays with the canvas and a zero score', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/?seed=e2e');
+  await expect(page.locator('.menu__title')).toBeVisible();
+  await expect(page.locator('.menu__play')).toHaveText('Play');
   await boot(page);
   await expect(page.locator('#game')).toBeVisible();
   await expect(page.locator('.hud__score')).toHaveText('0');
@@ -124,6 +128,8 @@ test('a reload mid-run restores the same run', async ({ page }) => {
   expect(before.placed).toBe(1);
   await page.waitForTimeout(700); // past the 500 ms save debounce
   await page.reload();
+  await expect(page.locator('.menu__play')).toHaveText('Continue');
+  await page.locator('.menu__play').click();
   await page.waitForFunction(() => window.__tidepool?.cellCenter(0, 0) != null);
   const after = await gameState(page);
   expect(after).toEqual(before);

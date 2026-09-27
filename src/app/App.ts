@@ -46,6 +46,7 @@ import { NoHaptics, type Haptics } from '../services/platform/haptics';
 import { Lifecycle, type LifecycleEnv } from '../services/platform/lifecycle';
 import type { SaveStore } from '../services/storage/SaveStore';
 import { GameScreen } from '../ui/screens/GameScreen';
+import { MenuScreen } from '../ui/screens/MenuScreen';
 import { EventBus } from './events';
 
 export interface AppEvents {
@@ -86,6 +87,8 @@ export interface AppOptions {
   now?: () => number;
   /** Ad policy and provider. Without one, no ads (tests, previews). */
   ads?: AdManager;
+  /** The first screen after boot. Default: the main menu. */
+  startIn?: 'menu' | 'game';
   /** Safe-area insets for the canvas layout. Default: read from CSS `env()`. */
   safeArea?: () => Insets;
   /** Sound. Without one, the game is silent (tests, previews). */
@@ -120,6 +123,12 @@ export class App {
   readonly drag: DragController;
   readonly router: Router;
   readonly gameScreen: GameScreen;
+  readonly menuScreen: MenuScreen;
+  /** Which screen is up. The canvas draws under both; input only works in the game. */
+  private screen: 'menu' | 'game' = 'menu';
+  /** Whether the current run has been announced (ads run start, `runStart`) yet. */
+  private announced = false;
+  private runResumed = false;
   private readonly boardView: BoardView;
   private readonly trayView: TrayView;
   private readonly dragView: DragView;
@@ -235,12 +244,15 @@ export class App {
         onRestart: () => this.newRun(),
         onSettings: () => this.bus.emit('settings', undefined),
         onPlayAgain: () => this.leaveRun(() => this.newRun()),
-        // Until the main menu exists (T2.12), Menu also starts a new run.
-        onMenu: () =>
+        // From the pause dialog the run stays saved for Continue; after Game Over a fresh run
+        // waits behind the menu (a break point, so a break ad may play first).
+        onMenu: () => {
+          if (!this.stateValue.over) return this.showMenu();
           this.leaveRun(() => {
-            this.bus.emit('menu', undefined);
+            this.showMenu();
             this.newRun();
-          }),
+          });
+        },
         onSecondChance: () => void this.useSecondChance(),
       },
       {
@@ -250,6 +262,10 @@ export class App {
         ...(opts.uiTimer ? { setTimer: opts.uiTimer } : {}),
       },
     );
+    this.menuScreen = new MenuScreen({
+      onPlay: () => this.play(),
+      onSettings: () => this.bus.emit('settings', undefined),
+    });
 
     if (opts.ads) {
       // The game sits still under an ad: no frames, no input.
@@ -276,7 +292,7 @@ export class App {
 
   /** Pauses a run in play: input off, clocks stopped, Pause dialog up. */
   pause(): void {
-    if (this.paused || this.stateValue.over || this.adShowing) return;
+    if (this.screen !== 'game' || this.paused || this.stateValue.over || this.adShowing) return;
     this.paused = true;
     this.stopRunClock();
     this.opts.ads?.gameplayStop();
@@ -331,7 +347,6 @@ export class App {
       this.opts.ads?.onVisible();
     });
 
-    void this.router.show(this.gameScreen);
     const resumed = this.stateValue.stats.placed > 0;
     if (this.finishedOnBoot) {
       const { run, durationMs } = this.finishedOnBoot;
@@ -340,8 +355,63 @@ export class App {
     }
     this.showRun(!resumed, resumed);
     if (!resumed) this.persistRun();
+    this.runResumed = resumed;
+    this.announced = false;
+    // The run clock only runs in the game; `play()` starts it.
+    this.screen = 'menu';
+    this.stopRunClock();
+    this.syncInput();
+    if ((this.opts.startIn ?? 'menu') === 'game') this.play();
+    else this.showMenu();
+  }
+
+  /** Main menu → game: Play, or Continue for a saved run. */
+  play(): void {
+    if (this.screen === 'game') return;
+    this.screen = 'game';
+    void this.router.show(this.gameScreen);
+    if (this.announced) this.opts.ads?.gameplayStart();
+    else this.announce();
+    this.startRunClock();
+    this.syncInput();
+  }
+
+  /** Shows the main menu over the tidepool. The run waits, saved, for Continue. */
+  showMenu(): void {
+    this.gameScreen.pause.hide();
+    this.paused = false;
+    if (this.screen !== 'menu') {
+      this.screen = 'menu';
+      this.stopRunClock();
+      this.opts.ads?.gameplayStop();
+      this.syncInput();
+      void this.router.show(this.menuScreen);
+    } else if (this.router.screen !== this.menuScreen) {
+      void this.router.show(this.menuScreen);
+    }
+    this.refreshMenu();
+    this.bus.emit('menu', undefined);
+  }
+
+  get currentScreen(): 'menu' | 'game' {
+    return this.screen;
+  }
+
+  /** The run's start signals (ads per-run limits and gameplay, `runStart`), once per run. */
+  private announce(): void {
+    if (this.announced) return;
+    this.announced = true;
     this.opts.ads?.runStarted();
-    this.bus.emit('runStart', { state: this.stateValue, seed: this.runSeed, resumed });
+    this.bus.emit('runStart', {
+      state: this.stateValue,
+      seed: this.runResumed ? null : this.runSeed,
+      resumed: this.runResumed,
+    });
+  }
+
+  private refreshMenu(): void {
+    const run = this.stateValue;
+    this.menuScreen.update({ canContinue: run.stats.placed > 0 && !run.over, best: this.best });
   }
 
   /** Starts a fresh Endless run, closing out the current one first. */
@@ -354,9 +424,11 @@ export class App {
     this.syncInput();
     this.showRun(true);
     this.persistRun();
-    this.opts.ads?.runStarted();
+    this.runResumed = false;
+    this.announced = false;
     this.bus.emit('newRun', { state: this.stateValue });
-    this.bus.emit('runStart', { state: this.stateValue, seed, resumed: false });
+    if (this.screen === 'game') this.announce();
+    else this.refreshMenu();
   }
 
   /**
@@ -522,7 +594,11 @@ export class App {
 
   /** Input is on only while a run is in play: not paused, not over, no ad on screen. */
   private syncInput(): void {
-    this.drag.setLocked(this.paused || this.adShowing || this.stateValue.over);
+    this.trayView.hidden = this.screen !== 'game';
+    this.renderer.requestRedraw();
+    this.drag.setLocked(
+      this.screen !== 'game' || this.paused || this.adShowing || this.stateValue.over,
+    );
   }
 
   /** The saved in-progress run, if there is a valid one. Finished runs are closed out. */

@@ -60,6 +60,7 @@ export function makeApp(
     // DOM animations finish instantly, so HUD text is final right after a move.
     uiClock: instantClock(),
     setInterval: () => 0, // no ambient ticker unless a test drives it
+    startIn: 'game', // most tests play; menu tests pass startIn: 'menu'
     ...(save ? { save } : {}),
     ...(ads ? { ads } : {}),
     ...opts.extra,

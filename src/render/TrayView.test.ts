@@ -158,4 +158,13 @@ describe('every shape fits its slot', () => {
       }
     }
   });
+
+  it('draws nothing while hidden (behind the main menu)', () => {
+    const { tray, scene } = setup();
+    tray.setTray([slot('sq3'), null, slot('i2h')]);
+    tray.hidden = true;
+    const ctx = fakeContext();
+    scene.draw(ctx, frame);
+    expect(blits(ctx)).toHaveLength(0);
+  });
 });
