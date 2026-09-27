@@ -6,12 +6,12 @@
  */
 import { BOARD_SIZE, COLOR_COUNT } from './config';
 import type { Shape } from './shapes';
-import type { TileEffect, TileState } from './tiles';
+import { EMPTY_CELL, tileBehaviour, type TileEvent, type TileState } from './tiles';
 
 export interface Cell {
   /** null = empty sand; 0..5 = sea-glass colour. */
   readonly color: number | null;
-  /** Voyage special tile on this cell (T4.02). */
+  /** Voyage special tile on this cell; its behaviour lives in `tiles.ts` (T4.02). */
   readonly tile?: TileState;
 }
 
@@ -21,7 +21,6 @@ export interface Board {
 
 export type Position = readonly [row: number, col: number];
 
-const EMPTY_CELL: Cell = Object.freeze({ color: null });
 const CELL_COUNT = BOARD_SIZE * BOARD_SIZE;
 
 export const cellIndex = (row: number, col: number): number => row * BOARD_SIZE + col;
@@ -39,14 +38,16 @@ export function getCell(board: Board, row: number, col: number): Cell {
   return cell;
 }
 
-/** Whether a piece may not be placed on this cell. Tiles hook in here in T4.02. */
+/** Whether a piece may not be placed on this cell (glass, or a tile that blocks). */
 export function isBlocking(cell: Cell): boolean {
-  return cell.color !== null;
+  const tile = cell.tile && tileBehaviour(cell.tile);
+  return tile ? tile.blocksPlacement(cell) : cell.color !== null;
 }
 
-/** Whether this cell counts towards completing a line. Tiles hook in here in T4.02. */
+/** Whether this cell counts towards completing a line (glass, or a tile that counts). */
 export function countsAsFilled(cell: Cell): boolean {
-  return cell.color !== null;
+  const tile = cell.tile && tileBehaviour(cell.tile);
+  return tile ? tile.countsAsFilled(cell) : cell.color !== null;
 }
 
 /** True when every shape cell lands inside the board on a non-blocking cell. */
@@ -60,8 +61,23 @@ export function canPlace(board: Board, shape: Shape, row: number, col: number): 
   return true;
 }
 
-/** Returns a new board with the shape placed. Throws if the placement is invalid; check `canPlace` first. */
-export function place(board: Board, shape: Shape, row: number, col: number, color: number): Board {
+export interface PlaceResult {
+  readonly board: Board;
+  /** Tile effects of the placement itself (e.g. a bubble popped by the piece). */
+  readonly tileEvents: readonly TileEvent[];
+}
+
+/**
+ * Places the shape and runs the `onPlacedOver` hook of any tile under it.
+ * Throws if the placement is invalid; check `canPlace` first.
+ */
+export function placeWithTiles(
+  board: Board,
+  shape: Shape,
+  row: number,
+  col: number,
+  color: number,
+): PlaceResult {
   if (!Number.isInteger(color) || color < 0 || color >= COLOR_COUNT) {
     throw new RangeError(`Invalid colour: ${color}`);
   }
@@ -69,11 +85,24 @@ export function place(board: Board, shape: Shape, row: number, col: number, colo
     throw new Error(`Cannot place ${shape.id} at ${row},${col}`);
   }
   const cells = board.cells.slice();
+  const tileEvents: TileEvent[] = [];
   for (const [dr, dc] of shape.cells) {
     const i = cellIndex(row + dr, col + dc);
-    cells[i] = { ...cells[i]!, color };
+    let cell: Cell = { ...cells[i]!, color };
+    const hook = cell.tile && tileBehaviour(cell.tile)?.onPlacedOver;
+    if (hook) {
+      const outcome = hook(cell, i);
+      cell = outcome.cell;
+      tileEvents.push(...outcome.events);
+    }
+    cells[i] = cell;
   }
-  return { cells };
+  return { board: { cells }, tileEvents };
+}
+
+/** Returns a new board with the shape placed (tile events dropped; see `placeWithTiles`). */
+export function place(board: Board, shape: Shape, row: number, col: number, color: number): Board {
+  return placeWithTiles(board, shape, row, col, color).board;
 }
 
 /** Every top-left position where the shape fits, row-major. */
@@ -106,7 +135,8 @@ export interface ClearResult {
   readonly board: Board;
   /** Indices of cells that became empty, ascending. Each cell appears once, even where lines cross. */
   readonly clearedCells: readonly number[];
-  readonly tileEffects: readonly TileEffect[];
+  /** Tile effects of the clear (pearls collected, coral cracked, …), in cell order. */
+  readonly tileEvents: readonly TileEvent[];
 }
 
 export const lineCount = (lines: Lines): number => lines.rows.length + lines.cols.length;
@@ -137,20 +167,30 @@ export function lineCells(lines: Lines): number[] {
 }
 
 /**
- * Clears every cell in the given lines at once (PLAN D1: crossing lines share cells).
- * Tile hooks (coral surviving a hit, pearls collected, …) are added in T4.02.
+ * Clears every cell in the given lines at once (PLAN D1: crossing lines share cells, so each
+ * cell is resolved once even where a row and a column cross). Plain glass empties; a tile's
+ * `onLineClear` hook decides its cell's fate: cleared, unchanged or transformed.
  */
 export function clearLines(board: Board, lines: Lines): ClearResult {
   const indices = lineCells(lines);
-  if (indices.length === 0) return { board, clearedCells: [], tileEffects: [] };
+  if (indices.length === 0) return { board, clearedCells: [], tileEvents: [] };
   const cells = board.cells.slice();
   const clearedCells: number[] = [];
+  const tileEvents: TileEvent[] = [];
   for (const i of indices) {
-    if (!countsAsFilled(cells[i]!)) continue;
-    cells[i] = EMPTY_CELL;
-    clearedCells.push(i);
+    const cell = cells[i]!;
+    const hook = cell.tile && tileBehaviour(cell.tile)?.onLineClear;
+    if (hook) {
+      const outcome = hook(cell, { index: i });
+      cells[i] = outcome.cell;
+      tileEvents.push(...outcome.events);
+      if (outcome.cell.color === null && !outcome.cell.tile) clearedCells.push(i);
+    } else if (cell.tile || countsAsFilled(cell)) {
+      cells[i] = EMPTY_CELL;
+      clearedCells.push(i);
+    }
   }
-  return { board: { cells }, clearedCells, tileEffects: [] };
+  return { board: { cells }, clearedCells, tileEvents };
 }
 
 /** The lines that would clear if the shape were placed there; empty when it can't be placed. Drives the ghost highlight. */

@@ -713,6 +713,13 @@ The tile logic lives in `core/tiles.ts` as hooks called by `clearLines` and `pla
 
 Each tile effect emits an event (`pearlCollected`, `coralCracked`, `coralBroken`, `bubblePopped`, …) for goals, visuals and audio.
 
+As built (T4.02):
+- `TileState` is a union (`pearl`, `coral` with `hp: 1 | 2`, `bubble`, `urchin`, `frozen`). Each kind has a `TileBehaviour`: `blocksPlacement(cell)`, `countsAsFilled(cell)`, optional `onPlacedOver(cell, index)` and `onLineClear(cell, { index })`, each returning `{ cell, events }` (the cell's fate: cleared, unchanged or transformed). `defineTile(kind, behaviour)` installs a behaviour; the tile modules use it, and tests use it for dummy tiles. `onAdjacentClear` (frozen) and blast cells (urchin) are added with those tiles.
+- `board.ts`: `isBlocking`/`countsAsFilled` ask the cell's tile (cells without a tile, or with an unknown kind, use their glass colour). `placeWithTiles` runs `onPlacedOver` and returns `tileEvents` (`place` keeps returning just the board). `clearLines` runs `onLineClear` once per unique cell (a tile where a cleared row and column cross is hit once) and returns `tileEvents`. `clearedCells` lists only cells that ended up empty, so a surviving coral doesn't score as cleared.
+- Built-in structure: pearl, coral, urchin and frozen block placement and count as filled; a bubble blocks and fills only if its cell has glass. Without a module's `onLineClear`, a tile cell simply clears.
+- `GameEvent` includes the `TileEvent`s: placement tile events come right after `placed`, clear tile events right after `cleared`.
+- Tile modules live in `core/tiles/` (T4.03: `pearl.ts`). A pearl is filled glass; when its line clears the cell empties and `pearlCollected { index }` is emitted, once even where a cleared row and column cross.
+
 ### 14.3 VoyageGame
 `VoyageGame` reuses board, generator and scoring, and adds: `movesLeft`, `goals` progress, win/lose checks after each placement (win is checked **before** lose, so a win on the last move counts), and the star calculation (D13).
 

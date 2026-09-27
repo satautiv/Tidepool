@@ -11,7 +11,7 @@ import {
   findFullLines,
   isEmpty,
   lineCount,
-  place,
+  placeWithTiles,
   type Board,
   emptyBoard,
 } from './board';
@@ -20,6 +20,7 @@ import { deal, slotShape, type DealMode, type TraySlot } from './generator';
 import { createRng, type RngState } from './rng';
 import { endTraySet, multiplier, scorePlacement, type CalloutKey } from './scoring';
 import { SHAPES, type ShapeId } from './shapes';
+import type { TileEvent } from './tiles';
 
 export const ENDLESS_SCHEMA_VERSION = 1;
 
@@ -77,7 +78,9 @@ export type GameEvent =
   | { type: 'cleanBoard'; points: number }
   | { type: 'streak'; streak: number; multiplier: number }
   | { type: 'dealt'; tray: readonly TraySlot[]; mode: DealMode; usedFallback: boolean }
-  | { type: 'gameOver'; score: number };
+  | { type: 'gameOver'; score: number }
+  /** Voyage tile effects (pearlCollected, coralCracked, …); Endless boards have no tiles. */
+  | TileEvent;
 
 export interface Step {
   readonly state: EndlessState;
@@ -128,7 +131,13 @@ export function placePiece(
   if (!canPlace(state.board, shape, row, col)) return { error: 'invalidPosition' };
 
   const events: GameEvent[] = [];
-  const placed = place(state.board, shape, row, col, traySlot.color);
+  const { board: placed, tileEvents: placeEvents } = placeWithTiles(
+    state.board,
+    shape,
+    row,
+    col,
+    traySlot.color,
+  );
   const lines = findFullLines(placed);
   const cleared = clearLines(placed, lines);
   const linesCleared = lineCount(lines);
@@ -149,6 +158,7 @@ export function placePiece(
     color: traySlot.color,
     points: score.placement,
   });
+  events.push(...placeEvents);
   if (linesCleared > 0) {
     events.push({
       type: 'cleared',
@@ -159,6 +169,7 @@ export function placePiece(
       multiplier: score.multiplier,
       callouts: score.callouts,
     });
+    events.push(...cleared.tileEvents);
   }
   if (score.cleanBonus > 0) events.push({ type: 'cleanBoard', points: score.cleanBonus });
 
