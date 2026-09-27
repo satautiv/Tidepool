@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { boardFromAscii } from '../core/board';
 import type { AudioEngine } from '../services/audio/AudioEngine';
-import { arpeggio, attachSounds, sfxManifest, SOUND } from './sounds';
+import { arpeggio, attachMusic, attachSounds, MUSIC, sfxManifest, SOUND } from './sounds';
 import { firstMove, makeApp } from './testing';
 
 function setup() {
@@ -100,5 +100,40 @@ describe('game sounds', () => {
       { id: 'chime2', pitch: 0 },
       { id: 'chime0', pitch: 12 },
     ]);
+  });
+});
+
+describe('ambient music', () => {
+  function withMusic() {
+    const calls: unknown[][] = [];
+    let unlock: (() => void) | null = null;
+    const audio = {
+      register: vi.fn(),
+      onUnlock: (fn: () => void) => void (unlock = fn),
+      playLoop: (...a: unknown[]) => void calls.push(['loop', ...a]),
+      duck: (...a: unknown[]) => void calls.push(['duck', ...a]),
+    } as unknown as AudioEngine;
+    const made = makeApp('music', undefined, undefined, {
+      beforeStart: (app) => attachMusic(app, audio),
+    });
+    return { ...made, audio, calls, unlock: () => unlock?.() };
+  }
+
+  it('registers the loop at a low sample rate and fades it in after unlock', () => {
+    const { audio, calls, unlock } = withMusic();
+    const manifest = (audio.register as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    expect(manifest.ambient.rate).toBe(MUSIC.sampleRate);
+    expect(calls.filter((c) => c[0] === 'loop')).toEqual([]);
+    unlock();
+    expect(calls).toContainEqual(['loop', 'ambient', MUSIC.fadeInMs]);
+  });
+
+  it('ducks on game over and comes back up for the next run', () => {
+    const { app, calls } = withMusic();
+    calls.length = 0;
+    for (let i = 0; i < 1000 && !app.state.over; i++) app.place(firstMove(app));
+    expect(calls).toContainEqual(['duck', 'music', MUSIC.gameOverDuckDb, MUSIC.duckMs]);
+    app.newRun();
+    expect(calls.at(-1)).toEqual(['duck', 'music', 0, MUSIC.duckMs]);
   });
 });

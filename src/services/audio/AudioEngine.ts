@@ -9,7 +9,10 @@
 export type Bus = 'music' | 'sfx';
 
 /** A sound is a URL to fetch and decode, or a generator of mono samples at a sample rate. */
-export type SoundSource = { url: string } | { synth: (sampleRate: number) => Float32Array };
+export type SoundSource =
+  | { url: string }
+  /** `rate` overrides the sample rate (long, dark sounds can use less). */
+  | { synth: (sampleRate: number) => Float32Array | Promise<Float32Array>; rate?: number };
 
 export interface PlayOptions {
   /** Pitch shift in semitones. */
@@ -43,6 +46,8 @@ export interface AudioEngineOptions {
   maxVoices?: number;
   /** Sample rate for generated sounds; defaults to the context's. */
   synthRate?: number;
+  /** Waits for a fresh task before generating a sound. Default: setTimeout 0. */
+  yieldTask?: () => Promise<void>;
 }
 
 interface Voice {
@@ -100,6 +105,7 @@ export class AudioEngine {
       onError: () => {},
       maxVoicesPerSound: 3,
       maxVoices: 16,
+      yieldTask: () => new Promise((resolve) => setTimeout(resolve, 0)),
       ...opts,
     };
   }
@@ -352,10 +358,10 @@ export class AudioEngine {
       const data = await this.opts.fetch(source.url);
       return ctx.decodeAudioData(data);
     }
-    // Generated sounds: yield first, so a burst of generation never blocks the gesture.
-    await Promise.resolve();
-    const rate = this.opts.synthRate ?? ctx.sampleRate;
-    const samples = source.synth(rate);
+    // Generated sounds: each in its own task, so generating them never makes one long task.
+    await this.opts.yieldTask();
+    const rate = source.rate ?? this.opts.synthRate ?? ctx.sampleRate;
+    const samples = await source.synth(rate);
     const buffer = ctx.createBuffer(1, samples.length, rate);
     buffer.getChannelData(0).set(samples);
     return buffer;

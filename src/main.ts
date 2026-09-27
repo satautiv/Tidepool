@@ -1,7 +1,7 @@
 import './ui/styles/base.css';
 import { GameAnalytics } from './app/analytics';
 import { App } from './app/App';
-import { attachSounds } from './app/sounds';
+import { attachMusic, attachSounds } from './app/sounds';
 import { drawSandTile } from './render/background';
 import { FEEL } from './render/feel';
 import { TIDEPOOL } from './render/palettes';
@@ -78,6 +78,7 @@ const app = new App({
 });
 analytics.attach(app);
 attachSounds(app, audio, uiRoot);
+attachMusic(app, audio);
 app.start();
 
 // Dev-only handle for debugging and E2E tests. The import is dropped from production builds.

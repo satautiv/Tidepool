@@ -2,9 +2,19 @@
  * Game sounds (README §11, docs/PLAN.md §11 audio column): which sound each moment plays, and
  * how. The sounds themselves are generated in `services/audio/synth.ts`.
  */
-import { SYNTH_SOUNDS } from '../services/audio/synth';
+import { ambientAsync, AMBIENT_SECONDS, SYNTH_SOUNDS } from '../services/audio/synth';
 import type { AudioEngine, SoundSource } from '../services/audio/AudioEngine';
 import type { App } from './App';
+
+export const MUSIC = {
+  /** The ambient bed fades in over this long after the first interaction. */
+  fadeInMs: 2000,
+  /** Game over lowers the music by this much (dB) until play continues. */
+  gameOverDuckDb: -6,
+  duckMs: 600,
+  /** Water and a low pad need no more than this sample rate. */
+  sampleRate: 16000,
+};
 
 export const SOUND = {
   /** Clink pitch per glass colour (semitones): a pentatonic set, so any mix sounds sweet. */
@@ -114,5 +124,27 @@ export function attachSounds(
   uiRoot.addEventListener('click', (e) => {
     const target = e.target as Element | null;
     if (target?.closest?.('button')) audio.play('uiTick', { volume: v.uiTick });
+  });
+}
+
+/**
+ * The ambient water loop (T2.10): generated after the first interaction, faded in, ducked on
+ * game over and restored when play continues. Ads and a hidden page silence it through the
+ * engine's suspend. The Music toggle and volume are the engine's music bus (Settings, T2.13).
+ */
+export function attachMusic(app: App, audio: AudioEngine): void {
+  audio.register({
+    ambient: { synth: (rate) => ambientAsync(rate, AMBIENT_SECONDS), rate: MUSIC.sampleRate },
+  });
+  audio.onUnlock(() => audio.playLoop('ambient', MUSIC.fadeInMs));
+  app.bus.on('game', ({ state }) => {
+    if (state.over) audio.duck('music', MUSIC.gameOverDuckDb, MUSIC.duckMs);
+  });
+  // A new run, or play continuing after a second chance, brings the music back up.
+  app.bus.on('runStart', () => audio.duck('music', 0, MUSIC.duckMs));
+  app.bus.on('game', ({ events, state }) => {
+    if (!state.over && events.some((e) => e.type === 'dealt' && e.mode === 'secondChance')) {
+      audio.duck('music', 0, MUSIC.duckMs);
+    }
   });
 }

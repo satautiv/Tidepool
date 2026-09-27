@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ambient, noteHz, SYNTH_SOUNDS } from './synth';
+import { ambient, ambientAsync, noteHz, SYNTH_SOUNDS } from './synth';
 
 const RATE = 22050;
 
@@ -33,5 +33,14 @@ describe('synth', () => {
     for (let i = 1; i < s.length; i++) maxStep = Math.max(maxStep, Math.abs(s[i]! - s[i - 1]!));
     const wrap = Math.abs(s[0]! - s[s.length - 1]!);
     expect(wrap).toBeLessThanOrEqual(maxStep * 1.5); // wrapping is no bigger a step than usual
+  });
+});
+
+describe('ambientAsync', () => {
+  it('produces the same loop in slices, pausing between them', async () => {
+    let pauses = 0;
+    const sliced = await ambientAsync(8000, 20, async () => void pauses++);
+    expect(sliced).toEqual(ambient(8000, 20));
+    expect(pauses).toBeGreaterThan(3);
   });
 });
