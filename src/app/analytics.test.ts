@@ -147,3 +147,11 @@ describe('GameAnalytics', () => {
     }
   });
 });
+
+describe('GameAnalytics perf fallback', () => {
+  it('tracks perfFallback from the app', async () => {
+    const { app, recorder } = await setup();
+    app.bus.emit('perfFallback', { feature: 'caustics', frameMs: 23.456 });
+    expect(recorder.named('perf_fallback')).toEqual([{ feature: 'caustics', frameMs: 23.5 }]);
+  });
+});

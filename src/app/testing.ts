@@ -59,6 +59,7 @@ export function makeApp(
     renderer: { scheduler: idleScheduler },
     // DOM animations finish instantly, so HUD text is final right after a move.
     uiClock: instantClock(),
+    setInterval: () => 0, // no ambient ticker unless a test drives it
     ...(save ? { save } : {}),
     ...(ads ? { ads } : {}),
     ...opts.extra,

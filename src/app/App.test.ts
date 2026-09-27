@@ -598,3 +598,62 @@ describe('App shake and haptics', () => {
     expect(shaking.drag.state?.slot).toBe(0);
   });
 });
+
+describe('App ambient caustics', () => {
+  function withTicker(opts: { lowPower?: boolean; reduced?: boolean } = {}) {
+    let tick: () => void = () => {};
+    let t = 0;
+    const made = makeApp('ambient', undefined, undefined, {
+      extra: {
+        setInterval: (fn) => void (tick = fn),
+        prefersReducedMotion: () => opts.reduced ?? false,
+        now: () => t,
+      },
+    });
+    return { ...made, tick: () => tick(), advance: (ms: number) => (t += ms) };
+  }
+
+  it('redraws at the ticker rate while caustics are on', () => {
+    const { app, tick } = withTicker();
+    const redraw = vi.spyOn(app.renderer, 'requestRedraw');
+    tick();
+    tick();
+    expect(redraw).toHaveBeenCalledTimes(2);
+  });
+
+  it('stays idle with reduced motion (no redraws, nothing drawn)', () => {
+    const { app, tick } = withTicker({ reduced: true });
+    const redraw = vi.spyOn(app.renderer, 'requestRedraw');
+    tick();
+    expect(redraw).not.toHaveBeenCalled();
+    expect(app.caustics.enabled()).toBe(false);
+  });
+
+  it('turns itself off after 3 s of slow frames and reports it', () => {
+    const { app, tick, advance } = withTicker();
+    const fallback = vi.fn();
+    app.bus.on('perfFallback', fallback);
+    app.renderer.stats.lastFrameMs = 25;
+    for (let i = 0; i < 3; i++) {
+      tick();
+      advance(1000);
+    }
+    tick();
+    expect(fallback).toHaveBeenCalledWith({ feature: 'caustics', frameMs: 25 });
+    expect(app.caustics.enabled()).toBe(false);
+
+    // A short slow spell doesn't count.
+    const other = withTicker();
+    const spy = vi.fn();
+    other.app.bus.on('perfFallback', spy);
+    other.app.renderer.stats.lastFrameMs = 25;
+    other.tick();
+    other.advance(2000);
+    other.app.renderer.stats.lastFrameMs = 5;
+    other.tick();
+    other.app.renderer.stats.lastFrameMs = 25;
+    other.advance(2000);
+    other.tick();
+    expect(spy).not.toHaveBeenCalled();
+  });
+});

@@ -101,6 +101,33 @@ export const FEEL = {
   button: {
     pressScale: 0.96,
   },
+  /** Procedural sand grain (T2.06): tile size (px), mottle/grain strength, pebble count. */
+  sand: {
+    tileSize: 256,
+    mottleAlpha: 0.22,
+    grainAlpha: 0.12,
+    pebbles: 6,
+    /** Opacity of the grain baked over the board panel and wells. */
+    panelAlpha: 0.55,
+  },
+  /** Water caustics over the board (T2.06). */
+  caustics: {
+    layers: 3,
+    /** Per-layer opacity with `screen` blending. */
+    alpha: 0.09,
+    /** Drift amplitude (CSS px) and angular speed (rad/s). */
+    drift: 12,
+    speed: 0.35,
+    /** Line density and thinness of the light network. */
+    scale: 1,
+    sharpness: 6,
+    /** Layers are rendered at this share of CSS resolution (soft light needs no detail). */
+    resolution: 0.5,
+    fps: 30,
+    /** Turn off when frames take longer than this (ms) for `slowSeconds`. */
+    maxFrameMs: 20,
+    slowSeconds: 3,
+  },
   /**
    * Per particle type: gravity (px/s², negative rises), drag (per second), life (s), size
    * (CSS px, start → end), alpha (start → end), spin (rad/s, ± random), additive (1 = draw

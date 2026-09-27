@@ -431,6 +431,8 @@ The palettes are data (`render/palettes.ts`). Colour-blind and cosmetic themes (
 - The sand texture is generated once by procedural noise into an offscreen canvas and scaled to the board.
 - Caustics: 2–3 layers of pre-rendered soft light blobs, drifting slowly with sine offsets and drawn in `lighter` / `screen` composite mode at low opacity, updated at ≤ 30 fps. They turn off automatically with **Reduced motion** or the **Low power** setting, or when the measured frame time is > 20 ms for 3 seconds.
 
+- As built (T2.06): `render/background.ts`. The sand is a seeded, seamless 256 px tile of value-noise mottling, grain and a few faint pebbles, on transparent. It's baked into the board-base sprite (over the panel and into the wells) and used once at boot as a CSS background around the board, so it costs no frames. The edge vignette is a CSS radial gradient on the canvas element. Caustics are 3 half-resolution layers of wavy light lines, blended with `screen` at 9% and clipped to the board. They drift on their own clock, and `App` redraws them from a 30 fps ticker (the frame loop stays idle between ticks). With caustics off, nothing ticks. They're off with reduced motion or low power. They also switch off for the session when frames take > 20 ms for 3 s, which emits `perfFallback` (analytics `perf_fallback`). Values are in `FEEL.sand` / `FEEL.caustics`.
+
 ---
 
 ## 8. Input

@@ -22,6 +22,7 @@ import {
   type DragHost,
   type PlaceIntent,
 } from '../input/DragController';
+import { CausticsView } from '../render/background';
 import { BoardView } from '../render/BoardView';
 import { ClearFx } from '../render/ClearFx';
 import { DebugOverlay } from '../render/DebugOverlay';
@@ -33,7 +34,7 @@ import { ParticleView } from '../render/particles';
 import { Shake } from '../render/shake';
 import { TIDEPOOL, type Palette } from '../render/palettes';
 import { Renderer, type RendererOptions } from '../render/Renderer';
-import { SpriteSet, type CanvasFactory } from '../render/sprites';
+import { domCanvasFactory, SpriteSet, type CanvasFactory } from '../render/sprites';
 import { TrayView } from '../render/TrayView';
 import { attachViewport, type ViewportEnv } from '../render/viewport';
 import type { HudClock } from '../ui/components/Hud';
@@ -53,6 +54,8 @@ export interface AppEvents {
   runStart: { state: EndlessState; seed: string | null; resumed: boolean };
   /** A run was closed out (replaced by the next one, or found finished on boot). */
   runEnd: { state: EndlessState; durationMs: number };
+  /** A visual feature was turned off because frames were too slow (T2.06). */
+  perfFallback: { feature: string; frameMs: number };
   /** Emitted once the Game Over panel is on screen. */
   gameOver: { score: number; best: number; newBest: boolean };
   pause: void;
@@ -81,6 +84,10 @@ export interface AppOptions {
   haptics?: Haptics;
   /** The system "reduce motion" preference. Default: the prefers-reduced-motion media query. */
   prefersReducedMotion?: () => boolean;
+  /** Repeating timer for the ambient caustics redraw (tests pass a manual one). */
+  setInterval?: (fn: () => void, ms: number) => unknown;
+  /** Seconds clock for the caustics drift. */
+  ambientClock?: () => number;
   /** Clock for DOM animations such as the score count-up (tests). */
   uiClock?: HudClock;
   /** Timer for removing finished DOM effects (tests). */
@@ -111,6 +118,10 @@ export class App {
   readonly shake = new Shake(() => !this.reducedMotion());
   readonly particles = new ParticleView(undefined, this.shake);
   private readonly haptics: Haptics;
+  readonly caustics: CausticsView;
+  /** Frames too slow for the caustics: they stay off for the rest of the session. */
+  private causticsDegraded = false;
+  private slowSince: number | null = null;
   private readonly clearFx = new ClearFx(this.particles.system);
   private stateValue: EndlessState;
   private best = 0;
@@ -161,6 +172,12 @@ export class App {
     this.scene.add(this.shake);
     this.scene.setShake(this.shake);
     this.scene.add(this.boardView, { shake: true });
+    this.caustics = new CausticsView(
+      () => this.ambientOn(),
+      opts.spriteFactory ?? domCanvasFactory,
+      opts.ambientClock,
+    );
+    this.scene.add(this.caustics, { shake: true });
     this.scene.add(
       new GhostView(
         () => this.drag.state,
@@ -264,6 +281,8 @@ export class App {
     attachViewport(this.renderer, this.opts.canvas, env?.viewport);
     bindPointerEvents(this.opts.canvas, this.drag, page.window);
     this.lifecycle = new Lifecycle(page);
+    const every = this.opts.setInterval ?? ((fn, ms) => setInterval(fn, ms));
+    every(() => this.ambientTick(), 1000 / FEEL.caustics.fps);
     // Backgrounded: pause the run (it never auto-resumes), stop frames, save now.
     this.lifecycle.onHide(() => {
       this.pause();
@@ -513,6 +532,39 @@ export class App {
     hud.setScore(score, animate);
     hud.setBest(this.best, beaten);
     hud.setStreak(multiplier(streak), !setHadClear);
+  }
+
+  /**
+   * Ambient effects (caustics) run unless reduced motion or low power is on, or frames were
+   * too slow.
+   */
+  private ambientOn(): boolean {
+    const lowPower = this.opts.save?.current.settings.lowPower ?? false;
+    return !this.causticsDegraded && !lowPower && !this.reducedMotion();
+  }
+
+  /**
+   * 30 fps: redraws for the caustics, and turns them off if frames stay slower than
+   * `maxFrameMs` for `slowSeconds` (a one-time `perfFallback`, logged to analytics).
+   */
+  private ambientTick(): void {
+    if (!this.ambientOn() || this.renderer.isPaused) {
+      this.slowSince = null;
+      return;
+    }
+    const { maxFrameMs, slowSeconds } = FEEL.caustics;
+    const frameMs = this.renderer.stats.lastFrameMs;
+    const now = this.now();
+    if (frameMs > maxFrameMs) {
+      this.slowSince ??= now;
+      if (now - this.slowSince >= slowSeconds * 1000) {
+        this.causticsDegraded = true;
+        this.bus.emit('perfFallback', { feature: 'caustics', frameMs });
+      }
+    } else {
+      this.slowSince = null;
+    }
+    this.renderer.requestRedraw();
   }
 
   /** Reduced motion: the setting, or the system preference when the setting is "auto". */

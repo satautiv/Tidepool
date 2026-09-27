@@ -1,7 +1,10 @@
 import './ui/styles/base.css';
 import { GameAnalytics } from './app/analytics';
 import { App } from './app/App';
+import { drawSandTile } from './render/background';
+import { FEEL } from './render/feel';
 import { TIDEPOOL } from './render/palettes';
+import { domCanvasFactory, sandColors } from './render/sprites';
 import { ConsoleAnalytics, NoopAnalytics } from './services/analytics/Analytics';
 import { AdManager } from './services/ads/AdManager';
 import { WebHaptics } from './services/platform/haptics';
@@ -17,6 +20,14 @@ const params = new URLSearchParams(location.search);
 const root = document.documentElement.style;
 root.setProperty('--color-sand', TIDEPOOL.background[0]);
 root.setProperty('--color-water', TIDEPOOL.background[1]);
+
+// Sand grain around the board: generated once into a CSS background, so it costs no frames.
+const tile = domCanvasFactory(FEEL.sand.tileSize, FEEL.sand.tileSize);
+const tileCtx = tile.getContext('2d');
+if (tileCtx) {
+  drawSandTile(tileCtx, FEEL.sand.tileSize, sandColors(TIDEPOOL));
+  root.setProperty('--sand-grain', `url(${tile.toDataURL()})`);
+}
 
 const seed = params.get('seed');
 // The analytics backend is decided in T3.14; until then dev logs to the console.

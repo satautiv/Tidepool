@@ -81,6 +81,9 @@ export class GameAnalytics {
       this.runs++;
       this.analytics.track('run_start', { mode: 'endless', seed });
     });
+    app.bus.on('perfFallback', ({ feature, frameMs }) => {
+      this.analytics.track('perf_fallback', { feature, frameMs: Math.round(frameMs * 10) / 10 });
+    });
     app.bus.on('runEnd', ({ state, durationMs }) => {
       this.analytics.track('run_end', {
         mode: 'endless',

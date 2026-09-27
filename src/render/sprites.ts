@@ -4,6 +4,8 @@
  */
 import { BOARD_SIZE } from '../core/config';
 import { darken, lighten, rgba } from './color';
+import { drawSandTile } from './background';
+import { FEEL } from './feel';
 import type { Palette } from './palettes';
 
 /** Sprites are plain canvases; tests inject fakes through the factory. */
@@ -142,7 +144,12 @@ export function drawClearHighlight(
 }
 
 /** The board panel with all 64 empty wells, including room for its drop shadow. */
-export function drawBoardBase(ctx: CanvasRenderingContext2D, c: number, palette: Palette): void {
+export function drawBoardBase(
+  ctx: CanvasRenderingContext2D,
+  c: number,
+  palette: Palette,
+  sand?: SpriteCanvas,
+): void {
   const m = c * CELL_STYLE.shadowMargin;
   const pad = c * CELL_STYLE.panelPad;
   const size = c * BOARD_SIZE;
@@ -168,6 +175,23 @@ export function drawBoardBase(ctx: CanvasRenderingContext2D, c: number, palette:
       ctx.restore();
     }
   }
+
+  // Sand grain over the panel and into the wells.
+  const pattern = sand ? ctx.createPattern(sand, 'repeat') : null;
+  if (pattern) {
+    ctx.save();
+    roundRectPath(ctx, m - pad, m - pad, size + 2 * pad, size + 2 * pad, c * 0.4);
+    ctx.clip();
+    ctx.globalAlpha = FEEL.sand.panelAlpha;
+    ctx.fillStyle = pattern;
+    ctx.fillRect(m - pad, m - pad, size + 2 * pad, size + 2 * pad);
+    ctx.restore();
+  }
+}
+
+/** The sand grain colours for a palette. */
+export function sandColors(palette: Palette): { dark: string; light: string } {
+  return { dark: darken(palette.board.wellShade, 0.25), light: '#FFFFFF' };
 }
 
 /**
@@ -327,9 +351,13 @@ export class SpriteSet {
     );
     this.ghost = make((ctx) => drawGhostOutline(ctx, cellSize, this.palette));
     this.highlight = make((ctx) => drawClearHighlight(ctx, cellSize, this.palette));
+    const tile = FEEL.sand.tileSize;
+    const sand = this.factory(tile, tile);
+    const sandCtx = sand.getContext('2d');
+    if (sandCtx) drawSandTile(sandCtx as CanvasRenderingContext2D, tile, sandColors(this.palette));
     const baseCss = cellSize * (BOARD_SIZE + 2 * CELL_STYLE.shadowMargin);
     this.base = make(
-      (ctx) => drawBoardBase(ctx, cellSize, this.palette),
+      (ctx) => drawBoardBase(ctx, cellSize, this.palette, sand),
       Math.round(baseCss * dpr),
     );
     const makeRect = (w: number, h: number, draw: (ctx: CanvasRenderingContext2D) => void) => {

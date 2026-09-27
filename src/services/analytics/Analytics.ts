@@ -35,6 +35,8 @@ export interface AnalyticsEvents {
   shells: { flow: 'source' | 'sink'; reason: string; amount: number };
   tutorial_step: { step: string };
   error: { message: string; where: string };
+  /** A visual feature turned itself off on a slow device (T2.06). */
+  perf_fallback: { feature: string; frameMs: number };
 }
 
 export type EventName = keyof AnalyticsEvents;
