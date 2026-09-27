@@ -53,6 +53,9 @@ export class Hud {
   private target = 0;
   private start = 0;
   private counting = false;
+  /** Best score given, and the value on screen (it trails a counting score it was beaten by). */
+  private bestTarget = 0;
+  private bestShown = 0;
   private multiplier = 1;
   private leaveToken = 0;
 
@@ -122,9 +125,14 @@ export class Hud {
     }
   }
 
-  /** Best score. `beaten` plays the glow (first time a run passes its starting best). */
+  /**
+   * Best score. `beaten` plays the glow (first time a run passes its starting best). While the
+   * score counts up past the old best, Best rises with it rather than jumping ahead.
+   */
   setBest(best: number, beaten = false): void {
-    this.best.textContent = formatScore(best);
+    this.bestTarget = best;
+    if (!this.counting || best < this.bestShown) this.renderBest(best);
+    else this.renderBest(Math.min(best, Math.max(this.bestShown, this.shown)));
     if (beaten) replay(this.bestBox, 'hud__best--glow');
   }
 
@@ -174,5 +182,13 @@ export class Hud {
   private render(value: number): void {
     this.shown = Math.round(value);
     this.score.textContent = formatScore(this.shown);
+    if (this.bestShown < this.bestTarget) {
+      this.renderBest(Math.min(this.bestTarget, Math.max(this.bestShown, this.shown)));
+    }
+  }
+
+  private renderBest(value: number): void {
+    this.bestShown = value;
+    this.best.textContent = formatScore(value);
   }
 }

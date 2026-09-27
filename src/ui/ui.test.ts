@@ -128,6 +128,30 @@ describe('Hud feedback', () => {
     expect(shown()).toBe('40');
   });
 
+  it('raises Best with the counting score instead of jumping ahead of it', () => {
+    const clock = manualClock();
+    const hud = new Hud(() => {}, { clock, score: { countUpDuration: 0.4 } });
+    const best = () => Number(hud.el.querySelector('.hud__best-value')!.textContent);
+    hud.setScore(90, false);
+    hud.setBest(100); // a previous best
+    expect(best()).toBe(100);
+
+    hud.setScore(300);
+    hud.setBest(300, true);
+    expect(best()).toBe(100); // not ahead of the score
+    for (let i = 0; i < 8; i++) {
+      clock.advance(50);
+      expect(best()).toBe(Math.max(100, hud.displayedScore));
+    }
+    expect(best()).toBe(300);
+
+    hud.setScore(0, false); // new run: Best stays
+    hud.setBest(300);
+    expect(best()).toBe(300);
+    hud.setBest(0); // reset progress
+    expect(best()).toBe(0);
+  });
+
   it('bumps, warms, dims and removes the streak chip', () => {
     const timers: Array<() => void> = [];
     const hud = new Hud(() => {}, { setTimer: (fn) => timers.push(fn) });
