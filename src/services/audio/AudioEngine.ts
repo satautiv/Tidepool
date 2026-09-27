@@ -260,6 +260,12 @@ export class AudioEngine {
     this.applyBus(bus, 50);
   }
 
+  /** Re-applies both buses from the settings (after they changed elsewhere, e.g. a reset). */
+  refresh(): void {
+    this.applyBus('sfx', 50);
+    this.applyBus('music', 50);
+  }
+
   /** The gain a bus should have now: volume × mute × duck. */
   busLevel(bus: Bus): number {
     const s = this.opts.settings();

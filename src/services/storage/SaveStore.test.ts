@@ -204,3 +204,24 @@ describe('storage backends', () => {
     expect(await m.get('a')).toBeNull();
   });
 });
+
+describe('reset', () => {
+  it('restores defaults but keeps the install date and ad counters', async () => {
+    const { store, timers } = await freshStore();
+    store.update((s) => {
+      s.stats.bestScore = 999;
+      s.settings.music = 0.1;
+      s.endlessRun = '{}';
+      s.ads.sessionCount = 4;
+    });
+    const installed = store.current.installedAt;
+    store.reset();
+    expect(store.current.stats.bestScore).toBe(0);
+    expect(store.current.settings.music).toBe(0.35);
+    expect(store.current.endlessRun).toBeNull();
+    expect(store.current.installedAt).toBe(installed);
+    expect(store.current.ads.sessionCount).toBe(4);
+    expect(store.isDirty).toBe(true);
+    timers.fire();
+  });
+});

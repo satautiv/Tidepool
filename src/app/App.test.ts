@@ -885,3 +885,78 @@ describe('App main menu', () => {
     expect(ended.mock.calls[0]![0].durationMs).toBe(2000);
   });
 });
+
+describe('App settings', () => {
+  const click = (root: HTMLElement, sel: string) =>
+    root.querySelector<HTMLButtonElement>(sel)!.click();
+  const flushRouter = () => new Promise<void>((resolve) => setTimeout(resolve, 250));
+
+  it('opens from the menu and the pause dialog, and Back returns there', async () => {
+    const { app, uiRoot } = makeApp('settings', undefined, undefined, {
+      extra: { startIn: 'menu' },
+    });
+    click(uiRoot, '.menu__settings');
+    await flushRouter();
+    expect(uiRoot.querySelector('.settings')).not.toBeNull();
+    click(uiRoot, '.settings__back');
+    await flushRouter();
+    expect(uiRoot.querySelector('.menu')).not.toBeNull();
+
+    click(uiRoot, '.menu__play');
+    await flushRouter();
+    click(uiRoot, '.hud__pause');
+    click(uiRoot, '.pause__settings');
+    await flushRouter();
+    expect(uiRoot.querySelector('.settings')).not.toBeNull();
+    click(uiRoot, '.settings__back');
+    await flushRouter();
+    expect(uiRoot.querySelector<HTMLElement>('.pause')!.hidden).toBe(false);
+    expect(app.isPaused).toBe(true);
+  });
+
+  it('applies changes at once and keeps them across a reload', async () => {
+    const backend = new MemoryBackend();
+    const save = new SaveStore(backend);
+    await save.load();
+    const ctx = new FakeAudioContext();
+    const audio = new AudioEngine({
+      createContext: () => ctx as unknown as AudioContext,
+      settings: () => save.current.settings,
+    });
+    audio.unlock();
+    const { app } = makeApp('persist', save, undefined, { extra: { audio } });
+    app.applySettings({ music: 0.8, sfxMuted: true, lowPower: true, reducedMotion: true });
+    expect(audio.busLevel('music')).toBeCloseTo(0.8);
+    expect(audio.busLevel('sfx')).toBe(0);
+    expect(app.caustics.enabled()).toBe(false);
+    await save.flush();
+    const reloaded = new SaveStore(backend);
+    await reloaded.load();
+    expect(reloaded.current.settings).toMatchObject({
+      music: 0.8,
+      sfxMuted: true,
+      lowPower: true,
+      reducedMotion: true,
+    });
+  });
+
+  it('reset progress clears the best score and the run, and returns to the menu', async () => {
+    const save = new SaveStore(new MemoryBackend());
+    await save.load();
+    const { app, uiRoot } = makeApp('reset', save);
+    app.place(firstMove(app));
+    app.showMenu();
+    app.openSettings();
+    await flushRouter();
+    click(uiRoot, '.settings__reset');
+    click(uiRoot, '.settings__reset-yes');
+    click(uiRoot, '.settings__reset-final');
+    await flushRouter();
+    expect(app.bestScore).toBe(0);
+    expect(app.state.stats.placed).toBe(0);
+    expect(save.current.stats.bestScore).toBe(0);
+    expect(app.currentScreen).toBe('menu');
+    expect(uiRoot.querySelector('.menu')).not.toBeNull();
+    expect(uiRoot.querySelector('.menu__play')!.textContent).toBe('Play');
+  });
+});

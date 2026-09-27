@@ -47,6 +47,14 @@ import { Lifecycle, type LifecycleEnv } from '../services/platform/lifecycle';
 import type { SaveStore } from '../services/storage/SaveStore';
 import { GameScreen } from '../ui/screens/GameScreen';
 import { MenuScreen } from '../ui/screens/MenuScreen';
+import {
+  SettingsScreen,
+  type SettingsModel,
+  type SettingsValues,
+} from '../ui/screens/SettingsScreen';
+import { STRINGS } from '../ui/strings';
+import { defaultSave, type Settings } from '../services/storage/SaveStore';
+import type { Screen } from '../ui/Router';
 import { EventBus } from './events';
 
 export interface AppEvents {
@@ -68,8 +76,10 @@ export interface AppEvents {
   pause: void;
   resume: void;
   menu: void;
-  /** Settings from the pause dialog (placeholder until T2.13). */
+  /** Settings opened (from the menu or the pause dialog). */
   settings: void;
+  /** Progress was reset from Settings. */
+  reset: void;
 }
 
 export interface AppOptions {
@@ -87,6 +97,8 @@ export interface AppOptions {
   now?: () => number;
   /** Ad policy and provider. Without one, no ads (tests, previews). */
   ads?: AdManager;
+  /** Whether this device can vibrate (the Settings haptics row). */
+  hapticsSupported?: boolean;
   /** The first screen after boot. Default: the main menu. */
   startIn?: 'menu' | 'game';
   /** Safe-area insets for the canvas layout. Default: read from CSS `env()`. */
@@ -124,6 +136,11 @@ export class App {
   readonly router: Router;
   readonly gameScreen: GameScreen;
   readonly menuScreen: MenuScreen;
+  readonly settingsScreen: SettingsScreen;
+  /** Where Settings goes back to. */
+  private settingsReturn: Screen | null = null;
+  /** Settings when there is no save (tests, previews). */
+  private readonly localSettings: Settings = defaultSave(0).settings;
   /** Which screen is up. The canvas draws under both; input only works in the game. */
   private screen: 'menu' | 'game' = 'menu';
   /** Whether the current run has been announced (ads run start, `runStart`) yet. */
@@ -242,7 +259,7 @@ export class App {
         onResume: () => this.resume(),
         // Restarting abandons the run on purpose, so no break ad here.
         onRestart: () => this.newRun(),
-        onSettings: () => this.bus.emit('settings', undefined),
+        onSettings: () => this.openSettings(),
         onPlayAgain: () => this.leaveRun(() => this.newRun()),
         // From the pause dialog the run stays saved for Continue; after Game Over a fresh run
         // waits behind the menu (a break point, so a break ad may play first).
@@ -264,7 +281,10 @@ export class App {
     );
     this.menuScreen = new MenuScreen({
       onPlay: () => this.play(),
-      onSettings: () => this.bus.emit('settings', undefined),
+      onSettings: () => this.openSettings(),
+    });
+    this.settingsScreen = new SettingsScreen(this.settingsModel(), {
+      onBack: () => this.closeSettings(),
     });
 
     if (opts.ads) {
@@ -395,6 +415,66 @@ export class App {
 
   get currentScreen(): 'menu' | 'game' {
     return this.screen;
+  }
+
+  /** Opens Settings over the menu or the paused game; Back returns there. */
+  openSettings(): void {
+    if (this.router.screen === this.settingsScreen) return;
+    this.settingsReturn = this.router.screen;
+    void this.router.show(this.settingsScreen);
+    this.bus.emit('settings', undefined);
+  }
+
+  closeSettings(): void {
+    const back =
+      this.settingsReturn ?? (this.screen === 'game' ? this.gameScreen : this.menuScreen);
+    this.settingsReturn = null;
+    void this.router.show(back);
+  }
+
+  /** The persisted settings (or local ones without a save). */
+  get settings(): Readonly<Settings> {
+    return this.opts.save?.current.settings ?? this.localSettings;
+  }
+
+  /** Applies and persists a settings change right away. */
+  applySettings(change: Partial<SettingsValues>): void {
+    const save = this.opts.save;
+    if (save) save.update((s) => Object.assign(s.settings, change));
+    else Object.assign(this.localSettings, change);
+    this.opts.audio?.refresh();
+    this.renderer.requestRedraw();
+  }
+
+  /** Reset progress: the save back to defaults, a fresh run, and the main menu. */
+  resetProgress(): void {
+    this.opts.save?.reset();
+    this.best = 0;
+    this.bestAtRunStart = 0;
+    this.stateValue = this.freshRun(this.seed());
+    this.runResumed = false;
+    this.announced = false;
+    this.gameScreen.gameOver.hide();
+    this.showRun(true);
+    this.persistRun();
+    this.opts.audio?.refresh();
+    this.settingsReturn = this.menuScreen;
+    this.showMenu();
+    this.bus.emit('reset', undefined);
+  }
+
+  private settingsModel(): SettingsModel {
+    return {
+      get: () => ({ ...this.settings, reducedMotion: this.reducedMotion() }),
+      set: (change) => this.applySettings(change),
+      resetProgress: () => this.resetProgress(),
+      hapticsSupported: this.opts.hapticsSupported ?? false,
+      palettes: [{ id: 'tidepool', label: STRINGS.paletteDefault }],
+      version: __APP_VERSION__,
+      build: __BUILD_SHA__,
+      privacyUrl: 'privacy.html',
+      credits: STRINGS.creditsText,
+    };
   }
 
   /** The run's start signals (ads per-run limits and gameplay, `runStart`), once per run. */
@@ -653,7 +733,7 @@ export class App {
    * too slow.
    */
   private ambientOn(): boolean {
-    const lowPower = this.opts.save?.current.settings.lowPower ?? false;
+    const lowPower = this.settings.lowPower;
     return !this.causticsDegraded && !lowPower && !this.reducedMotion();
   }
 
@@ -683,7 +763,7 @@ export class App {
 
   /** Reduced motion: the setting, or the system preference when the setting is "auto". */
   private reducedMotion(): boolean {
-    const setting = this.opts.save?.current.settings.reducedMotion ?? null;
+    const setting = this.settings.reducedMotion;
     if (setting !== null) return setting;
     if (this.opts.prefersReducedMotion) return this.opts.prefersReducedMotion();
     return (

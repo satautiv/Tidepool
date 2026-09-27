@@ -485,6 +485,13 @@ Boot/Loader ─▶ Main Menu ─┬─▶ Endless Game ─▶ (Pause) ─▶ Gam
                           └─▶ Settings (sound, music, palette, colour-blind, reduced motion, low power, reset progress)
 ```
 
+- As built (T2.13): `ui/screens/SettingsScreen.ts` is driven by a `SettingsModel` from the App:
+  - Every change goes through `App.applySettings`, which writes the save and re-applies the audio buses at once.
+  - Sound and music are each a switch plus a volume slider. Haptics shows only where `navigator.vibrate` exists. The palette choice shows with more than one palette.
+  - Reduce motion shows the effective value (the system preference while the setting is "auto"). Toggling it makes it explicit.
+  - Reset progress asks twice. `SaveStore.reset()` restores defaults but keeps `installedAt` and the ad counters, so a reset can't dodge the ad rules. It then returns to the menu with a fresh run.
+  - The footer shows `v<version> · <short SHA>` (Vite `define`), links `privacy.html` (in `public/`), and toggles the credits.
+  - Settings opens from the menu and from the pause dialog, and Back returns to either.
 - As built (T2.12):
   - The game boots into `ui/screens/MenuScreen.ts`: a CSS title with rippling letters, Play/Continue with the best score under it, Voyage (disabled, "soon") and Settings. It sits over the live canvas, where the board and caustics show through softened and the tray is hidden.
   - `App.play()` / `App.showMenu()` switch screens. Input and the run clock only run in the game. The ads' run start and `runStart` fire when a run is first entered, not at boot.

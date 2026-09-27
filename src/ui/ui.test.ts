@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, expect, it, vi } from 'vitest';
 import { FxLayer } from './components/FxLayer';
+import { SettingsScreen, type SettingsModel, type SettingsValues } from './screens/SettingsScreen';
 import { GameOverPanel } from './components/GameOverPanel';
 import { Hud } from './components/Hud';
 import { PauseDialog } from './components/PauseDialog';
@@ -306,5 +307,109 @@ describe('PauseDialog', () => {
     expect(shown('.pause__resume')).toBe(true);
     dialog.hide();
     expect(dialog.visible).toBe(false);
+  });
+});
+
+describe('SettingsScreen', () => {
+  function model(overrides: Partial<SettingsModel> = {}) {
+    const values: SettingsValues = {
+      sfx: 1,
+      music: 0.35,
+      sfxMuted: false,
+      musicMuted: false,
+      haptics: true,
+      palette: 'tidepool',
+      reducedMotion: false,
+      lowPower: false,
+    };
+    const m: SettingsModel & { values: SettingsValues } = {
+      values,
+      get: () => ({ ...values }),
+      set: vi.fn((c) => Object.assign(values, c)),
+      resetProgress: vi.fn(),
+      hapticsSupported: true,
+      palettes: [
+        { id: 'tidepool', label: 'Tidepool' },
+        { id: 'cb', label: 'Colour-blind' },
+      ],
+      version: '1.2.3',
+      build: 'abc1234',
+      privacyUrl: 'privacy.html',
+      credits: 'Thanks',
+      ...overrides,
+    };
+    return m;
+  }
+  const $ = <T extends HTMLElement>(s: SettingsScreen, sel: string) => s.el.querySelector<T>(sel)!;
+
+  it('shows the current values and applies every change at once', () => {
+    const m = model();
+    const screen = new SettingsScreen(m, { onBack: () => {} });
+    screen.mount(h('div'));
+    const music = $<HTMLInputElement>(screen, '[data-setting="music"]');
+    expect(music.value).toBe('35');
+    music.value = '80';
+    music.dispatchEvent(new Event('input'));
+    expect(m.values.music).toBe(0.8);
+
+    const sfxOn = $<HTMLInputElement>(screen, '[data-setting="sfxMuted"]');
+    expect(sfxOn.checked).toBe(true);
+    sfxOn.checked = false;
+    sfxOn.dispatchEvent(new Event('change'));
+    expect(m.values.sfxMuted).toBe(true);
+    screen.refresh();
+    expect($<HTMLInputElement>(screen, '[data-setting="sfx"]').disabled).toBe(true);
+
+    for (const key of ['haptics', 'reducedMotion', 'lowPower'] as const) {
+      const box = $<HTMLInputElement>(screen, `[data-setting="${key}"]`);
+      box.checked = !box.checked;
+      box.dispatchEvent(new Event('change'));
+    }
+    expect(m.values).toMatchObject({ haptics: false, reducedMotion: true, lowPower: true });
+
+    const palette = $<HTMLSelectElement>(screen, '[data-setting="palette"]');
+    palette.value = 'cb';
+    palette.dispatchEvent(new Event('change'));
+    expect(m.values.palette).toBe('cb');
+  });
+
+  it('hides haptics where unsupported and the palette choice with one palette', () => {
+    const screen = new SettingsScreen(
+      model({ hapticsSupported: false, palettes: [{ id: 'tidepool', label: 'Tidepool' }] }),
+      { onBack: () => {} },
+    );
+    expect(screen.el.querySelector('[data-setting="haptics"]')).toBeNull();
+    expect(screen.el.querySelector('[data-setting="palette"]')).toBeNull();
+  });
+
+  it('asks twice before resetting progress', () => {
+    const m = model();
+    const screen = new SettingsScreen(m, { onBack: () => {} });
+    screen.mount(h('div'));
+    const visible = (sel: string) => !$(screen, sel).closest('[hidden]');
+    expect(visible('.settings__reset')).toBe(true);
+    $(screen, '.settings__reset').click();
+    expect(visible('.settings__reset-yes')).toBe(true);
+    $(screen, '.settings__reset-no').click();
+    expect(visible('.settings__reset')).toBe(true);
+    $(screen, '.settings__reset').click();
+    $(screen, '.settings__reset-yes').click();
+    expect(m.resetProgress).not.toHaveBeenCalled();
+    $(screen, '.settings__reset-final').click();
+    expect(m.resetProgress).toHaveBeenCalledOnce();
+    expect(visible('.settings__reset')).toBe(true);
+  });
+
+  it('has a footer with version, build, privacy and credits, and a back button', () => {
+    const back = vi.fn();
+    const screen = new SettingsScreen(model(), { onBack: back });
+    expect(screen.el.querySelector('footer')!.textContent).toContain('v1.2.3 · abc1234');
+    expect($<HTMLAnchorElement>(screen, 'footer a').getAttribute('href')).toBe('privacy.html');
+    const credits = $(screen, '.settings__credits');
+    expect(credits.hidden).toBe(true);
+    $(screen, '.settings__credits-toggle').click();
+    expect(credits.hidden).toBe(false);
+    $(screen, '.settings__back').click();
+    expect(back).toHaveBeenCalledOnce();
   });
 });

@@ -66,6 +66,7 @@ const app = new App({
   ads,
   audio,
   haptics: new WebHaptics(() => save.current.settings.haptics),
+  hapticsSupported: typeof navigator.vibrate === 'function',
   canvas,
   uiRoot,
   palette: TIDEPOOL,

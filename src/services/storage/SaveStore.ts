@@ -192,6 +192,19 @@ export class SaveStore {
     }, this.debounceMs);
   }
 
+  /**
+   * Reset progress (Settings): everything back to defaults except the install date and the ad
+   * policy counters, so resetting can't be used to skip the first-session and frequency rules.
+   */
+  reset(): void {
+    const keep = this.loaded();
+    const fresh = defaultSave(this.now());
+    fresh.installedAt = keep.installedAt;
+    fresh.ads = keep.ads;
+    this.data = fresh;
+    this.update(() => {});
+  }
+
   /** Writes any pending change now (tab hidden, page closing). */
   async flush(): Promise<void> {
     if (this.timer !== null) {
