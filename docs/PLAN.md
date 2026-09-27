@@ -836,7 +836,9 @@ The IDs map one-to-one to GitHub issues (the issue title starts with the ID). Si
 | Levels | `tools/levels/validate` | Schema validity + bot solvability for every level file. |
 | Manual | Checklist in T3.10 | Real devices, touch feel, audio, ad flows. |
 
-Testing hooks: dev builds expose `window.__tidepool` (state dump, set board, set seed, force game over). It's stripped from production builds.
+Testing hooks: dev builds expose `window.__tidepool` (`src/app/devHook.ts`: `getState`, `setSeed`, `setBoard(rows, tray?)`, `forceGameOver`, `slotCenter`, `cellCenter`, and `dropPoint(slot, row, col, kind)`, which mirrors the drag offsets for mouse and touch). `main.ts` imports it only under `import.meta.env.DEV`, and CI runs `npm run check:dist` after the build to prove it isn't in `dist/`.
+
+E2E (`e2e/`, `npm run test:e2e`) runs against the dev server in Chromium desktop and Pixel 7 emulation. On mobile, real touch input goes through CDP `Input.dispatchTouchEvent`. It runs as a separate CI job.
 
 ---
 

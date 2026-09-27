@@ -20,6 +20,8 @@ npm test               # all Vitest tests (src/**/*.test.ts, tools/**/*.test.ts)
 npx vitest run src/core/config.test.ts      # single file
 npx vitest run -t "forbids Math.random"     # single test by name
 npm run test:watch
+npm run test:e2e       # Playwright smoke tests (e2e/), desktop + Pixel 7 touch; starts its own dev server
+npm run check:dist     # after build: fails if dev-only hooks (window.__tidepool) leaked into dist/
 npm run lint           # ESLint (includes layer-boundary rules)
 npm run typecheck      # tsc --noEmit
 npm run format         # Prettier (code only; *.md is excluded on purpose)

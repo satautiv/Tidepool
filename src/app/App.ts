@@ -264,6 +264,26 @@ export class App {
     this.bus.emit('runStart', { state: this.stateValue, seed, resumed: false });
   }
 
+  /**
+   * Replaces the run in progress with `state` (dev tools and E2E tests), as if it were resumed.
+   * A state that is already over goes straight to Game Over.
+   */
+  loadState(state: EndlessState): void {
+    this.stateValue = state;
+    this.gameScreen.gameOver.hide();
+    this.gameScreen.pause.hide();
+    this.paused = false;
+    this.syncInput();
+    this.showRun(false, true);
+    this.persistRun();
+    if (state.over) void this.showGameOver();
+  }
+
+  /** Where a tray slot's piece is drawn, in canvas CSS px (dev tools and E2E tests). */
+  slotPieceRect(slot: number): { x: number; y: number; width: number; height: number } | null {
+    return this.trayView.pieceRect(slot);
+  }
+
   /** Applies a drop. Invalid intents (stale drags) are ignored and reported. */
   place({ slot, row, col }: PlaceIntent): { error: PlaceError } | undefined {
     this.trayView.setDragging(null);

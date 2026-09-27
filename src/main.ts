@@ -51,5 +51,8 @@ const app = new App({
 analytics.attach(app);
 app.start();
 
-// Dev-only handle for debugging and browser tests (formalised in T1.26). Stripped from builds.
-if (import.meta.env.DEV) Object.assign(window, { __tidepool: app });
+// Dev-only handle for debugging and E2E tests. The import is dropped from production builds.
+if (import.meta.env.DEV) {
+  const { createTestHook } = await import('./app/devHook');
+  Object.assign(window, { __tidepool: createTestHook(app, canvas) });
+}
