@@ -5,21 +5,10 @@
 import { TRAY_SIZE } from '../core/config';
 import type { TraySlot } from '../core/generator';
 import { getShape, type Shape } from '../core/shapes';
+import { FEEL } from './feel';
 import type { SceneContext, SceneView } from './GameScene';
 import { rectContains, type Layout, type Rect } from './layout';
-
-export const TRAY_FEEL = {
-  /** Deal-in duration per piece, seconds. */
-  dealDuration: 0.22,
-  /** Delay between consecutive pieces, seconds. */
-  dealStagger: 0.06,
-  /** How far a piece slides up during deal-in, as a share of the slot height. */
-  dealRise: 0.35,
-  /** Opacity of the slot whose piece is being dragged. */
-  draggingAlpha: 0.3,
-} as const;
-
-const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
+import { Ease } from './tween';
 
 /** Where a shape sits when centred in a slot at the tray scale (CSS px). */
 export function pieceRectInSlot(shape: Shape, slot: Rect, layout: Layout): Rect {
@@ -79,7 +68,7 @@ export class TrayView implements SceneView {
   update(dt: number): void {
     if (this.dealClock === null) return;
     this.dealClock += dt;
-    const total = TRAY_FEEL.dealDuration + TRAY_FEEL.dealStagger * (TRAY_SIZE - 1);
+    const total = FEEL.deal.duration + FEEL.deal.stagger * (TRAY_SIZE - 1);
     if (this.dealClock >= total) this.dealClock = null;
   }
 
@@ -90,8 +79,8 @@ export class TrayView implements SceneView {
   /** Deal-in progress for a slot, 0..1 (1 when not animating). */
   dealProgress(slot: number): number {
     if (this.dealClock === null) return 1;
-    const t = (this.dealClock - slot * TRAY_FEEL.dealStagger) / TRAY_FEEL.dealDuration;
-    return easeOutCubic(Math.min(1, Math.max(0, t)));
+    const t = (this.dealClock - slot * FEEL.deal.stagger) / FEEL.deal.duration;
+    return Ease.cubicOut(Math.min(1, Math.max(0, t)));
   }
 
   draw(ctx: CanvasRenderingContext2D, { layout, sprites }: SceneContext): void {
@@ -101,9 +90,9 @@ export class TrayView implements SceneView {
       const shape = getShape(piece.shape);
       const rect = pieceRectInSlot(shape, layout.traySlots[i]!, layout);
       const p = this.dealProgress(i);
-      const alpha = (i === this.dragging ? TRAY_FEEL.draggingAlpha : 1) * p;
+      const alpha = (i === this.dragging ? FEEL.pickUp.trayDimAlpha : 1) * p;
       if (alpha <= 0) return;
-      const rise = (1 - p) * layout.traySlots[i]!.height * TRAY_FEEL.dealRise;
+      const rise = (1 - p) * layout.traySlots[i]!.height * FEEL.deal.rise;
 
       ctx.save();
       ctx.globalAlpha = alpha;

@@ -6,16 +6,8 @@
 import { lineCells, previewClears, type Board } from '../core/board';
 import { BOARD_SIZE } from '../core/config';
 import type { DragState } from '../input/DragController';
+import { FEEL } from './feel';
 import type { SceneContext, SceneView } from './GameScene';
-
-export const GHOST_FEEL = {
-  /** Opacity of the faded piece under the ghost outline. */
-  fillAlpha: 0.35,
-  /** Would-clear highlight pulse period (s) and opacity range. */
-  pulsePeriod: 1.2,
-  pulseMin: 0.55,
-  pulseMax: 1,
-} as const;
 
 interface Preview {
   key: string;
@@ -49,7 +41,7 @@ export class GhostView implements SceneView {
   }
 
   update(dt: number): void {
-    this.clock = (this.clock + dt) % GHOST_FEEL.pulsePeriod;
+    this.clock = (this.clock + dt) % FEEL.ghost.pulsePeriod;
   }
 
   /** Keeps frames coming while the would-clear highlight pulses. */
@@ -58,7 +50,7 @@ export class GhostView implements SceneView {
   }
 
   pulseAlpha(): number {
-    const { pulseMin, pulseMax, pulsePeriod } = GHOST_FEEL;
+    const { pulseMin, pulseMax, pulsePeriod } = FEEL.ghost;
     const wave = (1 - Math.cos((this.clock / pulsePeriod) * Math.PI * 2)) / 2;
     return pulseMin + (pulseMax - pulseMin) * wave;
   }
@@ -74,7 +66,7 @@ export class GhostView implements SceneView {
     ];
 
     ctx.save();
-    ctx.globalAlpha = GHOST_FEEL.fillAlpha;
+    ctx.globalAlpha = FEEL.ghost.fillAlpha;
     const block = sprites.block(d.color);
     for (const i of p.ghostCells) ctx.drawImage(block, ...at(i), c, c);
     ctx.globalAlpha = 1;

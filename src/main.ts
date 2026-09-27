@@ -46,6 +46,10 @@ const app = new App({
   uiRoot,
   palette: TIDEPOOL,
   debug: import.meta.env.DEV && params.has('debug'),
+  // Dev: `?slowmo=0.25` plays every animation at quarter speed.
+  ...(import.meta.env.DEV && params.has('slowmo')
+    ? { renderer: { timeScale: Number(params.get('slowmo')) || 1 } }
+    : {}),
   ...(import.meta.env.DEV && seed ? { seed: () => seed } : {}),
 });
 analytics.attach(app);
@@ -55,4 +59,8 @@ app.start();
 if (import.meta.env.DEV) {
   const { createTestHook } = await import('./app/devHook');
   Object.assign(window, { __tidepool: createTestHook(app, canvas) });
+  if (params.has('feel')) {
+    const { createFeelPanel } = await import('./app/FeelPanel');
+    document.body.append(createFeelPanel());
+  }
 }

@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { boardFromAscii, emptyBoard, type Board } from '../core/board';
 import { getShape } from '../core/shapes';
 import type { DragState } from '../input/DragController';
+import { FEEL } from './feel';
 import { GameScene } from './GameScene';
-import { GHOST_FEEL, GhostView } from './GhostView';
+import { GhostView } from './GhostView';
 import { TIDEPOOL } from './palettes';
 import { SpriteSet } from './sprites';
 import { fakeCanvasFactory, fakeContext } from './testing';
@@ -90,9 +91,9 @@ describe('GhostView', () => {
     expect(highlights).toHaveLength(8);
     expect(view.isAnimating()).toBe(true);
 
-    expect(view.pulseAlpha()).toBeCloseTo(GHOST_FEEL.pulseMin);
-    view.update(GHOST_FEEL.pulsePeriod / 2);
-    expect(view.pulseAlpha()).toBeCloseTo(GHOST_FEEL.pulseMax);
+    expect(view.pulseAlpha()).toBeCloseTo(FEEL.ghost.pulseMin);
+    view.update(FEEL.ghost.pulsePeriod / 2);
+    expect(view.pulseAlpha()).toBeCloseTo(FEEL.ghost.pulseMax);
   });
 
   it('caches the preview until the target or board changes', () => {

@@ -7,24 +7,10 @@ import { emptyBoard, type Board } from '../core/board';
 import { BOARD_SIZE } from '../core/config';
 import type { GameEvent } from '../core/game';
 import { getShape } from '../core/shapes';
+import { FEEL } from './feel';
 import type { SceneContext, SceneView } from './GameScene';
 import { CELL_STYLE } from './sprites';
 import { Ease, Tweener } from './tween';
-
-export const BOARD_FEEL = {
-  /** Placed cells pop in from this scale with a slight overshoot. */
-  placeFrom: 0.86,
-  placeDuration: 0.16,
-  clearDuration: 0.26,
-  /** Delay per cell of distance from the placed piece, so clears ripple outward. */
-  clearStagger: 0.022,
-  /** How far (CSS px) dissolving cells lift, and the scale they shrink to. */
-  clearLift: 6,
-  clearScaleTo: 0.8,
-  /** Game over: blocks fade towards the sand to this opacity over this long (s). */
-  fadeTo: 0.25,
-  fadeDuration: 0.5,
-} as const;
 
 interface CellFx {
   scale: number;
@@ -70,8 +56,8 @@ export class BoardView implements SceneView {
   fadeOut(done: () => void = () => {}): void {
     this.tweener.to(
       this.fade,
-      { alpha: BOARD_FEEL.fadeTo },
-      { duration: BOARD_FEEL.fadeDuration, ease: Ease.quadOut, onComplete: done },
+      { alpha: FEEL.gameOver.fadeTo },
+      { duration: FEEL.gameOver.fadeDuration, ease: Ease.quadOut, onComplete: done },
     );
     this.invalidate();
   }
@@ -81,7 +67,7 @@ export class BoardView implements SceneView {
     this.tweener.to(
       this.fade,
       { alpha: 1 },
-      { duration: BOARD_FEEL.fadeDuration, ease: Ease.quadOut },
+      { duration: FEEL.gameOver.fadeDuration, ease: Ease.quadOut },
     );
     this.invalidate();
   }
@@ -104,13 +90,13 @@ export class BoardView implements SceneView {
     for (const [r, c] of shape.cells) {
       const i = (placed.row + r) * BOARD_SIZE + placed.col + c;
       if (after.cells[i]!.color === null) continue; // cleared straight away
-      const fx: CellFx = { scale: BOARD_FEEL.placeFrom };
+      const fx: CellFx = { scale: FEEL.drop.placeFrom };
       this.placing.set(i, fx);
       this.tweener.to(
         fx,
         { scale: 1 },
         {
-          duration: BOARD_FEEL.placeDuration,
+          duration: FEEL.drop.placeDuration,
           ease: Ease.backOut,
           onComplete: () => {
             if (this.placing.get(i) === fx) this.placing.delete(i);
@@ -132,10 +118,10 @@ export class BoardView implements SceneView {
         );
         this.tweener.to(
           cell,
-          { alpha: 0, offsetY: -BOARD_FEEL.clearLift, scale: BOARD_FEEL.clearScaleTo },
+          { alpha: 0, offsetY: -FEEL.lineClear.lift, scale: FEEL.lineClear.scaleTo },
           {
-            duration: BOARD_FEEL.clearDuration,
-            delay: dist * BOARD_FEEL.clearStagger,
+            duration: FEEL.lineClear.duration,
+            delay: dist * FEEL.lineClear.stagger,
             ease: Ease.quadOut,
             onComplete: () => {
               this.dissolving = this.dissolving.filter((d) => d !== cell);

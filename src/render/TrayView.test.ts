@@ -1,13 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { TraySlot } from '../core/generator';
 import { getShape, STANDARD_SHAPES } from '../core/shapes';
+import { FEEL } from './feel';
 import { GameScene } from './GameScene';
 import { computeLayout, rectContains } from './layout';
 import { TIDEPOOL } from './palettes';
 import type { FrameInfo } from './Renderer';
 import { SpriteSet } from './sprites';
 import { fakeCanvasFactory, fakeContext } from './testing';
-import { pieceRectInSlot, TRAY_FEEL, TrayView } from './TrayView';
+import { pieceRectInSlot, TrayView } from './TrayView';
 
 const viewport = { width: 390, height: 844, dpr: 2 };
 const frame: FrameInfo = { dt: 0, time: 0, viewport };
@@ -65,7 +66,7 @@ describe('TrayView drawing', () => {
       return original(...args);
     }) as typeof ctx.drawImage;
     scene.draw(ctx, frame);
-    expect(alphas).toEqual([1, TRAY_FEEL.draggingAlpha, 1]);
+    expect(alphas).toEqual([1, FEEL.pickUp.trayDimAlpha, 1]);
   });
 });
 
@@ -89,7 +90,7 @@ describe('TrayView deal-in', () => {
   it('slides pieces up from below while fading in', () => {
     const { scene, tray, layout } = setup();
     tray.setTray([slot('dot'), null, null], true);
-    tray.update(TRAY_FEEL.dealDuration / 2);
+    tray.update(FEEL.deal.duration / 2);
     const ctx = fakeContext();
     scene.draw(ctx, frame);
     const rest = pieceRectInSlot(getShape('dot'), layout.traySlots[0]!, layout);

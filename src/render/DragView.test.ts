@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { getShape } from '../core/shapes';
 import type { DragState } from '../input/DragController';
-import { DRAG_FEEL, DragView } from './DragView';
+import { DragView } from './DragView';
+import { FEEL } from './feel';
 import { GameScene } from './GameScene';
 import { TIDEPOOL } from './palettes';
 import { SpriteSet } from './sprites';
@@ -51,7 +52,7 @@ describe('DragView', () => {
     const start = view.pieceBox(d, layout.cellSize);
     expect(start).toMatchObject({ x: 20, y: 600, width: 40 });
 
-    scene.update(DRAG_FEEL.liftDuration);
+    scene.update(FEEL.pickUp.liftDuration);
     expect(view.isAnimating()).toBe(false);
     const end = view.pieceBox(d, layout.cellSize);
     expect(end).toMatchObject({ x: 100, y: 100, width: 2 * layout.cellSize });
@@ -88,7 +89,7 @@ describe('DragView return to tray', () => {
     scene.draw(ctx, { dt: 0, time: 0, viewport });
     expect(ctx.count('drawImage')).toBe(4);
 
-    scene.update(DRAG_FEEL.returnDuration);
+    scene.update(FEEL.invalidDrop.returnDuration);
     expect(done).toHaveBeenCalledTimes(1);
     expect(view.isAnimating()).toBe(false);
     ctx = fakeContext();

@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { boardFromAscii, emptyBoard } from '../core/board';
 import { newEndless, placePiece, type EndlessState } from '../core/game';
-import { BOARD_FEEL, BoardView } from './BoardView';
+import { BoardView } from './BoardView';
+import { FEEL } from './feel';
 import { GameScene } from './GameScene';
 import { TIDEPOOL } from './palettes';
 import { SpriteSet } from './sprites';
@@ -47,7 +48,7 @@ describe('BoardView animations', () => {
         .map((c) => c[4] as number);
     };
     const c = scene.layout!.cellSize;
-    expect(sizes()[0]).toBeCloseTo(c * BOARD_FEEL.placeFrom);
+    expect(sizes()[0]).toBeCloseTo(c * FEEL.drop.placeFrom);
     scene.update(1);
     expect(view.isAnimating()).toBe(false);
     expect(sizes()).toEqual([c, c, c, c]);
@@ -142,7 +143,7 @@ describe('BoardView animations', () => {
     view.setBoard(boardFromAscii(['#.......', ...EMPTY.slice(1)]));
     const done = vi.fn();
     view.fadeOut(done);
-    scene.update(BOARD_FEEL.fadeDuration);
+    scene.update(FEEL.gameOver.fadeDuration);
     expect(done).toHaveBeenCalledTimes(1);
 
     const alphaOfBlock = () => {
@@ -156,7 +157,7 @@ describe('BoardView animations', () => {
       scene.draw(ctx, frame);
       return alphas[1];
     };
-    expect(alphaOfBlock()).toBeCloseTo(BOARD_FEEL.fadeTo);
+    expect(alphaOfBlock()).toBeCloseTo(FEEL.gameOver.fadeTo);
     view.setBoard(boardFromAscii(['#.......', ...EMPTY.slice(1)]));
     expect(alphaOfBlock()).toBe(1);
   });

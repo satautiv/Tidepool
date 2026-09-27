@@ -1,6 +1,7 @@
 /**
- * Minimal tween engine (docs/PLAN.md §7.4). Tweens numeric properties of plain objects and is
- * advanced by the owning view's `update(dt)`, so it runs on the renderer's clock.
+ * Tween engine (docs/PLAN.md §7.4). Tweens numeric properties of plain objects and is advanced
+ * by the owning view's `update(dt)`, so it runs on the renderer's clock (and its time scale).
+ * `sequence`, `parallel` and `wait` chain tweens without timers or promises.
  */
 
 export type Easing = (t: number) => number;
@@ -15,6 +16,14 @@ export const Ease = {
     const c3 = c1 + 1;
     return 1 + c3 * (t - 1) ** 3 + c1 * (t - 1) ** 2;
   },
+  /** Springs past 1 a few times, settling by the end. */
+  elasticOut: (t: number) => {
+    if (t <= 0) return 0;
+    if (t >= 1) return 1;
+    const period = (2 * Math.PI) / 3;
+    return 2 ** (-10 * t) * Math.sin((t * 10 - 0.75) * period) + 1;
+  },
+  sineInOut: (t: number) => -(Math.cos(Math.PI * t) - 1) / 2,
 } satisfies Record<string, Easing>;
 
 export interface TweenOptions {
@@ -26,8 +35,47 @@ export interface TweenOptions {
 }
 
 export interface TweenHandle {
+  /** Stops it where it is. `whenDone` callbacks don't run. */
   cancel(): void;
+  /** True once finished or cancelled. */
   readonly done: boolean;
+  /** Runs `fn` when it finishes normally (right away if it already has). */
+  whenDone(fn: () => void): void;
+}
+
+/** Starts one step of a `sequence` or `parallel` and returns its handle. */
+export type TweenStep = () => TweenHandle;
+
+/** A handle that completes by hand: the building block for groups. */
+class ManualHandle implements TweenHandle {
+  done = false;
+  private finished = false;
+  private listeners: Array<() => void> = [];
+  private readonly onCancel: () => void;
+
+  constructor(onCancel: () => void = () => {}) {
+    this.onCancel = onCancel;
+  }
+
+  cancel(): void {
+    if (this.done) return;
+    this.done = true;
+    this.listeners = [];
+    this.onCancel();
+  }
+
+  whenDone(fn: () => void): void {
+    if (this.finished) fn();
+    else if (!this.done) this.listeners.push(fn);
+  }
+
+  finish(): void {
+    if (this.done) return;
+    this.done = this.finished = true;
+    const listeners = this.listeners;
+    this.listeners = [];
+    for (const fn of listeners) fn();
+  }
 }
 
 type Numeric<T> = { [K in keyof T]: T[K] extends number ? K : never }[keyof T];
@@ -41,7 +89,7 @@ interface Tween {
   duration: number;
   ease: Easing;
   onComplete?: () => void;
-  done: boolean;
+  handle: ManualHandle;
   started: boolean;
 }
 
@@ -58,6 +106,9 @@ export class Tweener {
     props: Partial<Pick<T, Numeric<T>>>,
     opts: TweenOptions,
   ): TweenHandle {
+    const handle = new ManualHandle(() => {
+      this.tweens = this.tweens.filter((t) => t !== tween);
+    });
     const tween: Tween = {
       target: target as unknown as Record<string, number>,
       from: {},
@@ -67,19 +118,47 @@ export class Tweener {
       duration: Math.max(0, opts.duration),
       ease: opts.ease ?? Ease.quadOut,
       onComplete: opts.onComplete,
-      done: false,
+      handle,
       started: false,
     };
     this.tweens.push(tween);
-    return {
-      cancel: () => {
-        tween.done = true;
-        this.tweens = this.tweens.filter((t) => t !== tween);
-      },
-      get done() {
-        return tween.done;
-      },
+    return handle;
+  }
+
+  /** Does nothing for `seconds`: a pause inside a `sequence` (e.g. a callout's hold). */
+  wait(seconds: number): TweenHandle {
+    return this.to({ t: 0 }, { t: 1 }, { duration: seconds, ease: Ease.linear });
+  }
+
+  /** Runs the steps one after another. Cancelling stops the current step and the rest. */
+  sequence(...steps: TweenStep[]): TweenHandle {
+    let current: TweenHandle | null = null;
+    const group = new ManualHandle(() => current?.cancel());
+    const next = (i: number) => {
+      if (group.done) return;
+      const step = steps[i];
+      if (!step) return group.finish();
+      current = step();
+      current.whenDone(() => next(i + 1));
     };
+    next(0);
+    return group;
+  }
+
+  /** Runs the steps together; done when all are. Cancelling stops them all. */
+  parallel(...steps: TweenStep[]): TweenHandle {
+    const handles: TweenHandle[] = [];
+    const group = new ManualHandle(() => handles.forEach((h) => h.cancel()));
+    let remaining = steps.length;
+    if (remaining === 0) group.finish();
+    for (const step of steps) {
+      const handle = step();
+      handles.push(handle);
+      handle.whenDone(() => {
+        if (--remaining === 0) group.finish();
+      });
+    }
+    return group;
   }
 
   update(dt: number): void {
@@ -103,13 +182,14 @@ export class Tweener {
     if (finished.length === 0) return;
     this.tweens = this.tweens.filter((t) => !finished.includes(t));
     for (const t of finished) {
-      t.done = true;
       t.onComplete?.();
+      t.handle.finish();
     }
   }
 
   cancelAll(): void {
-    for (const t of this.tweens) t.done = true;
+    const tweens = this.tweens;
     this.tweens = [];
+    for (const t of tweens) t.handle.cancel();
   }
 }

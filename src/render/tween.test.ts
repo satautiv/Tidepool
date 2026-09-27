@@ -85,3 +85,114 @@ describe('Tweener', () => {
     expect(obj.x).toBe(2);
   });
 });
+
+describe('Tween v2 easings', () => {
+  it.each(['elasticOut', 'sineInOut'] as const)('%s runs from 0 to 1', (name) => {
+    expect(Ease[name](0)).toBeCloseTo(0);
+    expect(Ease[name](1)).toBeCloseTo(1);
+  });
+
+  it('elasticOut overshoots, sineInOut is symmetric', () => {
+    const samples = Array.from({ length: 50 }, (_, i) => Ease.elasticOut(i / 50));
+    expect(Math.max(...samples)).toBeGreaterThan(1);
+    expect(Ease.sineInOut(0.5)).toBeCloseTo(0.5);
+    expect(Ease.sineInOut(0.25)).toBeCloseTo(1 - Ease.sineInOut(0.75));
+  });
+});
+
+describe('sequence, parallel and wait', () => {
+  it('runs a sequence step by step, including a wait', () => {
+    const t = new Tweener();
+    const obj = { scale: 0.6 };
+    const done = vi.fn();
+    t.sequence(
+      () => t.to(obj, { scale: 1.12 }, { duration: 0.1, ease: Ease.linear }),
+      () => t.to(obj, { scale: 1 }, { duration: 0.1, ease: Ease.linear }),
+      () => t.wait(0.5),
+    ).whenDone(done);
+    t.update(0.05);
+    expect(obj.scale).toBeCloseTo(0.86);
+    t.update(0.05);
+    expect(obj.scale).toBeCloseTo(1.12);
+    t.update(0.05); // the second step starts from where the first ended
+    expect(obj.scale).toBeCloseTo(1.06);
+    t.update(0.05);
+    expect(obj.scale).toBeCloseTo(1);
+    t.update(0.4);
+    expect(done).not.toHaveBeenCalled();
+    t.update(0.1);
+    expect(done).toHaveBeenCalledOnce();
+    expect(t.active).toBe(0);
+  });
+
+  it('finishes a parallel group when its longest step does', () => {
+    const t = new Tweener();
+    const a = { x: 0 };
+    const b = { y: 0 };
+    const group = t.parallel(
+      () => t.to(a, { x: 1 }, { duration: 0.1 }),
+      () => t.to(b, { y: 1 }, { duration: 0.3 }),
+    );
+    t.update(0.1);
+    expect(a.x).toBe(1);
+    expect(group.done).toBe(false);
+    t.update(0.2);
+    expect(b.y).toBe(1);
+    expect(group.done).toBe(true);
+  });
+
+  it('nests groups, and empty groups finish at once', () => {
+    const t = new Tweener();
+    const obj = { x: 0, y: 0 };
+    const done = vi.fn();
+    t.sequence(
+      () =>
+        t.parallel(
+          () => t.to(obj, { x: 1 }, { duration: 0.1 }),
+          () => t.to(obj, { y: 1 }, { duration: 0.1 }),
+        ),
+      () => t.to(obj, { x: 2 }, { duration: 0.1 }),
+    ).whenDone(done);
+    t.update(0.1);
+    t.update(0.1);
+    expect(obj).toEqual({ x: 2, y: 1 });
+    expect(done).toHaveBeenCalledOnce();
+    expect(t.sequence().done).toBe(true);
+    expect(t.parallel().done).toBe(true);
+  });
+
+  it('cancels a sequence: the current step stops and later ones never start', () => {
+    const t = new Tweener();
+    const obj = { x: 0 };
+    const done = vi.fn();
+    const seq = t.sequence(
+      () => t.to(obj, { x: 1 }, { duration: 0.2, ease: Ease.linear }),
+      () => t.to(obj, { x: 5 }, { duration: 0.1 }),
+    );
+    seq.whenDone(done);
+    t.update(0.1);
+    seq.cancel();
+    t.update(1);
+    expect(obj.x).toBeCloseTo(0.5);
+    expect(t.active).toBe(0);
+    expect(seq.done).toBe(true);
+    expect(done).not.toHaveBeenCalled();
+  });
+
+  it('calls whenDone right away for finished tweens, never for cancelled ones', () => {
+    const t = new Tweener();
+    const h = t.to({ x: 0 }, { x: 1 }, { duration: 0.1 });
+    t.update(0.1);
+    const late = vi.fn();
+    h.whenDone(late);
+    expect(late).toHaveBeenCalledOnce();
+
+    const c = t.to({ x: 0 }, { x: 1 }, { duration: 0.1 });
+    const never = vi.fn();
+    c.whenDone(never);
+    t.cancelAll();
+    c.whenDone(never);
+    t.update(1);
+    expect(never).not.toHaveBeenCalled();
+  });
+});

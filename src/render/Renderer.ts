@@ -16,7 +16,7 @@ export interface Viewport {
 }
 
 export interface FrameInfo {
-  /** Seconds since the previous frame, clamped to `maxDt`. 0 on the first frame after idle. */
+  /** Seconds since the previous frame, clamped to `maxDt`, times `timeScale`. 0 after idle. */
   readonly dt: number;
   readonly time: number;
   readonly viewport: Viewport;
@@ -47,6 +47,8 @@ export interface RendererStats {
 export interface RendererOptions {
   maxDpr?: number;
   maxDt?: number;
+  /** Animation speed: 0.25 = quarter-speed slow motion (dev `?slowmo=0.25`). Default 1. */
+  timeScale?: number;
   scheduler?: FrameScheduler;
   /** Clock for frame-work timing; defaults to performance.now. */
   now?: () => number;
@@ -61,6 +63,8 @@ export const browserScheduler: FrameScheduler = {
 
 export class Renderer {
   readonly stats: RendererStats = { draws: 0, lastFrameMs: 0, lastIntervalMs: 0 };
+  /** Multiplies every frame's `dt`, so all animations speed up or slow down together. */
+  timeScale: number;
   private readonly ctx: CanvasRenderingContext2D;
   private readonly views: View[] = [];
   private readonly maxDpr: number;
@@ -82,6 +86,7 @@ export class Renderer {
     this.ctx = ctx as CanvasRenderingContext2D;
     this.maxDpr = opts.maxDpr ?? RENDER.maxDpr;
     this.maxDt = opts.maxDt ?? RENDER.maxDt;
+    this.timeScale = opts.timeScale ?? 1;
     this.scheduler = opts.scheduler ?? browserScheduler;
     this.now = opts.now ?? (() => performance.now());
   }
@@ -150,7 +155,9 @@ export class Renderer {
   private frame(timeMs: number): void {
     this.frameId = null;
     const started = this.now();
-    const dt = this.lastTime === null ? 0 : Math.min((timeMs - this.lastTime) / 1000, this.maxDt);
+    const realDt =
+      this.lastTime === null ? 0 : Math.min((timeMs - this.lastTime) / 1000, this.maxDt);
+    const dt = realDt * this.timeScale;
     this.stats.lastIntervalMs = this.lastTime === null ? 0 : timeMs - this.lastTime;
     this.lastTime = timeMs;
 

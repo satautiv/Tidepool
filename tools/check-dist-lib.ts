@@ -5,7 +5,12 @@ import { join } from 'node:path';
  * Markers that only exist in dev-only code. Property names survive minification; the
  * lookahead keeps the storage probe key `__tidepool_probe__` from matching.
  */
-export const DEV_MARKERS = [/__tidepool(?!_)/, /\bdropPoint\b/, /\bforceGameOver\b/];
+export const DEV_MARKERS = [
+  /__tidepool(?!_)/,
+  /\bdropPoint\b/,
+  /\bforceGameOver\b/,
+  /Feel \(dev\)/,
+];
 
 /** Lists `file: marker` for every built JS/HTML file under `dir` that contains a marker. */
 export function findDevCode(dir: string, markers = DEV_MARKERS): string[] {

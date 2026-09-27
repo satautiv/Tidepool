@@ -4,14 +4,9 @@
  */
 import type { Shape } from '../core/shapes';
 import type { Box, DragState } from '../input/DragController';
+import { FEEL } from './feel';
 import type { SceneContext, SceneView } from './GameScene';
 import { Ease, Tweener } from './tween';
-
-export const DRAG_FEEL = {
-  liftDuration: 0.09,
-  /** An invalid drop floats back to its tray slot over this long (s). */
-  returnDuration: 0.2,
-} as const;
 
 interface Returning {
   shape: Shape;
@@ -20,8 +15,6 @@ interface Returning {
   y: number;
   width: number;
 }
-
-const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
 
 export class DragView implements SceneView {
   private lift = 1;
@@ -61,7 +54,7 @@ export class DragView implements SceneView {
       piece,
       { x: to.x, y: to.y, width: to.width },
       {
-        duration: DRAG_FEEL.returnDuration,
+        duration: FEEL.invalidDrop.returnDuration,
         ease: Ease.backOut,
         onComplete: () => {
           if (this.returning === piece) this.returning = null;
@@ -78,7 +71,7 @@ export class DragView implements SceneView {
       this.lift = 0;
     }
     this.current = drag;
-    if (drag && this.lift < 1) this.lift = Math.min(1, this.lift + dt / DRAG_FEEL.liftDuration);
+    if (drag && this.lift < 1) this.lift = Math.min(1, this.lift + dt / FEEL.pickUp.liftDuration);
   }
 
   isAnimating(): boolean {
@@ -87,7 +80,7 @@ export class DragView implements SceneView {
 
   /** The rect the piece is drawn at, interpolating from its tray rect while lifting. */
   pieceBox(drag: DragState, cellSize: number) {
-    const t = easeOutCubic(this.lift);
+    const t = Ease.cubicOut(this.lift);
     const fullW = drag.shape.width * cellSize;
     const fullH = drag.shape.height * cellSize;
     const lerp = (a: number, b: number) => a + (b - a) * t;

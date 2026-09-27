@@ -48,7 +48,7 @@ function fakeCanvas() {
   return { canvas: canvas as unknown as HTMLCanvasElement, ctx };
 }
 
-function setup(opts: { maxDpr?: number } = {}) {
+function setup(opts: { maxDpr?: number; timeScale?: number } = {}) {
   const scheduler = new FakeScheduler();
   const { canvas, ctx } = fakeCanvas();
   const renderer = new Renderer(canvas, { scheduler, now: () => scheduler.time, ...opts });
@@ -157,6 +157,19 @@ describe('Renderer frame loop', () => {
     renderer.requestRedraw();
     scheduler.tick(5000);
     expect(view.frames.at(-1)!.dt).toBe(0);
+  });
+
+  it('scales deltas by the time scale (slow motion), after clamping', () => {
+    const { renderer, scheduler } = setup({ timeScale: 0.25 });
+    const view = spyView(4);
+    renderer.addView(view);
+    scheduler.tick(16);
+    scheduler.tick(16);
+    scheduler.tick(500);
+    expect(view.frames.map((f) => f.dt)).toEqual([0, 0.004, 0.0125]);
+    renderer.timeScale = 2;
+    scheduler.tick(10);
+    expect(view.frames.at(-1)!.dt).toBeCloseTo(0.02);
   });
 
   it('continues if a redraw is requested during drawing', () => {

@@ -420,6 +420,8 @@ The palettes are data (`render/palettes.ts`). Colour-blind and cosmetic themes (
 
 ### 7.4 Animation system
 - `tween.ts`: `tween(target, props, duration, easing, delay) → handle`, with an `onComplete` callback. Easings: linear, quadOut, cubicOut, backOut, elasticOut, sineInOut.
+  - v2 (T2.01): handles have `whenDone(fn)`, and `Tweener.sequence(...steps)`, `parallel(...steps)` and `wait(seconds)` chain tweens synchronously on the render clock (a step is `() => handle`). `Renderer.timeScale` scales every frame's `dt`. In dev, `?slowmo=0.25` sets it.
+  - `render/feel.ts` (`FEEL`) holds every §11 number, grouped by moment. Views read it at use time, so the dev panel (`?feel=1`, `app/FeelPanel.ts`) tunes values live and copies them as JSON. A test fails if the view files contain decimal literals or literal durations.
 - The visual state (`BoardView`) keeps per-cell display properties: scale, alpha, offsetY and highlight. It animates towards the logical state.
 - `particles.ts`: an object pool (≥ 512 particles, no allocations per frame) with position, velocity, gravity, life, size, rotation, colour and sprite type (bubble, sparkle, droplet).
 
