@@ -28,7 +28,15 @@ function portalSdk(mode: string): Plugin {
     name: 'tidepool-portal-sdk',
     transformIndexHtml: () =>
       SDK_SCRIPTS[target.id]
-        ? [{ tag: 'script', attrs: { src: SDK_SCRIPTS[target.id]! }, injectTo: 'head-prepend' }]
+        ? [
+            // Connect early: the SDK is on another origin (T3.04).
+            {
+              tag: 'link',
+              attrs: { rel: 'preconnect', href: new URL(SDK_SCRIPTS[target.id]!).origin },
+              injectTo: 'head-prepend',
+            },
+            { tag: 'script', attrs: { src: SDK_SCRIPTS[target.id]! }, injectTo: 'head' },
+          ]
         : [],
   };
 }

@@ -1,6 +1,7 @@
 import './ui/styles/base.css';
 import { GameAnalytics } from './app/analytics';
 import { App } from './app/App';
+import { BootLoader } from './app/boot';
 import { attachMusic, attachSounds } from './app/sounds';
 import { drawSandTile } from './render/background';
 import { FEEL } from './render/feel';
@@ -20,6 +21,9 @@ import { createWebStorage } from './services/storage/StorageBackend';
 const canvas = document.querySelector<HTMLCanvasElement>('#game');
 const uiRoot = document.querySelector<HTMLElement>('#ui');
 if (!canvas || !uiRoot) throw new Error('Missing #game canvas or #ui root');
+
+const boot = new BootLoader(document.querySelector<HTMLElement>('#boot'));
+boot.progress(0.3); // the script is running
 
 const params = new URLSearchParams(location.search);
 const target = targetConfig(import.meta.env.VITE_TARGET);
@@ -48,6 +52,7 @@ const save = new SaveStore(createWebStorage(), {
   onError: (message) => analytics.error(message, 'save'),
 });
 await save.load();
+boot.progress(0.5);
 
 // The ad provider for this build target (only its code is bundled). With no ads, dev shows
 // placeholders; `?rewarded=0` simulates no fill.
@@ -55,6 +60,8 @@ const adService = await createAdService({
   overlay: import.meta.env.DEV ? domAdOverlay(uiRoot) : null,
   rewardedReady: !(import.meta.env.DEV && params.get('rewarded') === '0'),
 });
+boot.report(adService);
+boot.progress(0.7);
 // Audio unlocks on the first tap or key press; nothing is created before that.
 const audio = new AudioEngine({
   settings: () => save.current.settings,
@@ -92,6 +99,9 @@ analytics.attach(app);
 attachSounds(app, audio, uiRoot);
 attachMusic(app, audio);
 app.start();
+boot.progress(0.9);
+// Hide the loader once the first frame is on screen.
+requestAnimationFrame(() => requestAnimationFrame(() => boot.finish()));
 
 // Dev-only handle for debugging and E2E tests. The import is dropped from production builds.
 if (import.meta.env.DEV) {

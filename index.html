@@ -9,8 +9,63 @@
     <meta name="theme-color" content="#f6ebd9" />
     <meta name="description" content="A calm, satisfying block puzzle set in a sunlit tidepool." />
     <title>Tidepool</title>
+    <!-- Critical CSS for the boot loader: it paints before any script loads (T3.04). -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: linear-gradient(180deg, #f6ebd9 0%, #cdebf2 100%);
+      }
+      #boot {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: grid;
+        place-content: center;
+        justify-items: center;
+        gap: 18px;
+        background: linear-gradient(180deg, #f6ebd9 0%, #cdebf2 100%);
+        font-family:
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+        transition: opacity 300ms ease;
+      }
+      #boot.done {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #boot h1 {
+        margin: 0;
+        font-size: clamp(44px, 13vmin, 88px);
+        font-weight: 900;
+        color: #fff;
+        -webkit-text-stroke: 2px #26808c;
+        paint-order: stroke fill;
+      }
+      #boot .bar {
+        width: min(220px, 60vw);
+        height: 6px;
+        border-radius: 3px;
+        background: rgba(38, 128, 140, 0.2);
+        overflow: hidden;
+      }
+      #boot .fill {
+        width: 10%;
+        height: 100%;
+        background: #26808c;
+        transition: width 200ms ease;
+      }
+    </style>
   </head>
   <body>
+    <div id="boot" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100">
+      <h1>Tidepool</h1>
+      <div class="bar"><div class="fill"></div></div>
+    </div>
     <div id="app">
       <canvas id="game" aria-label="Tidepool game board"></canvas>
     </div>
