@@ -5,6 +5,7 @@ import { loadEnv, type Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
 import { SDK_SCRIPTS } from './src/config/sdk';
 import { targetConfig } from './src/config/targets';
+import { pwaPlugin } from './tools/pwa-plugin';
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
   version: string;
@@ -44,7 +45,10 @@ function portalSdk(mode: string): Plugin {
 export default defineConfig(({ mode }) => ({
   // Relative asset paths: builds work from any sub-path or portal iframe.
   base: './',
-  plugins: [portalSdk(mode)],
+  plugins: [
+    portalSdk(mode),
+    pwaPlugin(targetConfig(loadEnv(mode, process.cwd(), 'VITE_').VITE_TARGET).pwa, pkg.version),
+  ],
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
     __BUILD_SHA__: JSON.stringify(buildSha()),

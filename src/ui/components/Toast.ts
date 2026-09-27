@@ -19,11 +19,31 @@ export class Toast {
 
   show(text: string, ms = TOAST_MS): void {
     const token = ++this.token;
-    this.el.textContent = text;
+    this.el.replaceChildren(text);
+    this.el.classList.remove('toast--action');
     this.el.hidden = false;
     this.setTimer(() => {
       if (token === this.token) this.el.hidden = true;
     }, ms);
+  }
+
+  /** A message with a button that stays until tapped (e.g. "New version — tap to update"). */
+  showAction(text: string, action: string, onTap: () => void): void {
+    ++this.token;
+    const button = h('button', {
+      class: 'button button--primary toast__action',
+      attrs: { type: 'button' },
+      text: action,
+      on: {
+        click: () => {
+          this.el.hidden = true;
+          onTap();
+        },
+      },
+    });
+    this.el.replaceChildren(h('span', { text }), button);
+    this.el.classList.add('toast--action');
+    this.el.hidden = false;
   }
 
   get visible(): boolean {

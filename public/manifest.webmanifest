@@ -1,0 +1,21 @@
+{
+  "name": "Tidepool",
+  "short_name": "Tidepool",
+  "description": "A calm, satisfying block puzzle set in a sunlit tidepool.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F6EBD9",
+  "theme_color": "#F6EBD9",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

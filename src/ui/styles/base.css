@@ -808,3 +808,15 @@ a:focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 3px;
 }
+
+.toast--action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.toast__action {
+  min-height: var(--tap);
+  font-size: 16px;
+}

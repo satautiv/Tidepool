@@ -2,6 +2,8 @@ import './ui/styles/base.css';
 import { GameAnalytics } from './app/analytics';
 import { App } from './app/App';
 import { BootLoader } from './app/boot';
+import { registerServiceWorker } from './app/pwa';
+import { STRINGS } from './ui/strings';
 import { attachMusic, attachSounds } from './app/sounds';
 import { drawSandTile } from './render/background';
 import { FEEL } from './render/feel';
@@ -100,6 +102,11 @@ attachSounds(app, audio, uiRoot);
 attachMusic(app, audio);
 app.start();
 boot.progress(0.9);
+// Offline play for PWA builds (the standalone web target).
+if (target.pwa && import.meta.env.PROD) {
+  void registerServiceWorker(app.toast, { update: STRINGS.updateReady, action: STRINGS.updateNow });
+}
+
 // Hide the loader once the first frame is on screen.
 requestAnimationFrame(() => requestAnimationFrame(() => boot.finish()));
 

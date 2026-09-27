@@ -29,6 +29,8 @@ export const STRINGS = {
   patterns: 'Shape patterns',
   reducedMotion: 'Reduce motion',
   lowPower: 'Battery saver',
+  updateReady: 'New version ready.',
+  updateNow: 'Update',
   autoLowPower: 'Battery saver is on to keep things smooth. You can change it in Settings.',
   resetProgress: 'Reset progress',
   resetConfirm1: 'Erase your best score, stats and saved run?',

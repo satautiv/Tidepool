@@ -457,3 +457,18 @@ describe('Hint', () => {
     expect(hint.visible).toBe(false);
   });
 });
+
+describe('Toast action', () => {
+  it('stays until its button is tapped', () => {
+    const toast = new Toast(() => {});
+    const tap = vi.fn();
+    toast.showAction('New version ready.', 'Update', tap);
+    expect(toast.visible).toBe(true);
+    expect(toast.el.classList.contains('toast--action')).toBe(true);
+    toast.el.querySelector<HTMLButtonElement>('.toast__action')!.click();
+    expect(tap).toHaveBeenCalledOnce();
+    expect(toast.visible).toBe(false);
+    toast.show('plain');
+    expect(toast.el.classList.contains('toast--action')).toBe(false);
+  });
+});
