@@ -172,6 +172,32 @@ describe('Renderer frame loop', () => {
     expect(view.frames.at(-1)!.dt).toBeCloseTo(0.02);
   });
 
+  it('caps animation-only frames at maxFps, but never requested redraws', () => {
+    const { renderer, scheduler } = setup();
+    renderer.maxFps = 30;
+    const view = spyView(10);
+    renderer.addView(view);
+    scheduler.tick(16); // first frame draws
+    scheduler.tick(16); // 16 ms later: too soon for 30 fps
+    expect(view.frames).toHaveLength(1);
+    scheduler.tick(18); // 34 ms after the last draw
+    expect(view.frames).toHaveLength(2);
+    renderer.requestRedraw(); // e.g. the pointer moved
+    scheduler.tick(5);
+    expect(view.frames).toHaveLength(3);
+  });
+
+  it('changes the DPR cap and re-sizes to it', () => {
+    const { renderer, canvas } = setup();
+    renderer.resize(100, 50, 3);
+    expect(renderer.viewport.dpr).toBe(3);
+    renderer.setMaxDpr(1.5);
+    expect(renderer.viewport.dpr).toBe(1.5);
+    expect(canvas.width).toBe(150);
+    renderer.setMaxDpr(4);
+    expect(renderer.viewport.dpr).toBe(3);
+  });
+
   it('continues if a redraw is requested during drawing', () => {
     const { renderer, scheduler } = setup();
     let once = true;

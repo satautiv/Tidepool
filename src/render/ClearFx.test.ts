@@ -138,4 +138,13 @@ describe('ClearFx', () => {
     fx.play(before, events);
     expect(fx.isAnimating()).toBe(false);
   });
+
+  it('skips the wave sweep and shimmer with reduced motion', () => {
+    const { fx, particles } = setup();
+    fx.reducedMotion = true;
+    const { before, events } = move(ONE_ROW, 'dot', 0, 7);
+    fx.play(before, events);
+    expect(fx.isAnimating()).toBe(false);
+    expect(particles.count).toBeGreaterThan(0);
+  });
 });

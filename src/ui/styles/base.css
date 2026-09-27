@@ -697,3 +697,59 @@ button:focus-visible {
 .settings__credits[hidden] {
   display: none;
 }
+
+/* ---------- Toast ---------- */
+
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  translate: -50% 0;
+  max-width: min(420px, calc(100% - 32px));
+  padding: 10px 16px;
+  border-radius: 14px;
+  background: rgba(31, 59, 64, 0.9);
+  color: #fff;
+  font-weight: 600;
+  text-align: center;
+  animation: fade-in 250ms ease;
+}
+
+.toast[hidden] {
+  display: none;
+}
+
+/* ---------- Reduced motion (T2.15) ---------- */
+
+.reduced-motion .callout,
+.reduced-motion .callout--tidalWave {
+  animation:
+    callout-appear var(--pop) ease-out var(--delay) forwards,
+    callout-fade var(--fade) ease-in calc(var(--delay) + var(--hold-end)) forwards;
+}
+
+@keyframes callout-appear {
+  to {
+    opacity: 1;
+  }
+}
+
+.reduced-motion .menu__title span,
+.reduced-motion .hud__streak--bump {
+  animation: none;
+}
+
+.reduced-motion .float-points {
+  animation: callout-fade var(--float) ease-in var(--delay) forwards;
+}
+
+.reduced-motion .gameover__card,
+.reduced-motion .dialog__card,
+.reduced-motion .gameover,
+.reduced-motion .toast {
+  animation: fade-in 150ms ease;
+}
+
+.reduced-motion .screen {
+  transition-duration: 150ms;
+}

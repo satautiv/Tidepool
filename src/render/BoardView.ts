@@ -46,6 +46,8 @@ export class BoardView implements SceneView {
   private readonly fade = { desaturate: 0 };
   private idleWaiters: Array<() => void> = [];
   private layout: Layout | null = null;
+  /** Reduced motion: staggered cell animations become one short fade (T2.15). */
+  reducedMotion = false;
 
   constructor(
     private readonly invalidate: () => void = () => {},
@@ -79,7 +81,11 @@ export class BoardView implements SceneView {
    * desaturates slightly, then `done` is called.
    */
   fadeOut(done: () => void = () => {}): void {
-    const { fadeTo, fadeDuration, cellFadeDuration, desaturate } = FEEL.gameOver;
+    const { fadeTo, desaturate } = FEEL.gameOver;
+    // Reduced motion: every cell at once, over the short fade.
+    const quick = FEEL.reducedMotion.fadeDuration;
+    const fadeDuration = this.reducedMotion ? quick : FEEL.gameOver.fadeDuration;
+    const cellFadeDuration = this.reducedMotion ? quick : FEEL.gameOver.cellFadeDuration;
     const filled: number[] = [];
     this.board.cells.forEach((cell, i) => cell.color !== null && filled.push(i));
     // Fisher–Yates: a random order for the cells.
@@ -152,10 +158,14 @@ export class BoardView implements SceneView {
       if (after.cells[i]!.color === null) continue; // cleared straight away
       const fx: CellFx = { scale: 1, dx: dx0, dy: dy0 };
       this.placing.set(i, fx);
-      const steps: TweenStep[] = [
-        () => this.tweener.to(fx, { scale: squashScale }, { duration: half, ease: Ease.quadOut }),
-        () => this.tweener.to(fx, { scale: 1 }, { duration: half, ease: Ease.quadIn }),
-      ];
+      // Reduced motion keeps the snap (it follows the finger) but drops the squash.
+      const steps: TweenStep[] = this.reducedMotion
+        ? []
+        : [
+            () =>
+              this.tweener.to(fx, { scale: squashScale }, { duration: half, ease: Ease.quadOut }),
+            () => this.tweener.to(fx, { scale: 1 }, { duration: half, ease: Ease.quadIn }),
+          ];
       if (from) {
         steps.unshift(() =>
           this.tweener.to(fx, { dx: 0, dy: 0 }, { duration: snapDuration, ease: Ease.quadOut }),
@@ -178,6 +188,19 @@ export class BoardView implements SceneView {
           (index % BOARD_SIZE) - originCol,
         );
         const fx = FEEL.lineClear;
+        const done = () => {
+          this.dissolving = this.dissolving.filter((d) => d !== cell);
+          this.flushIdle();
+        };
+        if (this.reducedMotion) {
+          // All at once, just fading: no ripple, lift or shrink.
+          this.tweener.to(
+            cell,
+            { alpha: 0 },
+            { duration: FEEL.reducedMotion.fadeDuration, ease: Ease.quadOut, onComplete: done },
+          );
+          continue;
+        }
         const delay = dist * fx.stagger;
         // Lift and brighten, then fade and shrink away.
         this.tweener.to(
@@ -192,10 +215,7 @@ export class BoardView implements SceneView {
             duration: fx.duration,
             delay: delay + fx.liftDuration,
             ease: Ease.quadIn,
-            onComplete: () => {
-              this.dissolving = this.dissolving.filter((d) => d !== cell);
-              this.flushIdle();
-            },
+            onComplete: done,
           },
         );
       }

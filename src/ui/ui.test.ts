@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, expect, it, vi } from 'vitest';
 import { FxLayer } from './components/FxLayer';
+import { Toast } from './components/Toast';
 import { SettingsScreen, type SettingsModel, type SettingsValues } from './screens/SettingsScreen';
 import { GameOverPanel } from './components/GameOverPanel';
 import { Hud } from './components/Hud';
@@ -424,5 +425,20 @@ describe('SettingsScreen', () => {
     expect(credits.hidden).toBe(false);
     $(screen, '.settings__back').click();
     expect(back).toHaveBeenCalledOnce();
+  });
+});
+
+describe('Toast', () => {
+  it('shows a message and hides it after a while, restarting on a new one', () => {
+    const timers: Array<() => void> = [];
+    const toast = new Toast((fn) => void timers.push(fn));
+    expect(toast.visible).toBe(false);
+    toast.show('one');
+    toast.show('two');
+    expect(toast.el.textContent).toBe('two');
+    timers[0]!(); // the first message's timer: stale
+    expect(toast.visible).toBe(true);
+    timers[1]!();
+    expect(toast.visible).toBe(false);
   });
 });

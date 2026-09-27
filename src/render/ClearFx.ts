@@ -30,6 +30,8 @@ export class ClearFx implements SceneView {
   private waves: Wave[] = [];
   /** Clean board: seconds into the full-board shimmer, or null. */
   private shimmer: number | null = null;
+  /** Reduced motion: no sweeping wave bands or shimmer, only the (fewer) particles. */
+  reducedMotion = false;
   private layout: Layout | null = null;
 
   constructor(
@@ -47,7 +49,7 @@ export class ClearFx implements SceneView {
     const cleared = events.find((e) => e.type === 'cleared');
     const layout = this.layout;
     if (!placed || !cleared || !layout) return;
-    if (events.some((e) => e.type === 'cleanBoard')) this.shimmer = 0;
+    if (!this.reducedMotion && events.some((e) => e.type === 'cleanBoard')) this.shimmer = 0;
 
     const { board: rect, cellSize: c } = layout;
     const fx = FEEL.lineClear;
@@ -79,7 +81,13 @@ export class ClearFx implements SceneView {
       colorAt(index(Math.floor(this.random() * BOARD_SIZE)));
 
     for (const row of cleared.rows) {
-      this.waves.push({ vertical: false, line: row, time: 0, reverse: centreCol > BOARD_SIZE / 2 });
+      if (!this.reducedMotion)
+        this.waves.push({
+          vertical: false,
+          line: row,
+          time: 0,
+          reverse: centreCol > BOARD_SIZE / 2,
+        });
       const y = cellY(row);
       this.particles.line(
         'bubble',
@@ -96,7 +104,13 @@ export class ClearFx implements SceneView {
       sparkleAlong((k) => row * BOARD_SIZE + k);
     }
     for (const col of cleared.cols) {
-      this.waves.push({ vertical: true, line: col, time: 0, reverse: centreRow > BOARD_SIZE / 2 });
+      if (!this.reducedMotion)
+        this.waves.push({
+          vertical: true,
+          line: col,
+          time: 0,
+          reverse: centreRow > BOARD_SIZE / 2,
+        });
       const x = cellX(col);
       // Bubbles still rise: spawn them spread down the column.
       this.particles.line(

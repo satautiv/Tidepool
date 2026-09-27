@@ -627,39 +627,60 @@ describe('App ambient caustics', () => {
     expect(redraw).toHaveBeenCalledTimes(2);
   });
 
-  it('stays idle with reduced motion (no redraws, nothing drawn)', () => {
+  it('keeps still caustics with reduced motion, so the ticker never redraws', () => {
     const { app, tick } = withTicker({ reduced: true });
+    const redraw = vi.spyOn(app.renderer, 'requestRedraw');
+    tick();
+    expect(redraw).not.toHaveBeenCalled();
+    expect(app.caustics.enabled()).toBe(true);
+    expect(app.caustics.drift).toBe(false);
+  });
+
+  it('stays idle in low power (no caustics at all)', () => {
+    const { app, tick } = withTicker();
+    app.applySettings({ lowPower: true });
     const redraw = vi.spyOn(app.renderer, 'requestRedraw');
     tick();
     expect(redraw).not.toHaveBeenCalled();
     expect(app.caustics.enabled()).toBe(false);
   });
 
-  it('turns itself off after 3 s of slow frames and reports it', () => {
-    const { app, tick, advance } = withTicker();
-    const fallback = vi.fn();
-    app.bus.on('perfFallback', fallback);
-    app.renderer.stats.lastFrameMs = 25;
-    for (let i = 0; i < 3; i++) {
-      tick();
-      advance(1000);
-    }
-    tick();
-    expect(fallback).toHaveBeenCalledWith({ feature: 'caustics', frameMs: 25 });
-    expect(app.caustics.enabled()).toBe(false);
+  /** A tick with a newly drawn frame that took `ms`. */
+  function slowFrame(t: ReturnType<typeof withTicker>, ms: number) {
+    t.app.renderer.stats.draws++;
+    t.app.renderer.stats.lastFrameMs = ms;
+    t.tick();
+  }
 
-    // A short slow spell doesn't count.
-    const other = withTicker();
+  it('switches battery saver on after 3 s of slow frames, with a one-time toast', () => {
+    const t = withTicker();
+    const fallback = vi.fn();
+    t.app.bus.on('perfFallback', fallback);
+    for (let i = 0; i < 3; i++) {
+      slowFrame(t, 25);
+      t.advance(1000);
+    }
+    slowFrame(t, 25);
+    expect(fallback).toHaveBeenCalledWith({ feature: 'lowPower', frameMs: 25 });
+    expect(t.app.settings.lowPower).toBe(true);
+    expect(t.app.settings.autoLowPowerNotified).toBe(true);
+    expect(t.app.toast.visible).toBe(true);
+    expect(t.app.caustics.enabled()).toBe(false);
+  });
+
+  it('ignores short slow spells and idle time', () => {
+    const t = withTicker();
     const spy = vi.fn();
-    other.app.bus.on('perfFallback', spy);
-    other.app.renderer.stats.lastFrameMs = 25;
-    other.tick();
-    other.advance(2000);
-    other.app.renderer.stats.lastFrameMs = 5;
-    other.tick();
-    other.app.renderer.stats.lastFrameMs = 25;
-    other.advance(2000);
-    other.tick();
+    t.app.bus.on('perfFallback', spy);
+    slowFrame(t, 25);
+    t.advance(2000);
+    slowFrame(t, 5); // a fast frame resets it
+    slowFrame(t, 25);
+    t.advance(2000);
+    slowFrame(t, 25);
+    t.advance(5000);
+    t.tick(); // idle: no new frame, not slow
+    slowFrame(t, 25);
     expect(spy).not.toHaveBeenCalled();
   });
 });
@@ -982,5 +1003,63 @@ describe('App palettes', () => {
     app.applySettings({ patterns: true });
     expect(app.palette.id).toBe('tidepool');
     expect(app.glyphsOn).toBe(true);
+  });
+});
+
+describe('App reduced motion and low power', () => {
+  it('respects prefers-reduced-motion on first launch', () => {
+    const { app, uiRoot } = makeApp('rm', undefined, undefined, {
+      extra: { prefersReducedMotion: () => true },
+    });
+    expect(app.settings.reducedMotion).toBeNull(); // still "auto"
+    expect(uiRoot.classList.contains('reduced-motion')).toBe(true);
+    expect(app.particles.system.density).toBe(FEEL.reducedMotion.particleScale);
+    expect(app.caustics.drift).toBe(false);
+  });
+
+  it('switches both modes live, and they combine', () => {
+    const { app, uiRoot } = makeApp('modes', undefined, undefined, {
+      extra: { prefersReducedMotion: () => false },
+    });
+    expect(app.particles.system.density).toBe(1);
+    expect(app.renderer.viewport.dpr).toBe(2);
+    app.applySettings({ lowPower: true });
+    expect(app.particles.system.density).toBe(FEEL.lowPower.particleScale);
+    expect(app.renderer.viewport.dpr).toBe(FEEL.lowPower.maxDpr);
+    expect(app.renderer.maxFps).toBe(FEEL.lowPower.fps);
+    expect(uiRoot.classList.contains('low-power')).toBe(true);
+    app.applySettings({ reducedMotion: true });
+    expect(app.particles.system.density).toBe(FEEL.reducedMotion.particleScale);
+    app.applySettings({ lowPower: false, reducedMotion: false });
+    expect(app.renderer.viewport.dpr).toBe(2);
+    expect(app.renderer.maxFps).toBe(0);
+    expect(uiRoot.classList.contains('reduced-motion')).toBe(false);
+  });
+
+  it('turns off shake and the wave sweep with reduced motion', () => {
+    const { app } = makeApp('rm2', undefined, undefined, {
+      extra: { prefersReducedMotion: () => true },
+    });
+    const fill = '#######.';
+    app.loadState({
+      ...app.state,
+      board: boardFromAscii([
+        fill,
+        fill,
+        fill,
+        '........',
+        '........',
+        '........',
+        '........',
+        '#.......',
+      ]),
+      tray: [{ shape: 'i3v', color: 0 }, null, null],
+    });
+    app.place({ slot: 0, row: 0, col: 7 });
+    expect(app.shake.active).toBe(false);
+    app.scene.update(FEEL.reducedMotion.fadeDuration);
+    // Cells faded in one short step, with no waves left running.
+    app.scene.update(0.01);
+    expect(app.scene.isAnimating()).toBe(app.particles.system.count > 0);
   });
 });

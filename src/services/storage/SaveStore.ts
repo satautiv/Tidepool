@@ -19,6 +19,8 @@ export interface Settings {
   patterns: boolean;
   reducedMotion: boolean | null; // null = follow the system setting
   lowPower: boolean;
+  /** The "battery saver switched on" toast has been shown (it shows once, ever). */
+  autoLowPowerNotified: boolean;
 }
 
 export interface Stats {
@@ -72,6 +74,7 @@ export function defaultSave(now: number): Save {
       patterns: false,
       reducedMotion: null,
       lowPower: false,
+      autoLowPowerNotified: false,
     },
     stats: { bestScore: 0, gamesPlayed: 0, linesCleared: 0, tidalWaves: 0, totalPlaytimeMs: 0 },
     endlessRun: null,

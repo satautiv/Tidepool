@@ -31,6 +31,8 @@ export class TrayView implements SceneView {
   private layout: Layout | null = null;
   /** Hidden behind the main menu (only the board shows through). */
   hidden = false;
+  /** Reduced motion: the tray fades in all at once instead of sliding up in turn (T2.15). */
+  reducedMotion = false;
 
   constructor(private readonly invalidate: () => void = () => {}) {}
 
@@ -70,8 +72,13 @@ export class TrayView implements SceneView {
   update(dt: number): void {
     if (this.dealClock === null) return;
     this.dealClock += dt;
-    const total = FEEL.deal.duration + FEEL.deal.stagger * (TRAY_SIZE - 1);
-    if (this.dealClock >= total) this.dealClock = null;
+    if (this.dealClock >= this.dealTotal()) this.dealClock = null;
+  }
+
+  /** How long a deal-in lasts. */
+  private dealTotal(): number {
+    if (this.reducedMotion) return FEEL.reducedMotion.fadeDuration;
+    return FEEL.deal.duration + FEEL.deal.stagger * (TRAY_SIZE - 1);
   }
 
   isAnimating(): boolean {
@@ -84,14 +91,15 @@ export class TrayView implements SceneView {
    */
   get dealing(): boolean {
     if (this.dealClock === null) return false;
-    const total = FEEL.deal.duration + FEEL.deal.stagger * (TRAY_SIZE - 1);
-    return this.dealClock < Math.min(total, FEEL.deal.maxInputLock);
+    return this.dealClock < Math.min(this.dealTotal(), FEEL.deal.maxInputLock);
   }
 
   /** Deal-in progress for a slot, 0..1 (1 when not animating). */
   dealProgress(slot: number): number {
     if (this.dealClock === null) return 1;
-    const t = (this.dealClock - slot * FEEL.deal.stagger) / FEEL.deal.duration;
+    const t = this.reducedMotion
+      ? this.dealClock / FEEL.reducedMotion.fadeDuration
+      : (this.dealClock - slot * FEEL.deal.stagger) / FEEL.deal.duration;
     return Ease.cubicOut(Math.min(1, Math.max(0, t)));
   }
 
@@ -105,7 +113,7 @@ export class TrayView implements SceneView {
       const p = this.dealProgress(i);
       const alpha = (i === this.dragging ? FEEL.pickUp.trayDimAlpha : 1) * p;
       if (alpha <= 0) return;
-      const rise = (1 - p) * layout.traySlots[i]!.height * FEEL.deal.rise;
+      const rise = this.reducedMotion ? 0 : (1 - p) * layout.traySlots[i]!.height * FEEL.deal.rise;
 
       ctx.save();
       ctx.globalAlpha = alpha;

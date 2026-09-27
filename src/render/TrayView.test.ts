@@ -167,4 +167,15 @@ describe('every shape fits its slot', () => {
     scene.draw(ctx, frame);
     expect(blits(ctx)).toHaveLength(0);
   });
+
+  it('with reduced motion, deals in as one short fade without sliding', () => {
+    const { tray } = setup();
+    tray.reducedMotion = true;
+    tray.setTray([slot('dot'), slot('dot'), slot('dot')], true);
+    tray.update(FEEL.reducedMotion.fadeDuration / 2);
+    expect(tray.dealProgress(0)).toBeCloseTo(tray.dealProgress(2));
+    tray.update(FEEL.reducedMotion.fadeDuration / 2);
+    expect(tray.isAnimating()).toBe(false);
+    expect(tray.dealing).toBe(false);
+  });
 });

@@ -542,6 +542,11 @@ As built (T2.04): callouts and "+N" are DOM (`ui/components/FxLayer.ts`) with CS
 
 **Reduced motion** turns off screen shake and caustics, replaces staggered cell animations with a 150 ms fade, and cuts particle counts to 25%.
 
+As built (T2.15), `App.applyMotionAndPower()` applies both modes live from Settings and persists them:
+- **Reduced motion** (the setting, or `prefers-reduced-motion` while it's "auto", including live changes): no shake, and the caustics stay but don't drift, so the ticker stops redrawing. Clears, deal-in and game over become one 150 ms fade. There's no wave sweep, shimmer or squash (the drop snap stays), particles run at 25%, and a `reduced-motion` class drops the CSS wobble, bob, bump and slide.
+- **Low power:** no caustics, particles at 50%, DPR capped at 1.5 (`Renderer.setMaxDpr`), and animation-only frames capped at 30 fps (`Renderer.maxFps`; input redraws are never held back).
+- **Watchdog:** it counts only newly drawn frames, so idle time never looks slow. If frames stay > 20 ms for 3 s, low power switches on (once per session), a one-time toast explains it, and `perfFallback` / `perf_fallback` records `lowPower`.
+
 ---
 
 ## 12. Audio

@@ -47,11 +47,9 @@ import { Lifecycle, type LifecycleEnv } from '../services/platform/lifecycle';
 import type { SaveStore } from '../services/storage/SaveStore';
 import { GameScreen } from '../ui/screens/GameScreen';
 import { MenuScreen } from '../ui/screens/MenuScreen';
-import {
-  SettingsScreen,
-  type SettingsModel,
-  type SettingsValues,
-} from '../ui/screens/SettingsScreen';
+import { Toast } from '../ui/components/Toast';
+import { RENDER } from '../render/config';
+import { SettingsScreen, type SettingsModel } from '../ui/screens/SettingsScreen';
 import { STRINGS } from '../ui/strings';
 import { defaultSave, type Settings } from '../services/storage/SaveStore';
 import type { Screen } from '../ui/Router';
@@ -156,8 +154,10 @@ export class App {
   private readonly haptics: Haptics;
   readonly caustics: CausticsView;
   /** Frames too slow for the caustics: they stay off for the rest of the session. */
-  private causticsDegraded = false;
   private slowSince: number | null = null;
+  private lastDraws = 0;
+  private autoLowPowerDone = false;
+  readonly toast: Toast;
   private readonly clearFx = new ClearFx(this.particles.system);
   private stateValue: EndlessState;
   private best = 0;
@@ -285,6 +285,9 @@ export class App {
     this.settingsScreen = new SettingsScreen(this.settingsModel(), {
       onBack: () => this.closeSettings(),
     });
+    this.toast = new Toast(opts.uiTimer);
+    opts.uiRoot.append(this.toast.el);
+    this.applyMotionAndPower();
 
     if (opts.ads) {
       // The game sits still under an ad: no frames, no input.
@@ -347,6 +350,12 @@ export class App {
     attachViewport(this.renderer, this.opts.canvas, env?.viewport);
     bindPointerEvents(this.opts.canvas, this.drag, page.window);
     this.lifecycle = new Lifecycle(page);
+    // The system "reduce motion" switch can change while the game is open.
+    if (!this.opts.prefersReducedMotion && typeof matchMedia === 'function') {
+      matchMedia('(prefers-reduced-motion: reduce)').addEventListener?.('change', () =>
+        this.applyMotionAndPower(),
+      );
+    }
     const every = this.opts.setInterval ?? ((fn, ms) => setInterval(fn, ms));
     every(() => this.ambientTick(), 1000 / FEEL.caustics.fps);
     // Backgrounded: pause the run (it never auto-resumes), stop frames, save now.
@@ -437,12 +446,13 @@ export class App {
   }
 
   /** Applies and persists a settings change right away. */
-  applySettings(change: Partial<SettingsValues>): void {
+  applySettings(change: Partial<Settings>): void {
     const save = this.opts.save;
     if (save) save.update((s) => Object.assign(s.settings, change));
     else Object.assign(this.localSettings, change);
     this.opts.audio?.refresh();
     if ('palette' in change || 'patterns' in change) this.applyLook();
+    this.applyMotionAndPower();
     this.renderer.requestRedraw();
   }
 
@@ -748,37 +758,66 @@ export class App {
     hud.setStreak(multiplier(streak), !setHadClear);
   }
 
-  /**
-   * Ambient effects (caustics) run unless reduced motion or low power is on, or frames were
-   * too slow.
-   */
+  /** Caustics show unless low power is on (reduced motion keeps them, but still). */
   private ambientOn(): boolean {
-    const lowPower = this.settings.lowPower;
-    return !this.causticsDegraded && !lowPower && !this.reducedMotion();
+    return !this.settings.lowPower;
+  }
+
+  /** 30 fps: drifts the caustics, and watches the frame time. */
+  private ambientTick(): void {
+    this.watchPerformance();
+    if (this.ambientOn() && this.caustics.drift && !this.renderer.isPaused) {
+      this.renderer.requestRedraw();
+    }
   }
 
   /**
-   * 30 fps: redraws for the caustics, and turns them off if frames stay slower than
-   * `maxFrameMs` for `slowSeconds` (a one-time `perfFallback`, logged to analytics).
+   * If drawn frames stay slower than `maxFrameMs` for `slowSeconds`, low power switches on
+   * (once per session), with a one-time toast, and `perfFallback` goes to analytics. Only new
+   * frames count: an idle screen isn't a slow one.
    */
-  private ambientTick(): void {
-    if (!this.ambientOn() || this.renderer.isPaused) {
+  private watchPerformance(): void {
+    const { draws, lastFrameMs } = this.renderer.stats;
+    if (draws === this.lastDraws || this.renderer.isPaused || this.autoLowPowerDone) {
       this.slowSince = null;
       return;
     }
+    this.lastDraws = draws;
     const { maxFrameMs, slowSeconds } = FEEL.caustics;
-    const frameMs = this.renderer.stats.lastFrameMs;
-    const now = this.now();
-    if (frameMs > maxFrameMs) {
-      this.slowSince ??= now;
-      if (now - this.slowSince >= slowSeconds * 1000) {
-        this.causticsDegraded = true;
-        this.bus.emit('perfFallback', { feature: 'caustics', frameMs });
-      }
-    } else {
+    if (lastFrameMs <= maxFrameMs) {
       this.slowSince = null;
+      return;
     }
-    this.renderer.requestRedraw();
+    const now = this.now();
+    this.slowSince ??= now;
+    if (now - this.slowSince < slowSeconds * 1000) return;
+    this.autoLowPowerDone = true;
+    this.bus.emit('perfFallback', { feature: 'lowPower', frameMs: lastFrameMs });
+    if (this.settings.lowPower) return;
+    const firstTime = !this.settings.autoLowPowerNotified;
+    this.applySettings({ lowPower: true, autoLowPowerNotified: true });
+    if (firstTime) this.toast.show(STRINGS.autoLowPower);
+  }
+
+  /**
+   * Applies reduced motion and low power (T2.15) to the views, particles and renderer, and
+   * as a CSS class for the DOM animations.
+   */
+  private applyMotionAndPower(): void {
+    const reduced = this.reducedMotion();
+    const low = this.settings.lowPower;
+    this.boardView.reducedMotion = reduced;
+    this.trayView.reducedMotion = reduced;
+    this.clearFx.reducedMotion = reduced;
+    this.caustics.drift = !reduced;
+    this.particles.system.density = Math.min(
+      reduced ? FEEL.reducedMotion.particleScale : 1,
+      low ? FEEL.lowPower.particleScale : 1,
+    );
+    this.renderer.setMaxDpr(low ? FEEL.lowPower.maxDpr : RENDER.maxDpr);
+    this.renderer.maxFps = low ? FEEL.lowPower.fps : 0;
+    this.opts.uiRoot.classList.toggle('reduced-motion', reduced);
+    this.opts.uiRoot.classList.toggle('low-power', low);
   }
 
   /** Reduced motion: the setting, or the system preference when the setting is "auto". */

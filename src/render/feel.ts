@@ -193,6 +193,14 @@ export const FEEL = {
       additive: 0,
     },
   },
+  lowPower: {
+    /** Share of the normal particle count. */
+    particleScale: 0.5,
+    /** Device pixel ratio cap. */
+    maxDpr: 1.5,
+    /** Frame rate cap while only animating. */
+    fps: 30,
+  },
   reducedMotion: {
     /** Replaces staggered cell animations. */
     fadeDuration: 0.15,

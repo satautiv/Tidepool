@@ -139,6 +139,8 @@ export function buildCausticLayers(factory: CanvasFactory, boardSize: number): S
 export class CausticsView implements SceneView {
   private layers: SpriteCanvas[] = [];
   private builtFor = 0;
+  /** Reduced motion: the light stays where it is instead of drifting (T2.15). */
+  drift = true;
 
   constructor(
     readonly enabled: () => boolean,
@@ -160,7 +162,7 @@ export class CausticsView implements SceneView {
     }
     const { board } = layout;
     const { drift, speed, alpha } = FEEL.caustics;
-    const t = this.now() * speed;
+    const t = this.drift ? this.now() * speed : 0;
     const size = board.width + 2 * drift;
     ctx.save();
     ctx.beginPath();

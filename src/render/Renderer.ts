@@ -67,7 +67,13 @@ export class Renderer {
   timeScale: number;
   private readonly ctx: CanvasRenderingContext2D;
   private readonly views: View[] = [];
-  private readonly maxDpr: number;
+  private maxDpr: number;
+  /**
+   * Low power (T2.15): frames that only continue an animation run at most this often.
+   * Redraws someone asked for (input, a move) are never held back. 0 = no cap.
+   */
+  maxFps = 0;
+  private lastDevicePixelRatio = 1;
   private readonly maxDt: number;
   private readonly scheduler: FrameScheduler;
   private readonly now: () => number;
@@ -111,8 +117,17 @@ export class Renderer {
     this.requestRedraw();
   }
 
+  /** Changes the DPR cap (low power) and re-sizes to it. */
+  setMaxDpr(maxDpr: number): void {
+    if (maxDpr === this.maxDpr) return;
+    this.maxDpr = maxDpr;
+    const { width, height } = this.viewportValue;
+    if (width > 0) this.resize(width, height, this.lastDevicePixelRatio);
+  }
+
   /** Sizes the backing store to CSS size × capped DPR and notifies views. */
   resize(cssWidth: number, cssHeight: number, devicePixelRatio: number): void {
+    this.lastDevicePixelRatio = devicePixelRatio;
     const dpr = Math.max(1, Math.min(devicePixelRatio || 1, this.maxDpr));
     const width = Math.max(0, cssWidth);
     const height = Math.max(0, cssHeight);
@@ -154,6 +169,10 @@ export class Renderer {
 
   private frame(timeMs: number): void {
     this.frameId = null;
+    if (this.maxFps > 0 && !this.dirty && this.lastTime !== null) {
+      // An animation-only frame that comes too soon: wait for the next one.
+      if (timeMs - this.lastTime < 1000 / this.maxFps - 1) return this.schedule();
+    }
     const started = this.now();
     const realDt =
       this.lastTime === null ? 0 : Math.min((timeMs - this.lastTime) / 1000, this.maxDt);

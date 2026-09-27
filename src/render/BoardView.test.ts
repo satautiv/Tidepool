@@ -205,4 +205,21 @@ describe('BoardView animations', () => {
     scene.update(FEEL.gameOver.fadeDuration);
     expect(done).toHaveBeenCalledTimes(1);
   });
+
+  it('with reduced motion, clears and game over are one short fade, and drops just snap', () => {
+    const { scene, view } = setup();
+    view.reducedMotion = true;
+    const rows = ['.#######', '#.......', ...EMPTY.slice(2)];
+    const { before, step } = move(rows, [{ shape: 'dot', color: 4 }, null, null], 0, 0, 0);
+    view.applyMove(before, step.events, step.state.board);
+    expect(view.busy).toBe(true);
+    scene.update(FEEL.reducedMotion.fadeDuration);
+    expect(view.busy).toBe(false);
+    expect(view.isAnimating()).toBe(false); // no squash on the placed cell either
+
+    const done = vi.fn();
+    view.fadeOut(done);
+    scene.update(FEEL.reducedMotion.fadeDuration);
+    expect(done).toHaveBeenCalledOnce();
+  });
 });
