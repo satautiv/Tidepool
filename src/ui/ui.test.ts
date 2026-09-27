@@ -385,8 +385,10 @@ describe('SettingsScreen', () => {
     sfxOn.checked = false;
     sfxOn.dispatchEvent(new Event('change'));
     expect(m.values.sfxMuted).toBe(true);
-    screen.refresh();
     expect($<HTMLInputElement>(screen, '[data-setting="sfx"]').disabled).toBe(true);
+    sfxOn.checked = true;
+    sfxOn.dispatchEvent(new Event('change'));
+    expect($<HTMLInputElement>(screen, '[data-setting="sfx"]').disabled).toBe(false);
 
     for (const key of ['haptics', 'reducedMotion', 'lowPower'] as const) {
       const box = $<HTMLInputElement>(screen, `[data-setting="${key}"]`);

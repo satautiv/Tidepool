@@ -109,7 +109,10 @@ export class SettingsScreen implements Screen {
       class: 'switch',
       attrs: { type: 'checkbox', role: 'switch', 'aria-label': label },
     });
-    input.addEventListener('change', () => set(input.checked));
+    input.addEventListener('change', () => {
+      set(input.checked);
+      this.refresh(); // dependent controls (the volume slider) follow at once
+    });
     this.refreshers.push((v) => (input.checked = get(v)));
     return input;
   }
