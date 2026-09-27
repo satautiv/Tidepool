@@ -116,6 +116,21 @@ describe('SaveStore', () => {
     expect(set).toHaveBeenCalledTimes(2);
   });
 
+  it('stops writing once suspended (another tab took over), pending write included', async () => {
+    const backend = new MemoryBackend();
+    const { store, timers } = await freshStore(backend);
+    const set = vi.spyOn(backend, 'set');
+    store.update((s) => (s.stats.gamesPlayed = 5));
+    store.suspend();
+    expect(store.isSuspended).toBe(true);
+    expect(timers.pending).toBe(0);
+    store.update((s) => (s.stats.gamesPlayed = 6));
+    store.reset();
+    await store.flush();
+    expect(set).not.toHaveBeenCalled();
+    expect(store.current.stats.gamesPlayed).toBe(0); // memory still works
+  });
+
   it('backs up corrupt data, starts fresh and reports it', async () => {
     const backend = new MemoryBackend();
     await backend.set(SAVE_KEY, '{not json');

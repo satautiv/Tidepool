@@ -51,6 +51,7 @@ import type { SaveStore } from '../services/storage/SaveStore';
 import { GameScreen } from '../ui/screens/GameScreen';
 import { MenuScreen } from '../ui/screens/MenuScreen';
 import { Toast } from '../ui/components/Toast';
+import { ElsewhereDialog } from '../ui/components/ElsewhereDialog';
 import { RENDER } from '../render/config';
 import { SettingsScreen, type SettingsModel } from '../ui/screens/SettingsScreen';
 import { STRINGS } from '../ui/strings';
@@ -132,6 +133,8 @@ export interface AppOptions {
   includeL4?: boolean;
   /** Playtest builds: an "Export playtest log" button in Settings. */
   exportLog?: () => void;
+  /** "Play here" after another tab took over (see `takenOver`). Default: reload the page. */
+  playHere?: () => void;
 }
 
 /** Page lifecycle targets, injectable for tests. */
@@ -190,6 +193,9 @@ export class App {
   /** Whether this run has already played the "best beaten" glow. */
   private bestGlowed = false;
   private paused = false;
+  /** Another tab took over the game: this one stays paused and never saves again. */
+  private dormant = false;
+  private elsewhere: ElsewhereDialog | null = null;
   private adShowing = false;
   private lifecycle: Lifecycle | null = null;
   private readonly now: () => number;
@@ -350,6 +356,27 @@ export class App {
     return this.paused;
   }
 
+  /**
+   * Another tab took over the game (services/platform/tabs.ts). Writing on would erase that
+   * tab's progress, so saving stops for good; the run pauses, and "Play here" reloads this tab
+   * (it then loads the latest save and takes the game back).
+   */
+  takenOver(): void {
+    if (this.dormant) return;
+    this.pause();
+    this.dormant = true;
+    this.opts.save?.suspend();
+    this.opts.audio?.suspend();
+    this.syncInput();
+    this.elsewhere = new ElsewhereDialog(this.opts.playHere ?? (() => location.reload()));
+    this.opts.uiRoot.append(this.elsewhere.el);
+    this.elsewhere.show();
+  }
+
+  get isDormant(): boolean {
+    return this.dormant;
+  }
+
   /** Pauses a run in play: input off, clocks stopped, Pause dialog up. */
   pause(): void {
     if (this.screen !== 'game' || this.paused || this.stateValue.over || this.adShowing) return;
@@ -363,7 +390,7 @@ export class App {
   }
 
   resume(): void {
-    if (!this.paused) return;
+    if (!this.paused || this.dormant) return;
     this.paused = false;
     this.gameScreen.pause.hide();
     this.startRunClock();
@@ -409,7 +436,7 @@ export class App {
       void this.opts.save?.flush();
     });
     this.lifecycle.onShow(() => {
-      if (!this.adShowing) {
+      if (!this.adShowing && !this.dormant) {
         this.renderer.resume();
         this.opts.audio?.resume();
       }
@@ -436,7 +463,7 @@ export class App {
 
   /** Main menu → game: Play, or Continue for a saved run. */
   play(): void {
-    if (this.screen === 'game') return;
+    if (this.screen === 'game' || this.dormant) return;
     this.screen = 'game';
     void this.router.show(this.gameScreen);
     if (this.announced) this.opts.ads?.gameplayStart();
@@ -794,7 +821,7 @@ export class App {
    * back or toggles pause, and closes Settings. Game keys never scroll the page (portals).
    */
   onKey(e: KeyboardEvent): void {
-    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.ctrlKey || e.metaKey || e.altKey || this.dormant) return;
     const handled = this.handleKey(e.key);
     if (handled) e.preventDefault();
   }
@@ -914,7 +941,11 @@ export class App {
     this.trayView.hidden = this.screen !== 'game';
     this.renderer.requestRedraw();
     this.drag.setLocked(
-      this.screen !== 'game' || this.paused || this.adShowing || this.stateValue.over,
+      this.screen !== 'game' ||
+        this.paused ||
+        this.adShowing ||
+        this.stateValue.over ||
+        this.dormant,
     );
   }
 

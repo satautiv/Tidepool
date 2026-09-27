@@ -860,6 +860,48 @@ describe('App playtest options', () => {
   });
 });
 
+describe('App taken over by another tab', () => {
+  it('pauses, stops saving and offers "Play here"', async () => {
+    const backend = new MemoryBackend();
+    const save = new SaveStore(backend);
+    await save.load();
+    const playHere = vi.fn();
+    const { app, uiRoot } = makeApp('tabs', save, undefined, { extra: { playHere } });
+    app.place(firstMove(app));
+    await save.flush();
+    const saved = await backend.get(SAVE_KEY);
+
+    app.takenOver();
+    expect(app.isDormant).toBe(true);
+    expect(app.isPaused).toBe(true);
+    expect(save.isSuspended).toBe(true);
+    expect(app.drag.isLocked).toBe(true);
+    app.resume();
+    expect(app.isPaused).toBe(true); // only "Play here" gets out
+    const e = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true });
+    app.onKey(e);
+    expect(e.defaultPrevented).toBe(false);
+
+    app.newRun('elsewhere'); // nothing this tab does reaches the storage
+    await save.flush();
+    expect(await backend.get(SAVE_KEY)).toBe(saved);
+
+    const dialog = uiRoot.querySelector<HTMLElement>('.elsewhere')!;
+    expect(dialog.hidden).toBe(false);
+    dialog.querySelector<HTMLButtonElement>('.elsewhere__play')!.click();
+    expect(playHere).toHaveBeenCalledOnce();
+    app.takenOver(); // a second claim changes nothing
+    expect(uiRoot.querySelectorAll('.elsewhere')).toHaveLength(1);
+  });
+
+  it('keeps the menu from starting a run while dormant', () => {
+    const { app } = makeApp('tabs-menu', undefined, undefined, { extra: { startIn: 'menu' } });
+    app.takenOver();
+    app.play();
+    expect(app.currentScreen).toBe('menu');
+  });
+});
+
 describe('App responsive', () => {
   it('reads safe-area insets without failing where env() is unsupported', () => {
     expect(readSafeArea()).toEqual({ top: 0, right: 0, bottom: 0, left: 0 });

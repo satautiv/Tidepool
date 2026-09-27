@@ -40,6 +40,17 @@ describe('LocalLogAnalytics', () => {
     expect(reloaded.export().entries.map((e) => e.name)).toEqual(['error', 'tutorial_step']);
   });
 
+  it('keeps the entries of two tabs writing to the same storage', () => {
+    const storage = memoryStorage();
+    const a = new LocalLogAnalytics({ storage });
+    const b = new LocalLogAnalytics({ storage });
+    a.track('tutorial_step', { step: 'a1' });
+    b.track('tutorial_step', { step: 'b1' });
+    a.track('tutorial_step', { step: 'a2' });
+    const steps = new LocalLogAnalytics({ storage }).export().entries.map((e) => e.props.step);
+    expect(steps).toEqual(['a1', 'b1', 'a2']);
+  });
+
   it('drops the oldest entries beyond the cap', () => {
     const log = new LocalLogAnalytics({ storage: memoryStorage(), maxEntries: 2 });
     for (const step of ['a', 'b', 'c']) log.track('tutorial_step', { step });
@@ -70,10 +81,22 @@ describe('LocalLogAnalytics', () => {
     for (const storage of [null, broken]) {
       const log = new LocalLogAnalytics({ storage });
       log.track('tutorial_step', { step: 'a' });
-      expect(log.size).toBe(1);
+      log.track('tutorial_step', { step: 'b' });
+      expect(log.size).toBe(2);
       log.clear();
       await expect(log.flush()).resolves.toBeUndefined();
     }
+
+    // Full storage: entries that couldn't be written stay in memory.
+    const full = memoryStorage();
+    const log = new LocalLogAnalytics({ storage: full });
+    log.track('tutorial_step', { step: 'saved' });
+    full.setItem = () => {
+      throw new Error('quota');
+    };
+    log.track('tutorial_step', { step: 'kept' });
+    log.track('tutorial_step', { step: 'kept too' });
+    expect(log.size).toBe(3);
 
     const corrupt = memoryStorage();
     corrupt.setItem(PLAYTEST_LOG_KEY, '{nope');

@@ -481,6 +481,17 @@ button:focus-visible {
   font-weight: 700;
 }
 
+/* Another tab took over: above every screen, which the Router may add later. */
+.elsewhere {
+  z-index: 10;
+}
+
+.elsewhere__text {
+  margin: 0 0 16px;
+  max-width: 28ch;
+  text-align: center;
+}
+
 /* ---------- Main menu ---------- */
 
 .menu {

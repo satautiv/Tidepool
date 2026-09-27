@@ -38,6 +38,9 @@ export const STRINGS = {
   resetConfirm2: "This can't be undone.",
   resetFinal: 'Erase everything',
   exportLog: 'Export playtest log',
+  elsewhereTitle: 'Open in another tab',
+  elsewhereText: 'Tidepool is running in another tab. Your progress is safe there.',
+  playHere: 'Play here',
   privacy: 'Privacy',
   credits: 'Credits',
   creditsText:

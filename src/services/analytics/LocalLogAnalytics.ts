@@ -34,11 +34,13 @@ export class LocalLogAnalytics implements Analytics {
   private entries: LogEntry[];
   private readonly now: () => number;
   private readonly maxEntries: number;
+  /** The stored log matches memory (the last write worked), so it is safe to re-read. */
+  private synced = true;
 
   constructor(private readonly opts: LocalLogOptions) {
     this.now = opts.now ?? Date.now;
     this.maxEntries = opts.maxEntries ?? 5000;
-    this.entries = this.read();
+    this.entries = this.read() ?? [];
   }
 
   track<K extends EventName>(name: K, props: AnalyticsEvents[K]): void {
@@ -49,8 +51,12 @@ export class LocalLogAnalytics implements Analytics {
     this.note('user', { ...props });
   }
 
-  /** Records an entry outside the analytics events (page open, device info). */
+  /**
+   * Records an entry outside the analytics events (page open, device info). The stored log is
+   * re-read first, so entries written by another tab in between are kept, not overwritten.
+   */
   note(name: string, props: Record<string, unknown>): void {
+    if (this.synced) this.entries = this.read() ?? this.entries;
     this.entries.push({ t: this.now(), name, props });
     if (this.entries.length > this.maxEntries) {
       this.entries.splice(0, this.entries.length - this.maxEntries);
@@ -78,9 +84,16 @@ export class LocalLogAnalytics implements Analytics {
     }
   }
 
-  private read(): LogEntry[] {
+  /** The stored log; null when there is no readable storage. A corrupt log reads as empty. */
+  private read(): LogEntry[] | null {
+    let raw: string | null;
     try {
-      const raw = this.opts.storage?.getItem(PLAYTEST_LOG_KEY);
+      if (!this.opts.storage) return null;
+      raw = this.opts.storage.getItem(PLAYTEST_LOG_KEY);
+    } catch {
+      return null;
+    }
+    try {
       const data: unknown = raw ? JSON.parse(raw) : [];
       return Array.isArray(data) ? (data as LogEntry[]) : [];
     } catch {
@@ -91,8 +104,10 @@ export class LocalLogAnalytics implements Analytics {
   private write(): void {
     try {
       this.opts.storage?.setItem(PLAYTEST_LOG_KEY, JSON.stringify(this.entries));
+      this.synced = true;
     } catch {
       // Quota or blocked storage: the log still works in memory for this page.
+      this.synced = false;
     }
   }
 }

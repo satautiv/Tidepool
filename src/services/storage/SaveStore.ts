@@ -148,6 +148,7 @@ export class SaveStore {
   private data: Save | null = null;
   private timer: unknown = null;
   private pending: Promise<void> = Promise.resolve();
+  private suspended = false;
   private readonly now: () => number;
   private readonly debounceMs: number;
   private readonly onError: (message: string) => void;
@@ -192,6 +193,7 @@ export class SaveStore {
   /** Mutates the save and schedules a debounced write. */
   update(mutate: (save: Save) => void): void {
     mutate(this.loaded());
+    if (this.suspended) return;
     if (this.timer !== null) this.clearTimer(this.timer);
     this.timer = this.setTimer(() => {
       this.timer = null;
@@ -226,12 +228,27 @@ export class SaveStore {
     return this.timer !== null;
   }
 
+  /**
+   * Stops every write, including a pending one (another tab took over the game). Changes still
+   * apply in memory, so this tab keeps working, but they are never saved.
+   */
+  suspend(): void {
+    this.suspended = true;
+    if (this.timer !== null) this.clearTimer(this.timer);
+    this.timer = null;
+  }
+
+  get isSuspended(): boolean {
+    return this.suspended;
+  }
+
   private loaded(): Save {
     if (!this.data) throw new Error('SaveStore not loaded');
     return this.data;
   }
 
   private write(): Promise<void> {
+    if (this.suspended) return this.pending;
     const json = JSON.stringify(this.loaded());
     this.pending = this.pending
       .then(() => this.backend.set(SAVE_KEY, json))
