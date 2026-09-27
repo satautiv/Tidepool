@@ -861,17 +861,18 @@ describe('App playtest options', () => {
 });
 
 describe('App taken over by another tab', () => {
-  it('pauses, stops saving and offers "Play here"', async () => {
+  it('writes out its last move, then stops saving and offers "Play here"', async () => {
     const backend = new MemoryBackend();
     const save = new SaveStore(backend);
     await save.load();
     const playHere = vi.fn();
     const { app, uiRoot } = makeApp('tabs', save, undefined, { extra: { playHere } });
-    app.place(firstMove(app));
-    await save.flush();
-    const saved = await backend.get(SAVE_KEY);
+    app.place(firstMove(app)); // still in the save's debounce when the other tab claims
+    expect(save.isDirty).toBe(true);
 
-    app.takenOver();
+    await app.takenOver();
+    const saved = await backend.get(SAVE_KEY);
+    expect(saved).toContain('\\"placed\\":1'); // written out, not dropped
     expect(app.isDormant).toBe(true);
     expect(app.isPaused).toBe(true);
     expect(save.isSuspended).toBe(true);
@@ -890,13 +891,13 @@ describe('App taken over by another tab', () => {
     expect(dialog.hidden).toBe(false);
     dialog.querySelector<HTMLButtonElement>('.elsewhere__play')!.click();
     expect(playHere).toHaveBeenCalledOnce();
-    app.takenOver(); // a second claim changes nothing
+    await app.takenOver(); // a second claim changes nothing
     expect(uiRoot.querySelectorAll('.elsewhere')).toHaveLength(1);
   });
 
-  it('keeps the menu from starting a run while dormant', () => {
+  it('keeps the menu from starting a run while dormant', async () => {
     const { app } = makeApp('tabs-menu', undefined, undefined, { extra: { startIn: 'menu' } });
-    app.takenOver();
+    await app.takenOver();
     app.play();
     expect(app.currentScreen).toBe('menu');
   });

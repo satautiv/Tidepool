@@ -81,9 +81,9 @@ analytics.catchGlobalErrors(window);
 
 // One playing tab at a time: claiming before the save loads makes older tabs stop writing, so
 // they can't overwrite this tab's progress. Another tab opened later makes this one dormant.
-let takenOver = (): void => {};
+let takenOver = (): Promise<void> => Promise.resolve();
 const tabs = new TabGuard(tabChannel(), () => takenOver());
-tabs.claim();
+await tabs.claim(); // older tabs have written out their save
 
 // Capacitor Preferences for Android arrives in T5.02; every target uses web storage until then.
 const save = new SaveStore(createWebStorage(), {
@@ -140,7 +140,7 @@ takenOver = () => app.takenOver();
 attachSounds(app, audio, uiRoot);
 attachMusic(app, audio);
 app.start();
-if (!tabs.active) app.takenOver(); // a newer tab opened while this one was booting
+if (!tabs.active) void app.takenOver(); // a newer tab opened while this one was booting
 boot.progress(0.9);
 // Offline play for PWA builds (the standalone web target).
 if (target.pwa && import.meta.env.PROD) {

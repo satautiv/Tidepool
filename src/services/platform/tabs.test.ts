@@ -18,24 +18,91 @@ function bus() {
   };
 }
 
+function manualTimers() {
+  const timers: { at: number; fn: () => void }[] = [];
+  let now = 0;
+  return {
+    setTimer: (fn: () => void, ms: number) => void timers.push({ at: now + ms, fn }),
+    advance(ms: number) {
+      now += ms;
+      for (const t of timers.filter((t) => t.at <= now)) {
+        timers.splice(timers.indexOf(t), 1);
+        t.fn();
+      }
+    },
+  };
+}
+
+const settle = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
 describe('TabGuard', () => {
-  it('makes an older tab dormant when a new tab claims the game', () => {
+  it('claims at once when no other tab answers', async () => {
+    const timers = manualTimers();
+    const guard = new TabGuard(bus()(), vi.fn(), { setTimer: timers.setTimer, answerMs: 50 });
+    const claimed = vi.fn();
+    void guard.claim().then(claimed);
+    await settle();
+    expect(claimed).not.toHaveBeenCalled();
+    timers.advance(50);
+    await settle();
+    expect(claimed).toHaveBeenCalledOnce();
+    expect(guard.active).toBe(true);
+  });
+
+  it('waits for an older tab to write out its save, which then goes dormant', async () => {
     const open = bus();
-    const first = vi.fn();
-    const second = vi.fn();
-    const a = new TabGuard(open(), first, 'a');
-    a.claim();
-    expect(a.active).toBe(true);
+    const timers = manualTimers();
+    let release!: () => void;
+    const written = new Promise<void>((resolve) => (release = resolve));
+    const onTakenOver = vi.fn(() => written);
+    const older = new TabGuard(open(), onTakenOver, { id: 'old' });
+    const newer = new TabGuard(open(), vi.fn(), { id: 'new', setTimer: timers.setTimer });
 
-    const b = new TabGuard(open(), second, 'b');
-    b.claim();
-    expect(first).toHaveBeenCalledOnce();
-    expect(a.active).toBe(false);
-    expect(b.active).toBe(true);
-    expect(second).not.toHaveBeenCalled();
+    const claimed = vi.fn();
+    void newer.claim().then(claimed);
+    await settle();
+    expect(onTakenOver).toHaveBeenCalledOnce();
+    expect(older.active).toBe(false);
+    timers.advance(50); // the older tab answered, so the answer window doesn't end the wait
+    await settle();
+    expect(claimed).not.toHaveBeenCalled();
 
-    b.claim(); // already dormant: no second call
-    expect(first).toHaveBeenCalledOnce();
+    release();
+    await settle();
+    expect(claimed).toHaveBeenCalledOnce();
+    expect(newer.active).toBe(true);
+  });
+
+  it('gives up waiting on a tab that never releases', async () => {
+    const open = bus();
+    const timers = manualTimers();
+    new TabGuard(open(), () => new Promise<void>(() => {}), { id: 'stuck' });
+    const newer = new TabGuard(open(), vi.fn(), {
+      id: 'new',
+      setTimer: timers.setTimer,
+      answerMs: 50,
+      releaseMs: 1000,
+    });
+    const claimed = vi.fn();
+    void newer.claim().then(claimed);
+    timers.advance(50);
+    await settle();
+    expect(claimed).not.toHaveBeenCalled();
+    timers.advance(1000);
+    await settle();
+    expect(claimed).toHaveBeenCalledOnce();
+  });
+
+  it('is taken over once, and a dormant tab no longer answers', async () => {
+    const open = bus();
+    const onTakenOver = vi.fn();
+    const first = new TabGuard(open(), onTakenOver, { id: 'a' });
+    const second = new TabGuard(open(), vi.fn(), { id: 'b', setTimer: () => {} });
+    void second.claim();
+    void second.claim();
+    await settle();
+    expect(onTakenOver).toHaveBeenCalledOnce();
+    expect(first.active).toBe(false);
   });
 
   it('ignores its own and unrelated messages', () => {
@@ -46,17 +113,22 @@ describe('TabGuard', () => {
       close() {},
     };
     const taken = vi.fn();
-    const guard = new TabGuard(channel, taken, 'me');
-    for (const data of [{ type: 'claim', id: 'me' }, { type: 'hello' }, null, 'claim']) {
-      listeners.forEach((l) => l({ data } as MessageEvent));
-    }
+    const guard = new TabGuard(channel, taken, { id: 'me' });
+    const messages = [
+      { type: 'claim', id: 'me' },
+      { type: 'released', id: 'x', to: 'me' }, // no claim in progress
+      { type: 'hello', id: 'x' },
+      null,
+      'claim',
+    ];
+    for (const data of messages) listeners.forEach((l) => l({ data } as MessageEvent));
     expect(taken).not.toHaveBeenCalled();
     expect(guard.active).toBe(true);
   });
 
-  it('stays active without a channel', () => {
+  it('stays active and claims at once without a channel', async () => {
     const guard = new TabGuard(null, vi.fn());
-    guard.claim();
+    await guard.claim();
     expect(guard.active).toBe(true);
   });
 

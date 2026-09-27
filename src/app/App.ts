@@ -357,20 +357,23 @@ export class App {
   }
 
   /**
-   * Another tab took over the game (services/platform/tabs.ts). Writing on would erase that
-   * tab's progress, so saving stops for good; the run pauses, and "Play here" reloads this tab
+   * Another tab took over the game (services/platform/tabs.ts). The run pauses and what this
+   * tab has is written out (the other tab waits for it before loading); after that, writing on
+   * would erase that tab's progress, so saving stops for good. "Play here" reloads this tab
    * (it then loads the latest save and takes the game back).
    */
-  takenOver(): void {
+  async takenOver(): Promise<void> {
     if (this.dormant) return;
     this.pause();
     this.dormant = true;
-    this.opts.save?.suspend();
     this.opts.audio?.suspend();
     this.syncInput();
     this.elsewhere = new ElsewhereDialog(this.opts.playHere ?? (() => location.reload()));
     this.opts.uiRoot.append(this.elsewhere.el);
     this.elsewhere.show();
+    this.persistRun();
+    await this.opts.save?.flush();
+    this.opts.save?.suspend();
   }
 
   get isDormant(): boolean {
