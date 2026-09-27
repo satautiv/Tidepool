@@ -1,1471 +1,1471 @@
 [
- {
-  "t": 1790521321757,
-  "name": "page_open",
-  "props": {
-   "version": "0.0.0",
-   "build": "6356ce4",
-   "target": "web",
-   "magnet": false,
-   "l4": false,
-   "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
-   "viewport": "1162x895@1",
-   "coarsePointer": false
+  {
+    "t": 1790521321757,
+    "name": "page_open",
+    "props": {
+      "version": "0.0.0",
+      "build": "6356ce4",
+      "target": "web",
+      "magnet": false,
+      "l4": false,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+      "viewport": "1162x895@1",
+      "coarsePointer": false
+    }
+  },
+  {
+    "t": 1790521321757,
+    "name": "session_start",
+    "props": {
+      "sessionIndex": 12,
+      "daysSinceInstall": 0,
+      "platform": "web"
+    }
+  },
+  {
+    "t": 1790521348943,
+    "name": "session_end",
+    "props": {
+      "durationMs": 27186,
+      "runs": 0
+    }
+  },
+  {
+    "t": 1790521349004,
+    "name": "page_open",
+    "props": {
+      "version": "0.0.0",
+      "build": "6356ce4",
+      "target": "web",
+      "magnet": false,
+      "l4": false,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+      "viewport": "1162x895@1",
+      "coarsePointer": false
+    }
+  },
+  {
+    "t": 1790521349004,
+    "name": "session_start",
+    "props": {
+      "sessionIndex": 13,
+      "daysSinceInstall": 0,
+      "platform": "web"
+    }
+  },
+  {
+    "t": 1790521364515,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i5h",
+      "lines": 0,
+      "points": 5,
+      "fullness": 0.078
+    }
+  },
+  {
+    "t": 1790521374463,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "t4_d",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.141
+    }
+  },
+  {
+    "t": 1790521374965,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "l5_nw",
+      "lines": 0,
+      "points": 5,
+      "fullness": 0.219
+    }
+  },
+  {
+    "t": 1790521386796,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i3h",
+      "lines": 0,
+      "points": 3,
+      "fullness": 0.266
+    }
+  },
+  {
+    "t": 1790521387297,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "s4h",
+      "lines": 1,
+      "points": 84,
+      "fullness": 0.203
+    }
+  },
+  {
+    "t": 1790521387297,
+    "name": "first_clear",
+    "props": {
+      "mode": "endless",
+      "playMs": 55904,
+      "placed": 5
+    }
+  },
+  {
+    "t": 1790521396647,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "z4v",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.266
+    }
+  },
+  {
+    "t": 1790521406013,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "dot",
+      "lines": 1,
+      "points": 121,
+      "fullness": 0.156
+    }
+  },
+  {
+    "t": 1790521407529,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i2v",
+      "lines": 0,
+      "points": 2,
+      "fullness": 0.188
+    }
+  },
+  {
+    "t": 1790521414948,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "l5_se",
+      "lines": 0,
+      "points": 5,
+      "fullness": 0.266
+    }
+  },
+  {
+    "t": 1790521426246,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i4v",
+      "lines": 1,
+      "points": 164,
+      "fullness": 0.203
+    }
+  },
+  {
+    "t": 1790521433178,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "l3_se",
+      "lines": 0,
+      "points": 3,
+      "fullness": 0.25
+    }
+  },
+  {
+    "t": 1790521434680,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "z4h",
+      "lines": 1,
+      "points": 164,
+      "fullness": 0.188
+    }
+  },
+  {
+    "t": 1790521446428,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i2v",
+      "lines": 0,
+      "points": 2,
+      "fullness": 0.219
+    }
+  },
+  {
+    "t": 1790521447928,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i5v",
+      "lines": 0,
+      "points": 5,
+      "fullness": 0.297
+    }
+  },
+  {
+    "t": 1790521449428,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "t4_l",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.359
+    }
+  },
+  {
+    "t": 1790521466311,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "z4v",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.422
+    }
+  },
+  {
+    "t": 1790521467829,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i4h",
+      "lines": 1,
+      "points": 84,
+      "fullness": 0.359
+    }
+  },
+  {
+    "t": 1790521473712,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i3v",
+      "lines": 0,
+      "points": 3,
+      "fullness": 0.406
+    }
+  },
+  {
+    "t": 1790521482378,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "dot",
+      "lines": 0,
+      "points": 1,
+      "fullness": 0.422
+    }
+  },
+  {
+    "t": 1790521483894,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "dot",
+      "lines": 1,
+      "points": 121,
+      "fullness": 0.313
+    }
+  },
+  {
+    "t": 1790521485395,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "s4v",
+      "lines": 1,
+      "points": 124,
+      "fullness": 0.25
+    }
+  },
+  {
+    "t": 1790521503261,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i4v",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.313
+    }
+  },
+  {
+    "t": 1790521504777,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "t4_r",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.375
+    }
+  },
+  {
+    "t": 1790521513244,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "l3_sw",
+      "lines": 0,
+      "points": 3,
+      "fullness": 0.422
+    }
+  },
+  {
+    "t": 1790521523078,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i2v",
+      "lines": 1,
+      "points": 82,
+      "fullness": 0.328
+    }
+  },
+  {
+    "t": 1790521531527,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "l3_ne",
+      "lines": 0,
+      "points": 3,
+      "fullness": 0.375
+    }
+  },
+  {
+    "t": 1790521533028,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "l3_ne",
+      "lines": 0,
+      "points": 3,
+      "fullness": 0.422
+    }
+  },
+  {
+    "t": 1790521542245,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "dot",
+      "lines": 1,
+      "points": 121,
+      "fullness": 0.313
+    }
+  },
+  {
+    "t": 1790521543762,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "l3_se",
+      "lines": 1,
+      "points": 123,
+      "fullness": 0.234
+    }
+  },
+  {
+    "t": 1790521552495,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "l3_se",
+      "lines": 0,
+      "points": 3,
+      "fullness": 0.281
+    }
+  },
+  {
+    "t": 1790521565077,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "sq3",
+      "lines": 0,
+      "points": 9,
+      "fullness": 0.422
+    }
+  },
+  {
+    "t": 1790521566577,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "sq2",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.484
+    }
+  },
+  {
+    "t": 1790521568094,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i4h",
+      "lines": 1,
+      "points": 164,
+      "fullness": 0.422
+    }
+  },
+  {
+    "t": 1790521581694,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "l3_ne",
+      "lines": 1,
+      "points": 203,
+      "fullness": 0.344
+    }
+  },
+  {
+    "t": 1790521589876,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "l5_ne",
+      "lines": 1,
+      "points": 205,
+      "fullness": 0.297
+    }
+  },
+  {
+    "t": 1790521596694,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "z4h",
+      "lines": 1,
+      "points": 204,
+      "fullness": 0.234
+    }
+  },
+  {
+    "t": 1790521613743,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "t4_r",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.297
+    }
+  },
+  {
+    "t": 1790521615244,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i2h",
+      "lines": 0,
+      "points": 2,
+      "fullness": 0.328
+    }
+  },
+  {
+    "t": 1790521627893,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "s4h",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.391
+    }
+  },
+  {
+    "t": 1790521639409,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i2v",
+      "lines": 1,
+      "points": 82,
+      "fullness": 0.297
+    }
+  },
+  {
+    "t": 1790521640925,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "t4_d",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.359
+    }
+  },
+  {
+    "t": 1790521649143,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i5h",
+      "lines": 0,
+      "points": 5,
+      "fullness": 0.438
+    }
+  },
+  {
+    "t": 1790521659226,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i3h",
+      "lines": 1,
+      "points": 123,
+      "fullness": 0.359
+    }
+  },
+  {
+    "t": 1790521673726,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i4v",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.422
+    }
+  },
+  {
+    "t": 1790521675242,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "s4h",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.484
+    }
+  },
+  {
+    "t": 1790521693091,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "sq2",
+      "lines": 1,
+      "points": 164,
+      "fullness": 0.422
+    }
+  },
+  {
+    "t": 1790521710258,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "z4h",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.484
+    }
+  },
+  {
+    "t": 1790521711758,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "z4h",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.547
+    }
+  },
+  {
+    "t": 1790521722358,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "dot",
+      "lines": 1,
+      "points": 201,
+      "fullness": 0.438
+    }
+  },
+  {
+    "t": 1790521723858,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "dot",
+      "lines": 1,
+      "points": 201,
+      "fullness": 0.328
+    }
+  },
+  {
+    "t": 1790521725375,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i3v",
+      "lines": 0,
+      "points": 3,
+      "fullness": 0.375
+    }
+  },
+  {
+    "t": 1790521737091,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i4v",
+      "lines": 1,
+      "points": 244,
+      "fullness": 0.313
+    }
+  },
+  {
+    "t": 1790521738591,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "l3_nw",
+      "lines": 1,
+      "points": 243,
+      "fullness": 0.234
+    }
+  },
+  {
+    "t": 1790521745608,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "z4v",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.297
+    }
+  },
+  {
+    "t": 1790521755258,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "dot",
+      "lines": 1,
+      "points": 281,
+      "fullness": 0.188
+    }
+  },
+  {
+    "t": 1790521756759,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i4v",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.25
+    }
+  },
+  {
+    "t": 1790521758259,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i2v",
+      "lines": 0,
+      "points": 2,
+      "fullness": 0.281
+    }
+  },
+  {
+    "t": 1790521769040,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "dot",
+      "lines": 0,
+      "points": 1,
+      "fullness": 0.297
+    }
+  },
+  {
+    "t": 1790521770557,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i3h",
+      "lines": 0,
+      "points": 3,
+      "fullness": 0.344
+    }
+  },
+  {
+    "t": 1790521772057,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i3v",
+      "lines": 1,
+      "points": 323,
+      "fullness": 0.266
+    }
+  },
+  {
+    "t": 1790521781090,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "z4v",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.328
+    }
+  },
+  {
+    "t": 1790521782591,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "dot",
+      "lines": 1,
+      "points": 321,
+      "fullness": 0.219
+    }
+  },
+  {
+    "t": 1790521790290,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i2v",
+      "lines": 0,
+      "points": 2,
+      "fullness": 0.25
+    }
+  },
+  {
+    "t": 1790521804790,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "t4_u",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.313
+    }
+  },
+  {
+    "t": 1790521806306,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i2h",
+      "lines": 0,
+      "points": 2,
+      "fullness": 0.344
+    }
+  },
+  {
+    "t": 1790521807806,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i2h",
+      "lines": 0,
+      "points": 2,
+      "fullness": 0.375
+    }
+  },
+  {
+    "t": 1790521821224,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i2v",
+      "lines": 1,
+      "points": 82,
+      "fullness": 0.281
+    }
+  },
+  {
+    "t": 1790521822740,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "z4h",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.344
+    }
+  },
+  {
+    "t": 1790521831190,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i4v",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.406
+    }
+  },
+  {
+    "t": 1790521837923,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "l3_sw",
+      "lines": 1,
+      "points": 123,
+      "fullness": 0.328
+    }
+  },
+  {
+    "t": 1790521927395,
+    "name": "session_end",
+    "props": {
+      "durationMs": 578391,
+      "runs": 0
+    }
+  },
+  {
+    "t": 1790521927482,
+    "name": "page_open",
+    "props": {
+      "version": "0.0.0",
+      "build": "6356ce4",
+      "target": "web",
+      "magnet": true,
+      "l4": false,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+      "viewport": "1162x894@1",
+      "coarsePointer": false
+    }
+  },
+  {
+    "t": 1790521927483,
+    "name": "session_start",
+    "props": {
+      "sessionIndex": 14,
+      "daysSinceInstall": 0,
+      "platform": "web"
+    }
+  },
+  {
+    "t": 1790521956939,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "sq3",
+      "lines": 0,
+      "points": 9,
+      "fullness": 0.469
+    }
+  },
+  {
+    "t": 1790521958439,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i4v",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.531
+    }
+  },
+  {
+    "t": 1790521993555,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i4h",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.594
+    }
+  },
+  {
+    "t": 1790522046292,
+    "name": "ad_interstitial",
+    "props": {
+      "placement": "runEnd",
+      "result": "skipped"
+    }
+  },
+  {
+    "t": 1790522046293,
+    "name": "run_end",
+    "props": {
+      "mode": "endless",
+      "score": 4526,
+      "placed": 73,
+      "linesCleared": 26,
+      "fullnessAtEnd": 0.594,
+      "durationMs": 643819,
+      "secondChanceUsed": false
+    }
+  },
+  {
+    "t": 1790522046293,
+    "name": "run_start",
+    "props": {
+      "mode": "endless",
+      "seed": "q1zhzvepgs"
+    }
+  },
+  {
+    "t": 1790522054153,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "t4_u",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.063
+    }
+  },
+  {
+    "t": 1790522055669,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i4v",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.125
+    }
+  },
+  {
+    "t": 1790522057170,
+    "name": "invalid_drop",
+    "props": {
+      "mode": "endless",
+      "fullness": 0.125
+    }
+  },
+  {
+    "t": 1790522064070,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "dot",
+      "lines": 0,
+      "points": 1,
+      "fullness": 0.141
+    }
+  },
+  {
+    "t": 1790522080520,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "sq2",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.203
+    }
+  },
+  {
+    "t": 1790522082020,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i2h",
+      "lines": 0,
+      "points": 2,
+      "fullness": 0.234
+    }
+  },
+  {
+    "t": 1790522083536,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "l3_se",
+      "lines": 0,
+      "points": 3,
+      "fullness": 0.281
+    }
+  },
+  {
+    "t": 1790522092253,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i2v",
+      "lines": 1,
+      "points": 82,
+      "fullness": 0.188
+    }
+  },
+  {
+    "t": 1790522092253,
+    "name": "first_clear",
+    "props": {
+      "mode": "endless",
+      "playMs": 45960,
+      "placed": 7
+    }
+  },
+  {
+    "t": 1790522093770,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "l3_sw",
+      "lines": 1,
+      "points": 83,
+      "fullness": 0.109
+    }
+  },
+  {
+    "t": 1790522100486,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "s4h",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.172
+    }
+  },
+  {
+    "t": 1790522109120,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "t4_u",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.234
+    }
+  },
+  {
+    "t": 1790522110636,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "l3_ne",
+      "lines": 1,
+      "points": 123,
+      "fullness": 0.156
+    }
+  },
+  {
+    "t": 1790522118569,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i5v",
+      "lines": 0,
+      "points": 5,
+      "fullness": 0.234
+    }
+  },
+  {
+    "t": 1790522125852,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i2h",
+      "lines": 1,
+      "points": 162,
+      "fullness": 0.141
+    }
+  },
+  {
+    "t": 1790522127369,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i5h",
+      "lines": 0,
+      "points": 5,
+      "fullness": 0.219
+    }
+  },
+  {
+    "t": 1790522128887,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i3h",
+      "lines": 1,
+      "points": 163,
+      "fullness": 0.141
+    }
+  },
+  {
+    "t": 1790522141968,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "z4v",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.203
+    }
+  },
+  {
+    "t": 1790522143485,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "z4h",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.266
+    }
+  },
+  {
+    "t": 1790522144986,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i4v",
+      "lines": 1,
+      "points": 204,
+      "fullness": 0.203
+    }
+  },
+  {
+    "t": 1790522162585,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "z4v",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.266
+    }
+  },
+  {
+    "t": 1790522164085,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "t4_l",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.328
+    }
+  },
+  {
+    "t": 1790522165585,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "sq2",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.391
+    }
+  },
+  {
+    "t": 1790522180168,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "dot",
+      "lines": 1,
+      "points": 81,
+      "fullness": 0.281
+    }
+  },
+  {
+    "t": 1790522181668,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "l5_sw",
+      "lines": 1,
+      "points": 85,
+      "fullness": 0.234
+    }
+  },
+  {
+    "t": 1790522183169,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "sq2",
+      "lines": 1,
+      "points": 84,
+      "fullness": 0.172
+    }
+  },
+  {
+    "t": 1790522192301,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "dot",
+      "lines": 0,
+      "points": 1,
+      "fullness": 0.188
+    }
+  },
+  {
+    "t": 1790522193801,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i3h",
+      "lines": 0,
+      "points": 3,
+      "fullness": 0.234
+    }
+  },
+  {
+    "t": 1790522195302,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i3v",
+      "lines": 1,
+      "points": 123,
+      "fullness": 0.156
+    }
+  },
+  {
+    "t": 1790522207351,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i4h",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.219
+    }
+  },
+  {
+    "t": 1790522208868,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "l5_nw",
+      "lines": 1,
+      "points": 165,
+      "fullness": 0.172
+    }
+  },
+  {
+    "t": 1790522216818,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "z4h",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.234
+    }
+  },
+  {
+    "t": 1790522227634,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "sq2",
+      "lines": 1,
+      "points": 204,
+      "fullness": 0.172
+    }
+  },
+  {
+    "t": 1790522229451,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "sq3",
+      "lines": 0,
+      "points": 9,
+      "fullness": 0.313
+    }
+  },
+  {
+    "t": 1790522230968,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "l3_nw",
+      "lines": 0,
+      "points": 3,
+      "fullness": 0.359
+    }
+  },
+  {
+    "t": 1790522241834,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "sq3",
+      "lines": 0,
+      "points": 9,
+      "fullness": 0.5
+    }
+  },
+  {
+    "t": 1790522243350,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i3v",
+      "lines": 1,
+      "points": 243,
+      "fullness": 0.422
+    }
+  },
+  {
+    "t": 1790522244868,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "l3_se",
+      "lines": 0,
+      "points": 3,
+      "fullness": 0.469
+    }
+  },
+  {
+    "t": 1790522258734,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "s4v",
+      "lines": 1,
+      "points": 284,
+      "fullness": 0.406
+    }
+  },
+  {
+    "t": 1790522260250,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "s4v",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.469
+    }
+  },
+  {
+    "t": 1790522268818,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i3h",
+      "lines": 0,
+      "points": 3,
+      "fullness": 0.516
+    }
+  },
+  {
+    "t": 1790522277133,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "dot",
+      "lines": 1,
+      "points": 321,
+      "fullness": 0.406
+    }
+  },
+  {
+    "t": 1790522278650,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "t4_r",
+      "lines": 1,
+      "points": 324,
+      "fullness": 0.344
+    }
+  },
+  {
+    "t": 1790522286400,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i5h",
+      "lines": 0,
+      "points": 5,
+      "fullness": 0.422
+    }
+  },
+  {
+    "t": 1790522299733,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i4v",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.484
+    }
+  },
+  {
+    "t": 1790522301250,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "t4_d",
+      "lines": 0,
+      "points": 4,
+      "fullness": 0.547
+    }
+  },
+  {
+    "t": 1790522302751,
+    "name": "placement",
+    "props": {
+      "mode": "endless",
+      "shape": "i2v",
+      "lines": 1,
+      "points": 322,
+      "fullness": 0.453
+    }
+  },
+  {
+    "t": 1790522413837,
+    "name": "session_end",
+    "props": {
+      "durationMs": 486354,
+      "runs": 1
+    }
+  },
+  {
+    "t": 1790522602820,
+    "name": "page_open",
+    "props": {
+      "version": "0.0.0",
+      "build": "6356ce4",
+      "target": "web",
+      "magnet": true,
+      "l4": false,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+      "viewport": "1162x951@1",
+      "coarsePointer": false
+    }
+  },
+  {
+    "t": 1790522602821,
+    "name": "session_start",
+    "props": {
+      "sessionIndex": 15,
+      "daysSinceInstall": 0,
+      "platform": "web"
+    }
   }
- },
- {
-  "t": 1790521321757,
-  "name": "session_start",
-  "props": {
-   "sessionIndex": 12,
-   "daysSinceInstall": 0,
-   "platform": "web"
-  }
- },
- {
-  "t": 1790521348943,
-  "name": "session_end",
-  "props": {
-   "durationMs": 27186,
-   "runs": 0
-  }
- },
- {
-  "t": 1790521349004,
-  "name": "page_open",
-  "props": {
-   "version": "0.0.0",
-   "build": "6356ce4",
-   "target": "web",
-   "magnet": false,
-   "l4": false,
-   "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
-   "viewport": "1162x895@1",
-   "coarsePointer": false
-  }
- },
- {
-  "t": 1790521349004,
-  "name": "session_start",
-  "props": {
-   "sessionIndex": 13,
-   "daysSinceInstall": 0,
-   "platform": "web"
-  }
- },
- {
-  "t": 1790521364515,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i5h",
-   "lines": 0,
-   "points": 5,
-   "fullness": 0.078
-  }
- },
- {
-  "t": 1790521374463,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "t4_d",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.141
-  }
- },
- {
-  "t": 1790521374965,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "l5_nw",
-   "lines": 0,
-   "points": 5,
-   "fullness": 0.219
-  }
- },
- {
-  "t": 1790521386796,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i3h",
-   "lines": 0,
-   "points": 3,
-   "fullness": 0.266
-  }
- },
- {
-  "t": 1790521387297,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "s4h",
-   "lines": 1,
-   "points": 84,
-   "fullness": 0.203
-  }
- },
- {
-  "t": 1790521387297,
-  "name": "first_clear",
-  "props": {
-   "mode": "endless",
-   "playMs": 55904,
-   "placed": 5
-  }
- },
- {
-  "t": 1790521396647,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "z4v",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.266
-  }
- },
- {
-  "t": 1790521406013,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "dot",
-   "lines": 1,
-   "points": 121,
-   "fullness": 0.156
-  }
- },
- {
-  "t": 1790521407529,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i2v",
-   "lines": 0,
-   "points": 2,
-   "fullness": 0.188
-  }
- },
- {
-  "t": 1790521414948,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "l5_se",
-   "lines": 0,
-   "points": 5,
-   "fullness": 0.266
-  }
- },
- {
-  "t": 1790521426246,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i4v",
-   "lines": 1,
-   "points": 164,
-   "fullness": 0.203
-  }
- },
- {
-  "t": 1790521433178,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "l3_se",
-   "lines": 0,
-   "points": 3,
-   "fullness": 0.25
-  }
- },
- {
-  "t": 1790521434680,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "z4h",
-   "lines": 1,
-   "points": 164,
-   "fullness": 0.188
-  }
- },
- {
-  "t": 1790521446428,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i2v",
-   "lines": 0,
-   "points": 2,
-   "fullness": 0.219
-  }
- },
- {
-  "t": 1790521447928,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i5v",
-   "lines": 0,
-   "points": 5,
-   "fullness": 0.297
-  }
- },
- {
-  "t": 1790521449428,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "t4_l",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.359
-  }
- },
- {
-  "t": 1790521466311,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "z4v",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.422
-  }
- },
- {
-  "t": 1790521467829,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i4h",
-   "lines": 1,
-   "points": 84,
-   "fullness": 0.359
-  }
- },
- {
-  "t": 1790521473712,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i3v",
-   "lines": 0,
-   "points": 3,
-   "fullness": 0.406
-  }
- },
- {
-  "t": 1790521482378,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "dot",
-   "lines": 0,
-   "points": 1,
-   "fullness": 0.422
-  }
- },
- {
-  "t": 1790521483894,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "dot",
-   "lines": 1,
-   "points": 121,
-   "fullness": 0.313
-  }
- },
- {
-  "t": 1790521485395,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "s4v",
-   "lines": 1,
-   "points": 124,
-   "fullness": 0.25
-  }
- },
- {
-  "t": 1790521503261,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i4v",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.313
-  }
- },
- {
-  "t": 1790521504777,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "t4_r",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.375
-  }
- },
- {
-  "t": 1790521513244,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "l3_sw",
-   "lines": 0,
-   "points": 3,
-   "fullness": 0.422
-  }
- },
- {
-  "t": 1790521523078,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i2v",
-   "lines": 1,
-   "points": 82,
-   "fullness": 0.328
-  }
- },
- {
-  "t": 1790521531527,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "l3_ne",
-   "lines": 0,
-   "points": 3,
-   "fullness": 0.375
-  }
- },
- {
-  "t": 1790521533028,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "l3_ne",
-   "lines": 0,
-   "points": 3,
-   "fullness": 0.422
-  }
- },
- {
-  "t": 1790521542245,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "dot",
-   "lines": 1,
-   "points": 121,
-   "fullness": 0.313
-  }
- },
- {
-  "t": 1790521543762,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "l3_se",
-   "lines": 1,
-   "points": 123,
-   "fullness": 0.234
-  }
- },
- {
-  "t": 1790521552495,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "l3_se",
-   "lines": 0,
-   "points": 3,
-   "fullness": 0.281
-  }
- },
- {
-  "t": 1790521565077,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "sq3",
-   "lines": 0,
-   "points": 9,
-   "fullness": 0.422
-  }
- },
- {
-  "t": 1790521566577,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "sq2",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.484
-  }
- },
- {
-  "t": 1790521568094,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i4h",
-   "lines": 1,
-   "points": 164,
-   "fullness": 0.422
-  }
- },
- {
-  "t": 1790521581694,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "l3_ne",
-   "lines": 1,
-   "points": 203,
-   "fullness": 0.344
-  }
- },
- {
-  "t": 1790521589876,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "l5_ne",
-   "lines": 1,
-   "points": 205,
-   "fullness": 0.297
-  }
- },
- {
-  "t": 1790521596694,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "z4h",
-   "lines": 1,
-   "points": 204,
-   "fullness": 0.234
-  }
- },
- {
-  "t": 1790521613743,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "t4_r",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.297
-  }
- },
- {
-  "t": 1790521615244,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i2h",
-   "lines": 0,
-   "points": 2,
-   "fullness": 0.328
-  }
- },
- {
-  "t": 1790521627893,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "s4h",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.391
-  }
- },
- {
-  "t": 1790521639409,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i2v",
-   "lines": 1,
-   "points": 82,
-   "fullness": 0.297
-  }
- },
- {
-  "t": 1790521640925,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "t4_d",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.359
-  }
- },
- {
-  "t": 1790521649143,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i5h",
-   "lines": 0,
-   "points": 5,
-   "fullness": 0.438
-  }
- },
- {
-  "t": 1790521659226,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i3h",
-   "lines": 1,
-   "points": 123,
-   "fullness": 0.359
-  }
- },
- {
-  "t": 1790521673726,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i4v",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.422
-  }
- },
- {
-  "t": 1790521675242,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "s4h",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.484
-  }
- },
- {
-  "t": 1790521693091,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "sq2",
-   "lines": 1,
-   "points": 164,
-   "fullness": 0.422
-  }
- },
- {
-  "t": 1790521710258,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "z4h",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.484
-  }
- },
- {
-  "t": 1790521711758,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "z4h",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.547
-  }
- },
- {
-  "t": 1790521722358,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "dot",
-   "lines": 1,
-   "points": 201,
-   "fullness": 0.438
-  }
- },
- {
-  "t": 1790521723858,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "dot",
-   "lines": 1,
-   "points": 201,
-   "fullness": 0.328
-  }
- },
- {
-  "t": 1790521725375,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i3v",
-   "lines": 0,
-   "points": 3,
-   "fullness": 0.375
-  }
- },
- {
-  "t": 1790521737091,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i4v",
-   "lines": 1,
-   "points": 244,
-   "fullness": 0.313
-  }
- },
- {
-  "t": 1790521738591,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "l3_nw",
-   "lines": 1,
-   "points": 243,
-   "fullness": 0.234
-  }
- },
- {
-  "t": 1790521745608,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "z4v",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.297
-  }
- },
- {
-  "t": 1790521755258,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "dot",
-   "lines": 1,
-   "points": 281,
-   "fullness": 0.188
-  }
- },
- {
-  "t": 1790521756759,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i4v",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.25
-  }
- },
- {
-  "t": 1790521758259,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i2v",
-   "lines": 0,
-   "points": 2,
-   "fullness": 0.281
-  }
- },
- {
-  "t": 1790521769040,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "dot",
-   "lines": 0,
-   "points": 1,
-   "fullness": 0.297
-  }
- },
- {
-  "t": 1790521770557,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i3h",
-   "lines": 0,
-   "points": 3,
-   "fullness": 0.344
-  }
- },
- {
-  "t": 1790521772057,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i3v",
-   "lines": 1,
-   "points": 323,
-   "fullness": 0.266
-  }
- },
- {
-  "t": 1790521781090,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "z4v",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.328
-  }
- },
- {
-  "t": 1790521782591,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "dot",
-   "lines": 1,
-   "points": 321,
-   "fullness": 0.219
-  }
- },
- {
-  "t": 1790521790290,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i2v",
-   "lines": 0,
-   "points": 2,
-   "fullness": 0.25
-  }
- },
- {
-  "t": 1790521804790,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "t4_u",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.313
-  }
- },
- {
-  "t": 1790521806306,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i2h",
-   "lines": 0,
-   "points": 2,
-   "fullness": 0.344
-  }
- },
- {
-  "t": 1790521807806,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i2h",
-   "lines": 0,
-   "points": 2,
-   "fullness": 0.375
-  }
- },
- {
-  "t": 1790521821224,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i2v",
-   "lines": 1,
-   "points": 82,
-   "fullness": 0.281
-  }
- },
- {
-  "t": 1790521822740,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "z4h",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.344
-  }
- },
- {
-  "t": 1790521831190,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i4v",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.406
-  }
- },
- {
-  "t": 1790521837923,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "l3_sw",
-   "lines": 1,
-   "points": 123,
-   "fullness": 0.328
-  }
- },
- {
-  "t": 1790521927395,
-  "name": "session_end",
-  "props": {
-   "durationMs": 578391,
-   "runs": 0
-  }
- },
- {
-  "t": 1790521927482,
-  "name": "page_open",
-  "props": {
-   "version": "0.0.0",
-   "build": "6356ce4",
-   "target": "web",
-   "magnet": true,
-   "l4": false,
-   "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
-   "viewport": "1162x894@1",
-   "coarsePointer": false
-  }
- },
- {
-  "t": 1790521927483,
-  "name": "session_start",
-  "props": {
-   "sessionIndex": 14,
-   "daysSinceInstall": 0,
-   "platform": "web"
-  }
- },
- {
-  "t": 1790521956939,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "sq3",
-   "lines": 0,
-   "points": 9,
-   "fullness": 0.469
-  }
- },
- {
-  "t": 1790521958439,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i4v",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.531
-  }
- },
- {
-  "t": 1790521993555,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i4h",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.594
-  }
- },
- {
-  "t": 1790522046292,
-  "name": "ad_interstitial",
-  "props": {
-   "placement": "runEnd",
-   "result": "skipped"
-  }
- },
- {
-  "t": 1790522046293,
-  "name": "run_end",
-  "props": {
-   "mode": "endless",
-   "score": 4526,
-   "placed": 73,
-   "linesCleared": 26,
-   "fullnessAtEnd": 0.594,
-   "durationMs": 643819,
-   "secondChanceUsed": false
-  }
- },
- {
-  "t": 1790522046293,
-  "name": "run_start",
-  "props": {
-   "mode": "endless",
-   "seed": "q1zhzvepgs"
-  }
- },
- {
-  "t": 1790522054153,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "t4_u",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.063
-  }
- },
- {
-  "t": 1790522055669,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i4v",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.125
-  }
- },
- {
-  "t": 1790522057170,
-  "name": "invalid_drop",
-  "props": {
-   "mode": "endless",
-   "fullness": 0.125
-  }
- },
- {
-  "t": 1790522064070,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "dot",
-   "lines": 0,
-   "points": 1,
-   "fullness": 0.141
-  }
- },
- {
-  "t": 1790522080520,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "sq2",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.203
-  }
- },
- {
-  "t": 1790522082020,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i2h",
-   "lines": 0,
-   "points": 2,
-   "fullness": 0.234
-  }
- },
- {
-  "t": 1790522083536,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "l3_se",
-   "lines": 0,
-   "points": 3,
-   "fullness": 0.281
-  }
- },
- {
-  "t": 1790522092253,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i2v",
-   "lines": 1,
-   "points": 82,
-   "fullness": 0.188
-  }
- },
- {
-  "t": 1790522092253,
-  "name": "first_clear",
-  "props": {
-   "mode": "endless",
-   "playMs": 45960,
-   "placed": 7
-  }
- },
- {
-  "t": 1790522093770,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "l3_sw",
-   "lines": 1,
-   "points": 83,
-   "fullness": 0.109
-  }
- },
- {
-  "t": 1790522100486,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "s4h",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.172
-  }
- },
- {
-  "t": 1790522109120,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "t4_u",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.234
-  }
- },
- {
-  "t": 1790522110636,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "l3_ne",
-   "lines": 1,
-   "points": 123,
-   "fullness": 0.156
-  }
- },
- {
-  "t": 1790522118569,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i5v",
-   "lines": 0,
-   "points": 5,
-   "fullness": 0.234
-  }
- },
- {
-  "t": 1790522125852,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i2h",
-   "lines": 1,
-   "points": 162,
-   "fullness": 0.141
-  }
- },
- {
-  "t": 1790522127369,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i5h",
-   "lines": 0,
-   "points": 5,
-   "fullness": 0.219
-  }
- },
- {
-  "t": 1790522128887,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i3h",
-   "lines": 1,
-   "points": 163,
-   "fullness": 0.141
-  }
- },
- {
-  "t": 1790522141968,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "z4v",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.203
-  }
- },
- {
-  "t": 1790522143485,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "z4h",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.266
-  }
- },
- {
-  "t": 1790522144986,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i4v",
-   "lines": 1,
-   "points": 204,
-   "fullness": 0.203
-  }
- },
- {
-  "t": 1790522162585,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "z4v",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.266
-  }
- },
- {
-  "t": 1790522164085,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "t4_l",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.328
-  }
- },
- {
-  "t": 1790522165585,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "sq2",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.391
-  }
- },
- {
-  "t": 1790522180168,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "dot",
-   "lines": 1,
-   "points": 81,
-   "fullness": 0.281
-  }
- },
- {
-  "t": 1790522181668,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "l5_sw",
-   "lines": 1,
-   "points": 85,
-   "fullness": 0.234
-  }
- },
- {
-  "t": 1790522183169,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "sq2",
-   "lines": 1,
-   "points": 84,
-   "fullness": 0.172
-  }
- },
- {
-  "t": 1790522192301,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "dot",
-   "lines": 0,
-   "points": 1,
-   "fullness": 0.188
-  }
- },
- {
-  "t": 1790522193801,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i3h",
-   "lines": 0,
-   "points": 3,
-   "fullness": 0.234
-  }
- },
- {
-  "t": 1790522195302,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i3v",
-   "lines": 1,
-   "points": 123,
-   "fullness": 0.156
-  }
- },
- {
-  "t": 1790522207351,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i4h",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.219
-  }
- },
- {
-  "t": 1790522208868,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "l5_nw",
-   "lines": 1,
-   "points": 165,
-   "fullness": 0.172
-  }
- },
- {
-  "t": 1790522216818,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "z4h",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.234
-  }
- },
- {
-  "t": 1790522227634,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "sq2",
-   "lines": 1,
-   "points": 204,
-   "fullness": 0.172
-  }
- },
- {
-  "t": 1790522229451,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "sq3",
-   "lines": 0,
-   "points": 9,
-   "fullness": 0.313
-  }
- },
- {
-  "t": 1790522230968,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "l3_nw",
-   "lines": 0,
-   "points": 3,
-   "fullness": 0.359
-  }
- },
- {
-  "t": 1790522241834,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "sq3",
-   "lines": 0,
-   "points": 9,
-   "fullness": 0.5
-  }
- },
- {
-  "t": 1790522243350,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i3v",
-   "lines": 1,
-   "points": 243,
-   "fullness": 0.422
-  }
- },
- {
-  "t": 1790522244868,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "l3_se",
-   "lines": 0,
-   "points": 3,
-   "fullness": 0.469
-  }
- },
- {
-  "t": 1790522258734,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "s4v",
-   "lines": 1,
-   "points": 284,
-   "fullness": 0.406
-  }
- },
- {
-  "t": 1790522260250,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "s4v",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.469
-  }
- },
- {
-  "t": 1790522268818,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i3h",
-   "lines": 0,
-   "points": 3,
-   "fullness": 0.516
-  }
- },
- {
-  "t": 1790522277133,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "dot",
-   "lines": 1,
-   "points": 321,
-   "fullness": 0.406
-  }
- },
- {
-  "t": 1790522278650,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "t4_r",
-   "lines": 1,
-   "points": 324,
-   "fullness": 0.344
-  }
- },
- {
-  "t": 1790522286400,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i5h",
-   "lines": 0,
-   "points": 5,
-   "fullness": 0.422
-  }
- },
- {
-  "t": 1790522299733,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i4v",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.484
-  }
- },
- {
-  "t": 1790522301250,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "t4_d",
-   "lines": 0,
-   "points": 4,
-   "fullness": 0.547
-  }
- },
- {
-  "t": 1790522302751,
-  "name": "placement",
-  "props": {
-   "mode": "endless",
-   "shape": "i2v",
-   "lines": 1,
-   "points": 322,
-   "fullness": 0.453
-  }
- },
- {
-  "t": 1790522413837,
-  "name": "session_end",
-  "props": {
-   "durationMs": 486354,
-   "runs": 1
-  }
- },
- {
-  "t": 1790522602820,
-  "name": "page_open",
-  "props": {
-   "version": "0.0.0",
-   "build": "6356ce4",
-   "target": "web",
-   "magnet": true,
-   "l4": false,
-   "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
-   "viewport": "1162x951@1",
-   "coarsePointer": false
-  }
- },
- {
-  "t": 1790522602821,
-  "name": "session_start",
-  "props": {
-   "sessionIndex": 15,
-   "daysSinceInstall": 0,
-   "platform": "web"
-  }
- }
 ]
