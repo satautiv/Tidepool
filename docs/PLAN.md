@@ -547,6 +547,10 @@ All values are starting points in `render/feel.ts` and tuned during playtests.
   - `rewarded(placement)`: returns `Promise<boolean>`, applies the per-day limits (free booster: 3/day; daily bonus: 1/day; second chance: 1/run; double reward: 1 per level result), and pauses audio and the game loop during the ad.
   - `isRewardedAvailable(placement)`: checks readiness and limits. The UI hides reward buttons when it returns false.
   - Forwards `gameplayStart/Stop` at run start, pause, resume, game over and ad show.
+  - Gameplay time only counts between `gameplayStart` and `gameplayStop`, and stops while the page is hidden. A new session (D18) resets it.
+  - A failed or timed-out interstitial still resets the gameplay timer, so a broken provider isn't retried at every break point.
+  - A rewarded ad has a 90 s safety timeout (it resolves as not earned), and provider `init` has 8 s. If init fails, ads stay off for the session. A skipped or failed rewarded ad doesn't use up a limit.
+  - The daily limits reset on the local calendar day. The counters live in `SaveStore.ads`. They were added to save v1 without a version bump, because the defaults fill them in.
 - Implementations are chosen by build target through **dynamic import**, so unused SDKs are not bundled (§20).
 
 ### 13.3 Analytics (`services/analytics/`)

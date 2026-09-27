@@ -26,6 +26,18 @@ export interface Stats {
   totalPlaytimeMs: number;
 }
 
+/** Ad policy counters (docs/PLAN.md D18, D19; T1.22). */
+export interface AdsSave {
+  sessionCount: number;
+  /** ms since epoch. */
+  lastSessionStart: number;
+  gameplayMsSinceInterstitial: number;
+  /** ms since epoch; 0 = never. */
+  lastRewardedAt: number;
+  /** Per-day limits. `date` is the local day `YYYY-MM-DD` the counters belong to. */
+  daily: { date: string; freeBoosterAds: number; dailyBonusClaimed: boolean };
+}
+
 export interface SaveV1 {
   version: 1;
   /** First launch, ms since epoch (analytics `daysSinceInstall`). */
@@ -36,6 +48,7 @@ export interface SaveV1 {
   endlessRun: string | null;
   /** Best score when the saved run started, so a resumed run can still say "New best!". */
   endlessRunBestAtStart: number;
+  ads: AdsSave;
 }
 
 export type Save = SaveV1;
@@ -56,6 +69,13 @@ export function defaultSave(now: number): Save {
     stats: { bestScore: 0, gamesPlayed: 0, linesCleared: 0, tidalWaves: 0, totalPlaytimeMs: 0 },
     endlessRun: null,
     endlessRunBestAtStart: 0,
+    ads: {
+      sessionCount: 0,
+      lastSessionStart: 0,
+      gameplayMsSinceInterstitial: 0,
+      lastRewardedAt: 0,
+      daily: { date: '', freeBoosterAds: 0, dailyBonusClaimed: false },
+    },
   };
 }
 

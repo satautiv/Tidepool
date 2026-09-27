@@ -5,6 +5,8 @@ import { slotShape } from '../core/generator';
 import type { FrameScheduler } from '../render/Renderer';
 import { fakeCanvasFactory } from '../render/testing';
 import type { ViewportEnv } from '../render/viewport';
+import { AdManager } from '../services/ads/AdManager';
+import { NoAdsService } from '../services/ads/NoAdsService';
 import { MemoryBackend } from '../services/storage/StorageBackend';
 import { SAVE_KEY, SaveStore } from '../services/storage/SaveStore';
 import { App, randomSeed, type PageEnv } from './App';
@@ -26,7 +28,7 @@ function fakePage(): PageEnv & { hide(): void } {
   };
 }
 
-function makeApp(seed = 'app-test', save?: SaveStore) {
+function makeApp(seed = 'app-test', save?: SaveStore, ads?: AdManager) {
   const { factory } = fakeCanvasFactory();
   const canvas = factory(390, 844);
   const uiRoot = document.createElement('div');
@@ -37,6 +39,7 @@ function makeApp(seed = 'app-test', save?: SaveStore) {
     spriteFactory: factory,
     renderer: { scheduler: idleScheduler },
     ...(save ? { save } : {}),
+    ...(ads ? { ads } : {}),
   });
   const viewport: ViewportEnv = {
     observeResize: (_el, cb) => {
@@ -286,5 +289,53 @@ describe('App persistence', () => {
     const { app: resumed } = makeApp('x', await loadedSave(backend));
     expect(resumed.bestScore).toBe(app.bestScore);
     expect(resumed['bestAtRunStart' as keyof App]).toBe(3);
+  });
+});
+
+describe('App ads', () => {
+  async function withAds() {
+    const save = new SaveStore(new MemoryBackend());
+    await save.load();
+    let t = 0;
+    const service = new NoAdsService({ wait: async () => {} });
+    const ads = new AdManager(service, save, { now: () => t });
+    await ads.init();
+    const signals: string[] = [];
+    service.gameplayStart = () => signals.push('start');
+    service.gameplayStop = () => signals.push('stop');
+    const made = makeApp('ads', save, ads);
+    return { ...made, ads, signals, tick: (ms: number) => (t += ms) };
+  }
+
+  it('signals gameplay for the run, stops it at game over and restarts it for the next run', async () => {
+    const { app, signals, ads, tick } = await withAds();
+    expect(signals).toEqual(['start']);
+    tick(5000);
+    for (let i = 0; i < 1000 && !app.state.over; i++) app.place(firstMove(app));
+    await Promise.resolve();
+    expect(signals).toEqual(['start', 'stop']);
+    expect(ads.gameplayMs).toBe(5000);
+    app.newRun();
+    expect(signals).toEqual(['start', 'stop', 'start']);
+  });
+
+  it('stops gameplay while the page is hidden', async () => {
+    const { page, signals } = await withAds();
+    page.hide();
+    expect(signals).toEqual(['start', 'stop']);
+  });
+
+  it('pauses rendering and input while an ad plays', async () => {
+    const { app, ads } = await withAds();
+    let during: [boolean, boolean] | undefined;
+    const start = ads.onAdStart;
+    ads.onAdStart = () => {
+      start();
+      during = [app.renderer.isPaused, app.drag.isLocked];
+    };
+    await ads.rewarded('secondChance');
+    expect(during).toEqual([true, true]);
+    expect(app.renderer.isPaused).toBe(false);
+    expect(app.drag.isLocked).toBe(false);
   });
 });

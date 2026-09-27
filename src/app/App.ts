@@ -31,6 +31,7 @@ import { SpriteSet, type CanvasFactory } from '../render/sprites';
 import { TrayView } from '../render/TrayView';
 import { attachViewport, type ViewportEnv } from '../render/viewport';
 import { Router } from '../ui/Router';
+import type { AdManager } from '../services/ads/AdManager';
 import type { SaveStore } from '../services/storage/SaveStore';
 import { GameScreen } from '../ui/screens/GameScreen';
 import { EventBus } from './events';
@@ -56,6 +57,8 @@ export interface AppOptions {
   debug?: boolean;
   /** A loaded save. Without one, nothing persists (tests, previews). */
   save?: SaveStore;
+  /** Ad policy and provider. Without one, no ads (tests, previews). */
+  ads?: AdManager;
 }
 
 /** Page lifecycle targets, injectable for tests. */
@@ -135,6 +138,18 @@ export class App {
         this.newRun();
       },
     });
+
+    if (opts.ads) {
+      // The game sits still under an ad: no frames, no input.
+      opts.ads.onAdStart = () => {
+        this.renderer.pause();
+        this.drag.setLocked(true);
+      };
+      opts.ads.onAdEnd = () => {
+        this.renderer.resume();
+        this.drag.setLocked(this.stateValue.over);
+      };
+    }
   }
 
   get state(): EndlessState {
@@ -155,7 +170,12 @@ export class App {
     bindPointerEvents(this.opts.canvas, this.drag, page.window);
     const flush = () => void this.opts.save?.flush();
     page.document.addEventListener('visibilitychange', () => {
-      if (page.document.visibilityState === 'hidden') flush();
+      if (page.document.visibilityState === 'hidden') {
+        this.opts.ads?.onHidden();
+        flush();
+      } else {
+        this.opts.ads?.onVisible();
+      }
     });
     page.window.addEventListener('pagehide', flush);
 
@@ -163,6 +183,7 @@ export class App {
     const resumed = this.stateValue.stats.placed > 0;
     this.showRun(!resumed, resumed);
     if (!resumed) this.persistRun();
+    this.opts.ads?.runStarted();
   }
 
   /** Starts a fresh Endless run, closing out the current one first. */
@@ -173,6 +194,7 @@ export class App {
     this.drag.setLocked(false);
     this.showRun(true);
     this.persistRun();
+    this.opts.ads?.runStarted();
     this.bus.emit('newRun', { state: this.stateValue });
   }
 
@@ -199,6 +221,7 @@ export class App {
   /** Locks input, lets clears finish, fades the board, then shows the Game Over panel. */
   private async showGameOver(): Promise<void> {
     this.drag.setLocked(true);
+    this.opts.ads?.gameplayStop();
     const run = this.stateValue;
     await this.boardView.whenIdle();
     await new Promise<void>((resolve) => this.boardView.fadeOut(resolve));
