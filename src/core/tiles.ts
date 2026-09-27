@@ -7,6 +7,7 @@
  * plus any tile events. Endless boards have no tiles, so none of this changes Endless play.
  */
 import type { Cell } from './board';
+import { PEARL } from './tiles/pearl';
 
 /** Special tile kinds (PLAN §14.2). Urchin and frozen are later (Sunken Ship). */
 export const TILE_KINDS = ['pearl', 'coral', 'bubble', 'urchin', 'frozen'] as const;
@@ -61,7 +62,7 @@ export const clearCell = (): TileOutcome => ({ cell: EMPTY_CELL, events: [] });
 const solid: TileBehaviour = { blocksPlacement: () => true, countsAsFilled: () => true };
 
 const behaviours = new Map<string, TileBehaviour>([
-  ['pearl', solid],
+  ['pearl', PEARL],
   ['coral', solid],
   // A bubble floats over a cell and never blocks it; the cell underneath decides the line.
   [

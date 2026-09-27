@@ -142,7 +142,8 @@ describe('GameAnalytics', () => {
 
   it('keeps analytics out of core/', () => {
     const dir = join(__dirname, '../core');
-    for (const file of readdirSync(dir)) {
+    const files = readdirSync(dir, { recursive: true, encoding: 'utf8' });
+    for (const file of files.filter((f) => f.endsWith('.ts'))) {
       expect(readFileSync(join(dir, file), 'utf8'), file).not.toMatch(/analytics/i);
     }
   });
