@@ -221,10 +221,12 @@ export class SettingsScreen implements Screen {
       'footer',
       { class: 'settings__footer' },
       h('span', { text: `v${this.model.version} · ${this.model.build}` }),
-      h('a', {
-        attrs: { href: this.model.privacyUrl, target: '_blank', rel: 'noopener' },
-        text: STRINGS.privacy,
-      }),
+      // Portals that forbid external links get no privacy link here (their own pages cover it).
+      this.model.privacyUrl &&
+        h('a', {
+          attrs: { href: this.model.privacyUrl, target: '_blank', rel: 'noopener' },
+          text: STRINGS.privacy,
+        }),
       h('button', {
         class: 'settings__credits-toggle',
         attrs: { type: 'button' },

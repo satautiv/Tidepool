@@ -99,6 +99,8 @@ export interface AppOptions {
   now?: () => number;
   /** Ad policy and provider. Without one, no ads (tests, previews). */
   ads?: AdManager;
+  /** Whether links may leave the game (some portals forbid it). Default true. */
+  externalLinks?: boolean;
   /** Whether this device can vibrate (the Settings haptics row). */
   hapticsSupported?: boolean;
   /** The first-time hint and friendly first board on a fresh install. Default true. */
@@ -531,7 +533,7 @@ export class App {
       paletteHasGlyphs: (id) => !!PALETTES[id]?.glyphs,
       version: __APP_VERSION__,
       build: __BUILD_SHA__,
-      privacyUrl: 'privacy.html',
+      privacyUrl: (this.opts.externalLinks ?? true) ? 'privacy.html' : '',
       credits: STRINGS.creditsText,
     };
   }

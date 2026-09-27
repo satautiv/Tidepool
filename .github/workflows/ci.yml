@@ -50,10 +50,13 @@ jobs:
             ' >> "$GITHUB_STEP_SUMMARY"
           fi
 
-      - name: Build
-        run: npm run build
+      - name: Build every target
+        run: npm run build:all
 
-      - name: No dev hooks in the build
+      - name: Each target bundles only its own ad provider
+        run: npm run check:targets
+
+      - name: No dev hooks in the builds
         run: npm run check:dist
 
   e2e:

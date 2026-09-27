@@ -943,6 +943,13 @@ The CI size check fails the build when the JS budget is exceeded.
 - The target is selected by `vite build --mode <target>`, which reads `.env.<target>` (`VITE_TARGET`).
 - `src/services/ads/index.ts` does `switch (import.meta.env.VITE_TARGET)` with a dynamic `import()`. Vite tree-shakes the unused branches.
 - Versioning: semver in `package.json`. The Android `versionCode` is derived from it. The build info (version plus git short SHA) is shown in Settings.
+- As built (T3.03):
+  - `src/config/targets.ts` has the runtime table (ads, pwa, storage, haptics, externalLinks). `.env.<target>` sets `VITE_TARGET`, and `npm run build:<target>` writes `dist/<target>`.
+  - `services/ads/index.ts` branches on `import.meta.env.VITE_TARGET` with `if` tests. Vite folds that constant, so the other providers' `import()` calls are dead code and emit no chunk. A runtime switch on a variable would have bundled them all, and `check:targets` caught exactly that.
+  - SDK `<script>` URLs live in the build-only `src/config/sdk.ts`, and a Vite `transformIndexHtml` plugin injects them per target.
+  - The CrazyGames, Poki and AdMob services are placeholders whose `init()` rejects, so ads stay off until T3.05, T3.06 and T5.03.
+  - Portals without external links hide the privacy link. Android storage and haptics still fall back to web until T5.02.
+  - CI builds every target and runs `check:targets` and `check:dist`.
 - **Portal SDK details change over time. Always follow the current official SDK docs** at integration time. Don't rely on the snippets remembered in this plan.
 
 ---

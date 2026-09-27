@@ -10,7 +10,10 @@ import { ConsoleAnalytics, NoopAnalytics } from './services/analytics/Analytics'
 import { AdManager } from './services/ads/AdManager';
 import { AudioEngine } from './services/audio/AudioEngine';
 import { WebHaptics } from './services/platform/haptics';
-import { domAdOverlay, NoAdsService } from './services/ads/NoAdsService';
+import { domAdOverlay } from './services/ads/NoAdsService';
+import { createAdService } from './services/ads';
+import { NoHaptics } from './services/platform/haptics';
+import { targetConfig } from './config/targets';
 import { SaveStore } from './services/storage/SaveStore';
 import { createWebStorage } from './services/storage/StorageBackend';
 
@@ -19,6 +22,7 @@ const uiRoot = document.querySelector<HTMLElement>('#ui');
 if (!canvas || !uiRoot) throw new Error('Missing #game canvas or #ui root');
 
 const params = new URLSearchParams(location.search);
+const target = targetConfig(import.meta.env.VITE_TARGET);
 const root = document.documentElement.style;
 root.setProperty('--color-sand', TIDEPOOL.background[0]);
 root.setProperty('--color-water', TIDEPOOL.background[1]);
@@ -35,17 +39,19 @@ const seed = params.get('seed');
 // The analytics backend is decided in T3.14; until then dev logs to the console.
 const analytics = new GameAnalytics(
   import.meta.env.DEV ? new ConsoleAnalytics() : new NoopAnalytics(),
-  { platform: 'web', installedAt: () => save.current.installedAt },
+  { platform: target.id, installedAt: () => save.current.installedAt },
 );
 analytics.catchGlobalErrors(window);
 
+// Capacitor Preferences for Android arrives in T5.02; every target uses web storage until then.
 const save = new SaveStore(createWebStorage(), {
   onError: (message) => analytics.error(message, 'save'),
 });
 await save.load();
 
-// Provider per build target arrives in T3.03; dev shows placeholders, `?rewarded=0` = no fill.
-const adService = new NoAdsService({
+// The ad provider for this build target (only its code is bundled). With no ads, dev shows
+// placeholders; `?rewarded=0` simulates no fill.
+const adService = await createAdService({
   overlay: import.meta.env.DEV ? domAdOverlay(uiRoot) : null,
   rewardedReady: !(import.meta.env.DEV && params.get('rewarded') === '0'),
 });
@@ -65,8 +71,13 @@ const app = new App({
   save,
   ads,
   audio,
-  haptics: new WebHaptics(() => save.current.settings.haptics),
-  hapticsSupported: typeof navigator.vibrate === 'function',
+  // Capacitor Haptics for Android arrives in T5.02.
+  haptics:
+    target.haptics === 'web'
+      ? new WebHaptics(() => save.current.settings.haptics)
+      : new NoHaptics(),
+  hapticsSupported: target.haptics === 'web' && typeof navigator.vibrate === 'function',
+  externalLinks: target.externalLinks,
   canvas,
   uiRoot,
   palette: TIDEPOOL,

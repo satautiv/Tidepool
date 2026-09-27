@@ -14,7 +14,9 @@ Node 22 (`.nvmrc`), npm.
 
 ```
 npm run dev            # Vite dev server
-npm run build          # typecheck + production build to dist/
+npm run build          # typecheck + production build of the web target to dist/web
+npm run build:all      # every target (web, itch, crazygames, poki, android) to dist/<target>
+npm run check:targets  # after build:all: each dist/<target> bundles only its own ad provider
 npm run preview        # serve dist/
 npm test               # all Vitest tests (src/**/*.test.ts, tools/**/*.test.ts)
 npx vitest run src/core/config.test.ts      # single file
