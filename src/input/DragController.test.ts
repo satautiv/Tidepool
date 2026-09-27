@@ -158,6 +158,21 @@ describe('moving and dropping', () => {
     ctrl.pointerUp(mouse(p.x, p.y));
     expect(cb.onPlace).not.toHaveBeenCalled();
     expect(cb.onCancel).toHaveBeenCalledTimes(1);
+    expect(cb.onCancel).toHaveBeenCalledWith(expect.anything(), true);
+  });
+
+  it('does not count a drop off the board or an aborted drag as an invalid drop', () => {
+    const { ctrl, host, cb } = setup();
+    grabCentre(ctrl, host, 0);
+    const r = host.pieceRect(0)!;
+    ctrl.pointerUp(mouse(r.x + r.width / 2, r.y + r.height / 2)); // back on the tray
+    expect(cb.onCancel).toHaveBeenLastCalledWith(expect.anything(), false);
+
+    grabCentre(ctrl, host, 0);
+    const p = centreOf(getShape('sq2'), 3, 4);
+    ctrl.pointerMove(mouse(p.x, p.y));
+    ctrl.cancel(); // blur, pointercancel, lock
+    expect(cb.onCancel).toHaveBeenLastCalledWith(expect.anything(), false);
   });
 
   it('has no target when the piece is mostly off the board', () => {

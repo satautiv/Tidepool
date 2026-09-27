@@ -33,6 +33,8 @@ export interface SettingsModel {
   build: string;
   privacyUrl: string;
   credits: string;
+  /** Playtest builds only: downloads the session log. */
+  exportLog?: () => void;
 }
 
 export class SettingsScreen implements Screen {
@@ -74,6 +76,13 @@ export class SettingsScreen implements Screen {
         ),
         rows,
         this.reset,
+        model.exportLog &&
+          h('button', {
+            class: 'button settings__export-log',
+            attrs: { type: 'button' },
+            text: STRINGS.exportLog,
+            on: { click: model.exportLog },
+          }),
         this.footer(),
       ),
     );

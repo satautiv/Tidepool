@@ -3,6 +3,7 @@ import { GameAnalytics } from './app/analytics';
 import { App } from './app/App';
 import { BootLoader } from './app/boot';
 import { registerServiceWorker } from './app/pwa';
+import { applyPlaytestVariant, downloadLog, playtestFlags } from './app/playtest';
 import { STRINGS } from './ui/strings';
 import { attachMusic, attachSounds } from './app/sounds';
 import { drawSandTile } from './render/background';
@@ -10,6 +11,7 @@ import { FEEL } from './render/feel';
 import { TIDEPOOL } from './render/palettes';
 import { domCanvasFactory, sandColors } from './render/sprites';
 import { ConsoleAnalytics, NoopAnalytics } from './services/analytics/Analytics';
+import { LocalLogAnalytics } from './services/analytics/LocalLogAnalytics';
 import { AdManager } from './services/ads/AdManager';
 import { AudioEngine } from './services/audio/AudioEngine';
 import { WebHaptics } from './services/platform/haptics';
@@ -42,9 +44,36 @@ if (tileCtx) {
 }
 
 const seed = params.get('seed');
+
+// Playtest mode (`?playtest=1`, T2.18): events go to a local log exported from Settings.
+let localStorage: Storage | null = null;
+try {
+  localStorage = window.localStorage;
+} catch {
+  // sandboxed iframe or blocked storage
+}
+const playtest = playtestFlags(params, localStorage);
+applyPlaytestVariant(playtest);
+const playtestLog = playtest.enabled ? new LocalLogAnalytics({ storage: localStorage }) : null;
+if (playtestLog && playtest.clearLog) {
+  playtestLog.clear();
+  params.delete('clearlog'); // a reload must not clear it again
+  history.replaceState(null, '', `${location.pathname}?${params}${location.hash}`);
+}
+playtestLog?.note('page_open', {
+  version: __APP_VERSION__,
+  build: __BUILD_SHA__,
+  target: target.id,
+  magnet: playtest.magnet,
+  l4: playtest.l4,
+  userAgent: navigator.userAgent,
+  viewport: `${innerWidth}x${innerHeight}@${devicePixelRatio}`,
+  coarsePointer: matchMedia('(pointer: coarse)').matches,
+});
+
 // The analytics backend is decided in T3.14; until then dev logs to the console.
 const analytics = new GameAnalytics(
-  import.meta.env.DEV ? new ConsoleAnalytics() : new NoopAnalytics(),
+  playtestLog ?? (import.meta.env.DEV ? new ConsoleAnalytics() : new NoopAnalytics()),
   { platform: target.id, installedAt: () => save.current.installedAt },
 );
 analytics.catchGlobalErrors(window);
@@ -90,6 +119,8 @@ const app = new App({
   canvas,
   uiRoot,
   palette: TIDEPOOL,
+  ...(playtest.enabled ? { includeL4: playtest.l4 } : {}),
+  ...(playtestLog ? { exportLog: () => downloadLog(playtestLog.export()) } : {}),
   debug: import.meta.env.DEV && params.has('debug'),
   // Dev: `?slowmo=0.25` plays every animation at quarter speed.
   ...(import.meta.env.DEV && params.has('slowmo')

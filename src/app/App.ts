@@ -69,8 +69,11 @@ export interface AppEvents {
   runEnd: { state: EndlessState; durationMs: number };
   /** A piece was picked up from the tray. */
   pickUp: { slot: number };
-  /** A drag ended without a placement: the piece floats back. */
-  dropCancelled: { slot: number };
+  /**
+   * A drag ended without a placement: the piece floats back. `invalid` is true when it was
+   * dropped over the board where it doesn't fit (not put back or cancelled).
+   */
+  dropCancelled: { slot: number; invalid: boolean };
   /** A visual feature was turned off because frames were too slow (T2.06). */
   perfFallback: { feature: string; frameMs: number };
   /** Emitted once the Game Over panel is on screen. */
@@ -125,6 +128,10 @@ export interface AppOptions {
   uiClock?: HudClock;
   /** Timer for removing finished DOM effects (tests). */
   uiTimer?: (fn: () => void, ms: number) => unknown;
+  /** Deal the optional 4-cell L/J shapes in new runs (playtest variant). Default: the config. */
+  includeL4?: boolean;
+  /** Playtest builds: an "Export playtest log" button in Settings. */
+  exportLog?: () => void;
 }
 
 /** Page lifecycle targets, injectable for tests. */
@@ -223,8 +230,8 @@ export class App {
         const box = this.dragView.pieceBox(d, cell);
         this.place(intent, { x: box.x, y: box.y });
       },
-      onCancel: (d) => {
-        this.bus.emit('dropCancelled', { slot: d.slot });
+      onCancel: (d, invalid) => {
+        this.bus.emit('dropCancelled', { slot: d.slot, invalid });
         this.dragView.returnToTray(d, this.trayView.pieceRect(d.slot), () =>
           this.trayView.setDragging(null),
         );
@@ -535,6 +542,7 @@ export class App {
       build: __BUILD_SHA__,
       privacyUrl: (this.opts.externalLinks ?? true) ? 'privacy.html' : '',
       credits: STRINGS.creditsText,
+      ...(this.opts.exportLog ? { exportLog: this.opts.exportLog } : {}),
     };
   }
 
@@ -841,7 +849,7 @@ export class App {
     this.keys.cancel();
     this.trayView.setFocused(null);
     if (!piece) return;
-    this.bus.emit('dropCancelled', { slot: piece.slot });
+    this.bus.emit('dropCancelled', { slot: piece.slot, invalid: false });
     this.dragView.returnToTray(piece, this.trayView.pieceRect(piece.slot), () =>
       this.trayView.setDragging(null),
     );
@@ -868,10 +876,17 @@ export class App {
     this.runSeed = seed;
     this.runMsBefore = 0;
     this.runStretchStart = this.now();
-    return newEndless(seed).state;
+    return newEndless(
+      seed,
+      this.opts.includeL4 === undefined ? {} : { includeL4: this.opts.includeL4 },
+    ).state;
   }
 
   /** How long the current run has been played (not paused), including before a reload. */
+  get runPlayMs(): number {
+    return this.runElapsed();
+  }
+
   private runElapsed(): number {
     const stretch = this.runStretchStart === null ? 0 : this.now() - this.runStretchStart;
     return this.runMsBefore + Math.max(0, stretch);

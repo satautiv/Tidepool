@@ -44,6 +44,13 @@ export interface EndlessState {
   readonly secondChanceUsed: boolean;
   readonly over: boolean;
   readonly stats: EndlessStats;
+  /** Deal the optional 4-cell L/J shapes (playtest variant). Missing in older saves: the config default. */
+  readonly includeL4?: boolean;
+}
+
+export interface EndlessOptions {
+  /** Overrides `SHAPES_CONFIG.includeL4` for this run. */
+  includeL4?: boolean;
 }
 
 export type GameEvent =
@@ -79,7 +86,7 @@ export type PlaceError = 'gameOver' | 'badSlot' | 'emptySlot' | 'invalidPosition
 export type SecondChanceError = 'notOver' | 'alreadyUsed';
 
 /** Starts a new run and deals the first tray. */
-export function newEndless(seed: string | number): Step {
+export function newEndless(seed: string | number, opts: EndlessOptions = {}): Step {
   const initial: EndlessState = {
     schemaVersion: ENDLESS_SCHEMA_VERSION,
     board: emptyBoard(),
@@ -92,6 +99,7 @@ export function newEndless(seed: string | number): Step {
     secondChanceUsed: false,
     over: false,
     stats: { placed: 0, linesCleared: 0, bestCombo: 0 },
+    ...(opts.includeL4 === undefined ? {} : { includeL4: opts.includeL4 }),
   };
   const dealt = dealTray(initial, 'normal');
   return { state: dealt.state, events: [dealt.event] };
@@ -196,7 +204,13 @@ function endSet(state: EndlessState): { state: EndlessState; event: GameEvent } 
 }
 
 function dealTray(state: EndlessState, mode: DealMode): { state: EndlessState; event: GameEvent } {
-  const result = deal({ board: state.board, rng: state.rng, history: state.genHistory, mode });
+  const result = deal({
+    board: state.board,
+    rng: state.rng,
+    history: state.genHistory,
+    mode,
+    ...(state.includeL4 === undefined ? {} : { includeL4: state.includeL4 }),
+  });
   return {
     state: { ...state, tray: result.tray, rng: result.rng, genHistory: result.history },
     event: { type: 'dealt', tray: result.tray, mode, usedFallback: result.usedFallback },
@@ -234,5 +248,6 @@ export function deserialize(json: string): EndlessState {
     if (typeof s[key] !== 'number') fail(key);
   }
   if (!Array.isArray(s.genHistory) || !s.stats) fail('history/stats');
+  if (s.includeL4 !== undefined && typeof s.includeL4 !== 'boolean') fail('includeL4');
   return s as EndlessState;
 }

@@ -11,6 +11,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 /** A crash loop must not flood the backend. */
 const MAX_ERRORS_PER_SESSION = 20;
 
+const round3 = (v: number) => Math.round(v * 1000) / 1000;
+
 export interface GameAnalyticsOptions {
   platform: string;
   /** First launch, ms since epoch (read from the save once it is loaded). */
@@ -84,13 +86,45 @@ export class GameAnalytics {
     app.bus.on('perfFallback', ({ feature, frameMs }) => {
       this.analytics.track('perf_fallback', { feature, frameMs: Math.round(frameMs * 10) / 10 });
     });
+    app.bus.on('game', ({ events, state }) => {
+      const placed = events.find((e) => e.type === 'placed');
+      if (!placed) return; // a deal or second chance, not a move
+      let lines = 0;
+      let points = 0;
+      for (const e of events) {
+        if (e.type === 'cleared') lines += e.rows.length + e.cols.length;
+        if ('points' in e) points += e.points;
+      }
+      this.analytics.track('placement', {
+        mode: 'endless',
+        shape: placed.shape,
+        lines,
+        points,
+        fullness: round3(fullness(state.board)),
+      });
+      // The first clear of the run: every line cleared so far came from this move.
+      if (lines > 0 && state.stats.linesCleared === lines) {
+        this.analytics.track('first_clear', {
+          mode: 'endless',
+          playMs: Math.round(app.runPlayMs),
+          placed: state.stats.placed,
+        });
+      }
+    });
+    app.bus.on('dropCancelled', ({ invalid }) => {
+      if (!invalid) return;
+      this.analytics.track('invalid_drop', {
+        mode: 'endless',
+        fullness: round3(fullness(app.state.board)),
+      });
+    });
     app.bus.on('runEnd', ({ state, durationMs }) => {
       this.analytics.track('run_end', {
         mode: 'endless',
         score: state.score,
         placed: state.stats.placed,
         linesCleared: state.stats.linesCleared,
-        fullnessAtEnd: Math.round(fullness(state.board) * 1000) / 1000,
+        fullnessAtEnd: round3(fullness(state.board)),
         durationMs: Math.round(durationMs),
         secondChanceUsed: state.secondChanceUsed,
       });

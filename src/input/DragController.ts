@@ -70,8 +70,11 @@ export interface DragCallbacks {
   onMove?(state: DragState): void;
   /** A valid drop. The app decides what happens; the drag has ended either way. */
   onPlace?(intent: PlaceIntent, state: DragState): void;
-  /** The drag ended without a placement (invalid drop, cancel): the piece returns to the tray. */
-  onCancel?(state: DragState): void;
+  /**
+   * The drag ended without a placement (invalid drop, cancel): the piece returns to the tray.
+   * `invalidDrop` is true when the piece was released over the board where it doesn't fit.
+   */
+  onCancel?(state: DragState, invalidDrop: boolean): void;
 }
 
 export const DRAG = {
@@ -172,7 +175,8 @@ export class DragController {
     if (drag.target) {
       this.callbacks.onPlace?.({ slot: drag.slot, ...drag.target }, drag);
     } else {
-      this.callbacks.onCancel?.(drag);
+      const geo = this.host.geometry();
+      this.callbacks.onCancel?.(drag, !!geo && !this.outside(drag, drag.x, drag.y, geo));
     }
   }
 
@@ -181,7 +185,7 @@ export class DragController {
     const drag = this.drag;
     if (!drag) return;
     this.drag = null;
-    this.callbacks.onCancel?.(drag);
+    this.callbacks.onCancel?.(drag, false);
   }
 
   private positioned(d: DragState, p: PointerInfo, geo: BoardGeometry): DragState {
@@ -201,20 +205,26 @@ export class DragController {
     return { ...d, x, y, target: this.targetFor(d, x, y, geo) };
   }
 
+  /** Whether a piece drawn at (x, y) reaches farther off the board than the tolerance. */
+  private outside(d: DragState, x: number, y: number, geo: BoardGeometry): boolean {
+    const { board, cellSize: c } = geo;
+    const tol = DRAG.outsideTolerance * c;
+    return (
+      x < board.x - tol ||
+      y < board.y - tol ||
+      x + d.shape.width * c > board.x + board.width + tol ||
+      y + d.shape.height * c > board.y + board.height + tol
+    );
+  }
+
   /** Rounds the piece's top-left to the nearest cell; valid only if the piece fits there. */
   private targetFor(d: DragState, x: number, y: number, geo: BoardGeometry): Cell | null {
     const { board, cellSize: c } = geo;
-    const { shape, slot } = d;
+    const { slot } = d;
     // `+ 0` turns Math.round's -0 (for slightly negative offsets) into 0.
     const col = Math.round((x - board.x) / c) + 0;
     const row = Math.round((y - board.y) / c) + 0;
-    const tol = DRAG.outsideTolerance * c;
-    const outside =
-      x < board.x - tol ||
-      y < board.y - tol ||
-      x + shape.width * c > board.x + board.width + tol ||
-      y + shape.height * c > board.y + board.height + tol;
-    if (outside) return null;
+    if (this.outside(d, x, y, geo)) return null;
     if (this.host.canPlace(slot, row, col)) return { row, col };
     if (DRAG.magnetRadius <= 0) return null;
 

@@ -81,7 +81,7 @@ describe('game sounds', () => {
   it('lifts, bloops, ends the game, and ticks on buttons', () => {
     const { app, ids, soundRoot } = setup();
     app.bus.emit('pickUp', { slot: 0 });
-    app.bus.emit('dropCancelled', { slot: 0 });
+    app.bus.emit('dropCancelled', { slot: 0, invalid: true });
     for (let i = 0; i < 1000 && !app.state.over; i++) app.place(firstMove(app));
     const button = document.createElement('button');
     soundRoot.append(button);

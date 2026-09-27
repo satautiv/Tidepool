@@ -148,6 +148,33 @@ describe('GameAnalytics', () => {
   });
 });
 
+describe('GameAnalytics playtest metrics', () => {
+  it('tracks every placement and the first clear of the run', async () => {
+    const { app, recorder, advance } = await setup();
+    advance(7000);
+    playMoves(app);
+    const placements = recorder.named('placement');
+    expect(placements).toHaveLength(app.state.stats.placed);
+    expect(placements[0]).toMatchObject({ mode: 'endless', shape: expect.any(String) });
+    const cleared = placements.filter((p) => p.lines > 0);
+    expect(cleared.length).toBeGreaterThan(0);
+    expect(placements.reduce((sum, p) => sum + p.points, 0)).toBe(app.state.score);
+    for (const p of placements) expect(p.fullness).toBeGreaterThanOrEqual(0);
+
+    const firstClearAt = placements.indexOf(cleared[0]!) + 1;
+    expect(recorder.named('first_clear')).toEqual([
+      { mode: 'endless', playMs: 7000, placed: firstClearAt },
+    ]);
+  });
+
+  it('tracks invalid drops but not drops put back or cancelled', async () => {
+    const { app, recorder } = await setup();
+    app.bus.emit('dropCancelled', { slot: 0, invalid: false });
+    app.bus.emit('dropCancelled', { slot: 1, invalid: true });
+    expect(recorder.named('invalid_drop')).toEqual([{ mode: 'endless', fullness: 0 }]);
+  });
+});
+
 describe('GameAnalytics perf fallback', () => {
   it('tracks perfFallback from the app', async () => {
     const { app, recorder } = await setup();

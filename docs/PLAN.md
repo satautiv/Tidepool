@@ -634,10 +634,22 @@ As built (T2.15), `App.applyMotionAndPower()` applies both modes live from Setti
 | `shells` | source/sink, amount |
 | `tutorial_step` | tile/step |
 | `error` | message, where |
+| `perf_fallback` | feature, frameMs |
+| `placement` | mode, shape, lines, points, fullness (after the move) |
+| `invalid_drop` | mode, fullness |
+| `first_clear` | mode, playMs (play time, pauses excluded), placed |
 
 - The event map is typed (`services/analytics/Analytics.ts`), and all instrumentation lives in `app/analytics.ts` (`GameAnalytics`). Sessions come from `AdManager` (D18). A session ends on `pagehide`, or when the player comes back after 30+ minutes (then the end is dated when they left).
 - `run_end` is sent when a run is closed out: when the next run replaces it, or on boot if the saved run had already ended. It is not sent at game over, because a second chance can still continue the run. `durationMs` is wall time in the page, and it is carried across reloads in `SaveStore.endlessRunMs`.
 - Errors are capped at 20 per session.
+- `placement`, `invalid_drop` and `first_clear` were added for playtests (T2.18). `placement` fires on every move, so a real backend may need to sample it. `invalid_drop` counts only pieces released over the board where they don't fit (the drag's `onCancel` reports this). A piece put back on the tray, or a drag cancelled by blur or a layout change, is not counted.
+- As built (T2.18 prep), **playtest mode** (`app/playtest.ts`) is for human playtests on the normal web build:
+  - `?playtest=1` turns it on for the device, and `?playtest=0` turns it off.
+  - While it's on, analytics go to `LocalLogAnalytics`, which writes every event to localStorage (`tidepool.playtestLog`, capped at 5000 entries). Settings shows **Export playtest log**, which downloads the log as JSON. The first entry of each page load is `page_open`, with the build, the variant and the device.
+  - Variant switches are remembered until changed: `?magnet=0|1` (magnet assist, by setting `DRAG.magnetRadius` to 0) and `?l4=0|1` (4-cell L/J shapes, stored in the run as `EndlessState.includeL4`, so resumed runs keep it).
+  - `?clearlog=1` empties the log once.
+  - Outside playtest mode, every switch is ignored.
+  - The protocol is in `docs/playtests/round1-plan.md`.
 - Retention (D1/D7) is computed by the backend from `session_start`. The client just sends `daysSinceInstall` (the install date is stored on first launch).
 
 ### 13.4 Platform (`services/platform/`)
@@ -835,7 +847,7 @@ The IDs map one-to-one to GitHub issues (the issue title starts with the ID). Si
 | [T3.08](https://github.com/satautiv/Tidepool/issues/52) | PWA / offline for standalone web build | S | T3.03 |
 | [T3.09](https://github.com/satautiv/Tidepool/issues/53) | Performance & load-time pass (bundle budget in CI) | M | T3.04 |
 | [T3.10](https://github.com/satautiv/Tidepool/issues/54) | Cross-browser / device QA matrix | M | T3.09 |
-| [T3.11](https://github.com/satautiv/Tidepool/issues/55) | Deploy: GitHub Pages / personal site + itch.io | S | T3.03 |
+| [T3.11](https://github.com/satautiv/Tidepool/issues/55) | Deploy: GitHub Pages / personal site + itch.io (Pages: done in T2.18 prep, `.github/workflows/pages.yml`) | S | T3.03 |
 | [T3.12](https://github.com/satautiv/Tidepool/issues/56) | Marketing assets: icon, thumbnails, screenshots, trailer, description | M | T2.18 |
 | [T3.13](https://github.com/satautiv/Tidepool/issues/57) | Portal submission | S | T3.10, T3.12 |
 | [T3.14](https://github.com/satautiv/Tidepool/issues/58) | Analytics backend selection & integration | M | T1.24 |

@@ -655,7 +655,8 @@ button:focus-visible {
   font-weight: 700;
 }
 
-.settings__reset {
+.settings__reset,
+.settings__export-log {
   width: 100%;
 }
 

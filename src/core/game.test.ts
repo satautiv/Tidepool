@@ -12,7 +12,7 @@ import {
   type Step,
 } from './game';
 import { slotShape, type TraySlot } from './generator';
-import { getShape } from './shapes';
+import { getShape, L4_SHAPES } from './shapes';
 
 const slot = (shape: string, color = 1): TraySlot => ({ shape, color });
 
@@ -198,6 +198,27 @@ describe('game over', () => {
   });
 });
 
+describe('4-cell L/J option', () => {
+  const l4 = new Set(L4_SHAPES.map((s) => s.id));
+  const dealtL4 = (log: readonly GameEvent[]) =>
+    log.some((e) => e.type === 'dealt' && e.tray.some((t) => l4.has(t.shape)));
+
+  it('deals L/J tetrominoes only when the run turns them on', () => {
+    const on = newEndless('l4', { includeL4: true });
+    expect(on.state.includeL4).toBe(true);
+    expect(dealtL4(autoplay(on.state, 10_000).log)).toBe(true);
+
+    const off = newEndless('l4');
+    expect(off.state.includeL4).toBeUndefined();
+    expect(dealtL4(autoplay(off.state, 10_000).log)).toBe(false);
+  });
+
+  it('keeps the option across a save and resume', () => {
+    const half = autoplay(newEndless('l4r', { includeL4: true }).state, 30).state;
+    expect(deserialize(serialize(half)).includeL4).toBe(true);
+  });
+});
+
 describe('replay & persistence', () => {
   it('replays identically from the same seed and moves', () => {
     const a = autoplay(newEndless('replay').state, 200);
@@ -239,6 +260,7 @@ describe('replay & persistence', () => {
     ['bad rng', JSON.stringify({ ...newEndless('v').state, rng: [1] })],
     ['bad score', JSON.stringify({ ...newEndless('v').state, score: 'x' })],
     ['missing stats', JSON.stringify({ ...newEndless('v').state, stats: undefined })],
+    ['bad includeL4', JSON.stringify({ ...newEndless('v').state, includeL4: 'yes' })],
     ['null', 'null'],
   ])('deserialize rejects %s', (_name, json) => {
     expect(() => deserialize(json)).toThrow();

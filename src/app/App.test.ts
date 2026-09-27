@@ -788,7 +788,47 @@ describe('App drag events', () => {
     app.drag.pointerDown({ id: 1, kind: 'mouse', x: r.x + 1, y: r.y + 1 });
     app.drag.pointerUp({ id: 1, kind: 'mouse', x: 1, y: 1 });
     expect(picked).toHaveBeenCalledWith({ slot: 0 });
-    expect(cancelled).toHaveBeenCalledWith({ slot: 0 });
+    expect(cancelled).toHaveBeenCalledWith({ slot: 0, invalid: false });
+  });
+
+  it('marks a drop over the board where the piece does not fit as invalid', () => {
+    const { app } = makeApp();
+    app.loadState({ ...app.state, board: boardFromAscii(new Array<string>(8).fill('########')) });
+    app.scene.update(1);
+    const cancelled = vi.fn();
+    app.bus.on('dropCancelled', cancelled);
+    const r = app.slotPieceRect(0)!;
+    const board = app.scene.layout!.board;
+    app.drag.pointerDown({ id: 1, kind: 'mouse', x: r.x + r.width / 2, y: r.y + r.height / 2 });
+    const centre = { x: board.x + board.width / 2, y: board.y + board.height / 2 };
+    app.drag.pointerUp({ id: 1, kind: 'mouse', ...centre });
+    expect(cancelled).toHaveBeenCalledWith({ slot: 0, invalid: true });
+  });
+});
+
+describe('App playtest options', () => {
+  it('deals the 4-cell L/J shapes in every new run when asked', () => {
+    const { app } = makeApp('l4', undefined, undefined, { extra: { includeL4: true } });
+    expect(app.state.includeL4).toBe(true);
+    app.newRun('l4-next');
+    expect(app.state.includeL4).toBe(true);
+    expect(makeApp().app.state.includeL4).toBeUndefined();
+  });
+
+  it('shows "Export playtest log" in Settings only when a log exists', () => {
+    const exportLog = vi.fn();
+    const { app } = makeApp('log', undefined, undefined, { extra: { exportLog } });
+    const button = app.settingsScreen.el.querySelector<HTMLButtonElement>('.settings__export-log');
+    button!.click();
+    expect(exportLog).toHaveBeenCalledOnce();
+    expect(makeApp().app.settingsScreen.el.querySelector('.settings__export-log')).toBeNull();
+  });
+
+  it('reports run play time without pauses', () => {
+    let t = 1000;
+    const { app } = makeApp('clock', undefined, undefined, { extra: { now: () => t } });
+    t += 4000;
+    expect(app.runPlayMs).toBe(4000);
   });
 });
 

@@ -12,16 +12,31 @@ This is the plan for [T2.18](https://github.com/satautiv/Tidepool/issues/44), th
   - generator weight tweaks
   - animation timing tweaks in `feel.ts`
 
-## Phase 0: prepare the build
+## Phase 0: prepare the build (done)
 
-The current build has only `NoopAnalytics` and `ConsoleAnalytics`, and it isn't deployed anywhere. Before any session:
+The playtest build is the normal web build. It is deployed to GitHub Pages on every push to `main` (`.github/workflows/pages.yml`) at <https://satautiv.github.io/Tidepool/>. Playtest mode is switched on with URL parameters. It stays on for that device until `?playtest=0`.
 
-1. **Playtest session log:** an `Analytics` implementation that stores events in `localStorage`, plus a hidden "Export log" action that downloads the events as JSON.
-2. **Missing metrics:** events for `invalid_drop`, `first_clear` (ms since run start) and `placement` (piece, board fullness, lines cleared).
-3. **Variant switches:** URL parameters `?magnet=0` and `?l4=1`, so one build serves every variant without a rebuild.
-4. **Deploy** to GitHub Pages (part of T3.11), so testers only need a link.
+| Link | Use |
+|---|---|
+| `…/Tidepool/?playtest=1` | Turn on playtest mode (magnet on, no 4-cell L/J shapes). |
+| `…/Tidepool/?playtest=1&magnet=0` | Variant with magnet assist off. |
+| `…/Tidepool/?magnet=1` | Back to magnet on (playtest mode is remembered). |
+| `…/Tidepool/?l4=1` | Add the 4-cell L/J shapes to new runs (`?l4=0` removes them). |
+| `…/Tidepool/?clearlog=1` | Empty the log before the next tester on the same device. |
+| `…/Tidepool/?playtest=0` | Turn playtest mode off. |
 
-These need tests like any other task.
+- The variant choice is remembered, so reopening the game (the resume check) keeps the tester on the same variant.
+- The 4-cell shape switch applies from the next new run. A run in progress keeps its shape set.
+- **Export:** Settings → **Export playtest log** downloads `tidepool-playtest-<date>-<time>.json`. On a phone, the file lands in Downloads (Android) or Files (iPhone). Rename it `tester-N.json`.
+- **What the log holds:**
+  - `page_open`: build, variant, device and viewport, at each page load
+  - `session_start` / `session_end`
+  - `run_start` / `run_end`: score, placed, lines, duration
+  - `placement`: shape, lines, points and board fullness, for every move
+  - `invalid_drop`: a piece dropped over the board where it doesn't fit
+  - `first_clear`: play time and move count until the first clear
+  - `perf_fallback` and `error`
+- Nothing leaves the device. The log stays in the browser's storage until it is cleared.
 
 ## Phase 1: recruit testers
 

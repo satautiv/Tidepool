@@ -37,6 +37,7 @@ export const STRINGS = {
   resetYes: 'Yes, erase',
   resetConfirm2: "This can't be undone.",
   resetFinal: 'Erase everything',
+  exportLog: 'Export playtest log',
   privacy: 'Privacy',
   credits: 'Credits',
   creditsText:

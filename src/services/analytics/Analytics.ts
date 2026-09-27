@@ -37,6 +37,12 @@ export interface AnalyticsEvents {
   error: { message: string; where: string };
   /** A visual feature turned itself off on a slow device (T2.06). */
   perf_fallback: { feature: string; frameMs: number };
+  /** Game feel diagnostics (playtests, T2.18). One per placement: a real backend may sample them. */
+  placement: { mode: GameMode; shape: string; lines: number; points: number; fullness: number };
+  /** A piece dropped over the board where it doesn't fit, so it floated back. */
+  invalid_drop: { mode: GameMode; fullness: number };
+  /** The run's first line clear, in play time (pauses excluded). */
+  first_clear: { mode: GameMode; playMs: number; placed: number };
 }
 
 export type EventName = keyof AnalyticsEvents;
