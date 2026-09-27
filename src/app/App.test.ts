@@ -752,3 +752,19 @@ describe('App audio lifecycle', () => {
     expect(audio.isSuspended).toBe(false);
   });
 });
+
+describe('App drag events', () => {
+  it('reports pick-ups and cancelled drops on the bus', () => {
+    const { app } = makeApp();
+    app.scene.update(1);
+    const picked = vi.fn();
+    const cancelled = vi.fn();
+    app.bus.on('pickUp', picked);
+    app.bus.on('dropCancelled', cancelled);
+    const r = app.slotPieceRect(0)!;
+    app.drag.pointerDown({ id: 1, kind: 'mouse', x: r.x + 1, y: r.y + 1 });
+    app.drag.pointerUp({ id: 1, kind: 'mouse', x: 1, y: 1 });
+    expect(picked).toHaveBeenCalledWith({ slot: 0 });
+    expect(cancelled).toHaveBeenCalledWith({ slot: 0 });
+  });
+});

@@ -1,6 +1,7 @@
 import './ui/styles/base.css';
 import { GameAnalytics } from './app/analytics';
 import { App } from './app/App';
+import { attachSounds } from './app/sounds';
 import { drawSandTile } from './render/background';
 import { FEEL } from './render/feel';
 import { TIDEPOOL } from './render/palettes';
@@ -76,12 +77,13 @@ const app = new App({
   ...(import.meta.env.DEV && seed ? { seed: () => seed } : {}),
 });
 analytics.attach(app);
+attachSounds(app, audio, uiRoot);
 app.start();
 
 // Dev-only handle for debugging and E2E tests. The import is dropped from production builds.
 if (import.meta.env.DEV) {
   const { createTestHook } = await import('./app/devHook');
-  Object.assign(window, { __tidepool: createTestHook(app, canvas) });
+  Object.assign(window, { __tidepool: Object.assign(createTestHook(app, canvas), { audio }) });
   if (params.has('feel')) {
     const { createFeelPanel } = await import('./app/FeelPanel');
     document.body.append(createFeelPanel());

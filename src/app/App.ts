@@ -55,6 +55,10 @@ export interface AppEvents {
   runStart: { state: EndlessState; seed: string | null; resumed: boolean };
   /** A run was closed out (replaced by the next one, or found finished on boot). */
   runEnd: { state: EndlessState; durationMs: number };
+  /** A piece was picked up from the tray. */
+  pickUp: { slot: number };
+  /** A drag ended without a placement: the piece floats back. */
+  dropCancelled: { slot: number };
   /** A visual feature was turned off because frames were too slow (T2.06). */
   perfFallback: { feature: string; frameMs: number };
   /** Emitted once the Game Over panel is on screen. */
@@ -161,17 +165,22 @@ export class App {
     this.stateValue = this.restoreRun() ?? this.freshRun(this.seed());
 
     this.drag = new DragController(this.dragHost(), {
-      onStart: (d) => this.trayView.setDragging(d.slot),
+      onStart: (d) => {
+        this.trayView.setDragging(d.slot);
+        this.bus.emit('pickUp', { slot: d.slot });
+      },
       onMove: redraw,
       onPlace: (intent, d) => {
         const cell = this.scene.layout?.cellSize ?? 0;
         const box = this.dragView.pieceBox(d, cell);
         this.place(intent, { x: box.x, y: box.y });
       },
-      onCancel: (d) =>
+      onCancel: (d) => {
+        this.bus.emit('dropCancelled', { slot: d.slot });
         this.dragView.returnToTray(d, this.trayView.pieceRect(d.slot), () =>
           this.trayView.setDragging(null),
-        ),
+        );
+      },
     });
     this.dragView = new DragView(() => this.drag.state);
 

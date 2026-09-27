@@ -530,6 +530,13 @@ As built (T2.04): callouts and "+N" are DOM (`ui/components/FxLayer.ts`) with CS
 - **SFX list:** lift, clink (1 sample, pitched per colour), bloop (invalid), whoosh (clear), chime set (3 notes), flourish (clean board), deal shuffle, game over, UI tick, star earned (×3 pitches), coin (shells), booster use (×4), bubble pop, coral crack, coral break, pearl collect.
 - **Lifecycle:** suspend on `visibilitychange` hidden and while an ad is showing, resume after. On Android, also on the app pause/resume events.
 - **Defaults:** SFX on at 100%, music on at 35% (README: "sound on, music low").
+- **As built (T2.09):** every SFX is **generated in code** (`services/audio/synth.ts`: sine partials and filtered noise, seeded, normalised, 5 ms de-click), so the audio download is 0 KB (no mp3 and no encoder needed). Licences are in `assets/CREDITS.md`. `app/sounds.ts` maps events to sounds:
+  - The clink is pitched per colour on a pentatonic set `[0, 2, 4, 7, 9, 12]`, with ±3% detune.
+  - The whoosh rises +1 semitone per streak level, up to +8.
+  - 2 / 3 / 4+ lines play a delayed chime arpeggio of 2–4 notes.
+  - A clean board plays the flourish; a streak rise plays a soft high chime.
+  - Other sounds: shuffle on deal and new run, lift on pick-up, bloop on a cancelled drop, the game-over chime, and a tick on any UI button.
+  - Volumes are in `SOUND.volumes`.
 - **As built (T2.08):** `services/audio/AudioEngine.ts`. The context is created on the first pointerdown/keydown, and nothing exists before that, so there are no autoplay warnings. The gesture listener stays attached, so a later tap re-resumes a context that iOS suspended. Sounds are `{ url }` (fetch + decode) or `{ synth(rate) }` (generated samples). They load after unlock, and a sound that isn't ready is skipped. Voice limits: 3 per sound and 16 in total, stopping the oldest. The bus level is volume × mute × duck (dB). Volume and mute (`sfxMuted` / `musicMuted`) persist in `SaveStore.settings`. The App suspends audio while the page is hidden or an ad is showing. Every Web Audio call is wrapped, so failures go to analytics `error` and never throw.
 
 ---
