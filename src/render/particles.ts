@@ -7,7 +7,7 @@
  * dropped (the effect just gets a little thinner).
  */
 import { FEEL } from './feel';
-import type { SceneContext, SceneView } from './GameScene';
+import type { Offset, SceneContext, SceneView } from './GameScene';
 import type { FrameInfo } from './Renderer';
 import { WHITE, type ParticleType, type SpriteSet } from './sprites';
 
@@ -271,7 +271,11 @@ export class ParticleSystem {
 
 /** The particle layer of the play scene. Effects emit into `system`. */
 export class ParticleView implements SceneView {
-  constructor(readonly system: ParticleSystem = new ParticleSystem()) {}
+  constructor(
+    readonly system: ParticleSystem = new ParticleSystem(),
+    /** The screen shake: particles set their own transforms, so they apply it themselves. */
+    private readonly offset: Offset = { x: 0, y: 0 },
+  ) {}
 
   update(dt: number): void {
     this.system.update(dt);
@@ -282,6 +286,6 @@ export class ParticleView implements SceneView {
   }
 
   draw(ctx: CanvasRenderingContext2D, { sprites }: SceneContext, frame: FrameInfo): void {
-    this.system.draw(ctx, sprites, frame.viewport.dpr);
+    this.system.draw(ctx, sprites, frame.viewport.dpr, this.offset.x, this.offset.y);
   }
 }

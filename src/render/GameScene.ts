@@ -18,8 +18,17 @@ export interface SceneView {
   isAnimating?(): boolean;
 }
 
+/** Something with a current draw offset (the screen shake). */
+export interface Offset {
+  readonly x: number;
+  readonly y: number;
+}
+
 export class GameScene implements View {
   private readonly children: SceneView[] = [];
+  /** Children drawn with the shake offset. */
+  private readonly shaken = new Set<SceneView>();
+  private offset: Offset = { x: 0, y: 0 };
   private context: SceneContext | null = null;
 
   constructor(
@@ -31,9 +40,16 @@ export class GameScene implements View {
     return this.context?.layout ?? null;
   }
 
-  add(view: SceneView): void {
+  /** Adds a child. `shake: true` draws it moved by the scene's shake offset. */
+  add(view: SceneView, opts: { shake?: boolean } = {}): void {
     this.children.push(view);
+    if (opts.shake) this.shaken.add(view);
     if (this.context) view.onLayout?.(this.context);
+  }
+
+  /** The offset applied to shaken children (usually a `Shake`). */
+  setShake(offset: Offset): void {
+    this.offset = offset;
   }
 
   onLayout(viewport: Viewport): void {
@@ -49,7 +65,17 @@ export class GameScene implements View {
 
   draw(ctx: CanvasRenderingContext2D, frame: FrameInfo): void {
     if (!this.context || !this.sprites.ready) return;
-    for (const child of this.children) child.draw(ctx, this.context, frame);
+    const { x, y } = this.offset;
+    for (const child of this.children) {
+      if ((x !== 0 || y !== 0) && this.shaken.has(child)) {
+        ctx.save();
+        ctx.translate(x, y);
+        child.draw(ctx, this.context, frame);
+        ctx.restore();
+      } else {
+        child.draw(ctx, this.context, frame);
+      }
+    }
   }
 
   isAnimating(): boolean {

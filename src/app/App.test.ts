@@ -532,3 +532,69 @@ describe('App clear effects', () => {
     expect(best.classList.contains('hud__best--glow')).toBe(false);
   });
 });
+
+describe('App shake and haptics', () => {
+  const fill = '#######.';
+  const empty = '........';
+
+  function setupClear(opts: { reduced?: boolean } = {}) {
+    const impacts: string[] = [];
+    const { app } = makeApp('shake', undefined, undefined, {
+      extra: {
+        haptics: { impact: (level) => void impacts.push(level) },
+        prefersReducedMotion: () => opts.reduced ?? false,
+      },
+    });
+    return { app, impacts };
+  }
+
+  it('taps light on placement, medium on a clear, heavy and shakes on 3+ lines', () => {
+    const { app, impacts } = setupClear();
+    app.loadState({
+      ...app.state,
+      board: boardFromAscii([fill, empty, empty, empty, empty, empty, fill, '#.......']),
+      tray: [
+        { shape: 'dot', color: 1 },
+        { shape: 'dot', color: 2 },
+        { shape: 'i3v', color: 3 },
+      ],
+    });
+    app.place({ slot: 0, row: 3, col: 3 });
+    app.place({ slot: 1, row: 0, col: 7 });
+    expect(impacts).toEqual(['light', 'medium']);
+    expect(app.shake.active).toBe(false);
+
+    app.loadState({
+      ...app.state,
+      board: boardFromAscii([fill, fill, fill, empty, empty, empty, empty, '#.......']),
+    });
+    app.place({ slot: 2, row: 0, col: 7 });
+    expect(impacts.at(-1)).toBe('heavy');
+    expect(app.shake.active).toBe(true);
+  });
+
+  it('does not shake with reduced motion, and input ignores the shake', () => {
+    const { app } = setupClear({ reduced: true });
+    app.loadState({
+      ...app.state,
+      board: boardFromAscii([fill, fill, fill, empty, empty, empty, empty, '#.......']),
+      tray: [{ shape: 'i3v', color: 3 }, null, { shape: 'dot', color: 1 }],
+    });
+    app.place({ slot: 0, row: 0, col: 7 });
+    expect(app.shake.active).toBe(false);
+
+    // Even mid-shake, a press on the drawn tray piece picks it up at its layout position.
+    const shaking = setupClear().app;
+    shaking.shake.start(20, 1);
+    shaking.scene.update(0.1);
+    const rect = shaking.slotPieceRect(0)!;
+    const picked = shaking.drag.pointerDown({
+      id: 1,
+      kind: 'mouse',
+      x: rect.x + rect.width / 2,
+      y: rect.y + rect.height / 2,
+    });
+    expect(picked).toBe(true);
+    expect(shaking.drag.state?.slot).toBe(0);
+  });
+});

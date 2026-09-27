@@ -30,6 +30,7 @@ import { GameScene } from '../render/GameScene';
 import { GhostView } from '../render/GhostView';
 import { FEEL } from '../render/feel';
 import { ParticleView } from '../render/particles';
+import { Shake } from '../render/shake';
 import { TIDEPOOL, type Palette } from '../render/palettes';
 import { Renderer, type RendererOptions } from '../render/Renderer';
 import { SpriteSet, type CanvasFactory } from '../render/sprites';
@@ -38,6 +39,7 @@ import { attachViewport, type ViewportEnv } from '../render/viewport';
 import type { HudClock } from '../ui/components/Hud';
 import { Router } from '../ui/Router';
 import type { AdManager } from '../services/ads/AdManager';
+import { NoHaptics, type Haptics } from '../services/platform/haptics';
 import { Lifecycle, type LifecycleEnv } from '../services/platform/lifecycle';
 import type { SaveStore } from '../services/storage/SaveStore';
 import { GameScreen } from '../ui/screens/GameScreen';
@@ -75,6 +77,10 @@ export interface AppOptions {
   now?: () => number;
   /** Ad policy and provider. Without one, no ads (tests, previews). */
   ads?: AdManager;
+  /** Haptic taps on placements and clears. Default: none. */
+  haptics?: Haptics;
+  /** The system "reduce motion" preference. Default: the prefers-reduced-motion media query. */
+  prefersReducedMotion?: () => boolean;
   /** Clock for DOM animations such as the score count-up (tests). */
   uiClock?: HudClock;
   /** Timer for removing finished DOM effects (tests). */
@@ -101,7 +107,10 @@ export class App {
   private readonly trayView: TrayView;
   private readonly dragView: DragView;
   /** Bubbles, sparkles and droplets for effects (T2.03). */
-  readonly particles = new ParticleView();
+  /** Screen shake on big clears; off with reduced motion. */
+  readonly shake = new Shake(() => !this.reducedMotion());
+  readonly particles = new ParticleView(undefined, this.shake);
+  private readonly haptics: Haptics;
   private readonly clearFx = new ClearFx(this.particles.system);
   private stateValue: EndlessState;
   private best = 0;
@@ -126,6 +135,7 @@ export class App {
   constructor(private readonly opts: AppOptions) {
     this.palette = opts.palette ?? TIDEPOOL;
     this.seed = opts.seed ?? randomSeed;
+    this.haptics = opts.haptics ?? new NoHaptics();
     this.now = opts.now ?? Date.now;
     this.renderer = new Renderer(opts.canvas, opts.renderer);
     const redraw = () => this.renderer.requestRedraw();
@@ -147,16 +157,20 @@ export class App {
     });
     this.dragView = new DragView(() => this.drag.state);
 
-    this.scene.add(this.boardView);
+    // Board-side views move with the shake; the dragged piece stays under the finger.
+    this.scene.add(this.shake);
+    this.scene.setShake(this.shake);
+    this.scene.add(this.boardView, { shake: true });
     this.scene.add(
       new GhostView(
         () => this.drag.state,
         () => this.stateValue.board,
       ),
+      { shake: true },
     );
-    this.scene.add(this.clearFx);
+    this.scene.add(this.clearFx, { shake: true });
     this.scene.add(this.particles);
-    this.scene.add(this.trayView);
+    this.scene.add(this.trayView, { shake: true });
     this.scene.add(this.dragView);
     this.scene.add({
       onLayout: ({ layout }) => {
@@ -327,6 +341,7 @@ export class App {
     );
     this.updateHud();
     this.showScoreFx(step.events);
+    this.feedback(step.events);
     this.persistRun(step.events);
     this.bus.emit('game', { events: step.events, state: step.state });
     if (step.state.over) void this.showGameOver();
@@ -498,6 +513,29 @@ export class App {
     hud.setScore(score, animate);
     hud.setBest(this.best, beaten);
     hud.setStreak(multiplier(streak), !setHadClear);
+  }
+
+  /** Reduced motion: the setting, or the system preference when the setting is "auto". */
+  private reducedMotion(): boolean {
+    const setting = this.opts.save?.current.settings.reducedMotion ?? null;
+    if (setting !== null) return setting;
+    if (this.opts.prefersReducedMotion) return this.opts.prefersReducedMotion();
+    return (
+      typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+    );
+  }
+
+  /** Haptics and screen shake for a move: the strongest that applies. */
+  private feedback(events: readonly GameEvent[]): void {
+    const cleared = events.find((e) => e.type === 'cleared');
+    const lines = cleared ? cleared.rows.length + cleared.cols.length : 0;
+    const clean = events.some((e) => e.type === 'cleanBoard');
+    const big = lines >= 3 || clean;
+    this.haptics.impact(big ? 'heavy' : lines > 0 ? 'medium' : 'light');
+    if (lines >= 3) {
+      const { amplitude3, amplitude4, duration } = FEEL.shake;
+      this.shake.start(lines >= 4 ? amplitude4 : amplitude3, duration);
+    }
   }
 
   /** Callouts (D6) and the floating "+N" at the centre of the cleared cells. */

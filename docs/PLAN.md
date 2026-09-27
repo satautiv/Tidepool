@@ -586,6 +586,7 @@ As built (T2.04): callouts and "+N" are DOM (`ui/components/FxLayer.ts`) with CS
 
 ### 13.4 Platform (`services/platform/`)
 - `haptics.impact(light|medium|heavy)`: `navigator.vibrate` on the web (Android Chrome only; a very short pulse), and `@capacitor/haptics` on Android. Off when Settings → Haptics is off.
+  - As built (T2.05): `services/platform/haptics.ts` has `WebHaptics(enabled)` (10 / 20 / 35 ms) and `NoHaptics`. Each move gets one impact, the strongest that applies: light for a placement, medium for a clear, heavy for 3+ lines or a clean board. Screen shake is `render/shake.ts`, a scene child. `GameScene.add(view, { shake: true })` translates the board, ghost, clear FX and tray. Particles take the offset in their own transform. The dragged piece and the DOM HUD never shake, and layout/hit-testing is untouched. Reduced motion (the setting, or the system preference when it's "auto") disables the shake.
 - `lifecycle.onPause/onResume`: `visibilitychange` on the web, `@capacitor/app` on Android.
 - `backButton` (Android): close the modal, pause the game, go back to the menu, or exit.
 - `target`: `'web' | 'crazygames' | 'poki' | 'itch' | 'android'`.

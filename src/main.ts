@@ -4,6 +4,7 @@ import { App } from './app/App';
 import { TIDEPOOL } from './render/palettes';
 import { ConsoleAnalytics, NoopAnalytics } from './services/analytics/Analytics';
 import { AdManager } from './services/ads/AdManager';
+import { WebHaptics } from './services/platform/haptics';
 import { domAdOverlay, NoAdsService } from './services/ads/NoAdsService';
 import { SaveStore } from './services/storage/SaveStore';
 import { createWebStorage } from './services/storage/StorageBackend';
@@ -42,6 +43,7 @@ window.addEventListener('pagehide', () => ads.endSession());
 const app = new App({
   save,
   ads,
+  haptics: new WebHaptics(() => save.current.settings.haptics),
   canvas,
   uiRoot,
   palette: TIDEPOOL,
